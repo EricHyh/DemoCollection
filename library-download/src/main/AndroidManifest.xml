@@ -7,7 +7,7 @@
 
     <application>
         <service
-            android:name=".internal.DownloadService"/>
+            android:name=".internal.FDLService"/>
 
         <receiver
             android:name=".internal.PackageReceive">

@@ -3,7 +3,6 @@ package com.eric.hyh.tools.download.api;
 
 import com.eric.hyh.tools.download.bean.Command;
 
-import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 
 /**
@@ -92,7 +91,7 @@ public class FileRequest<T> {
         this.command = command;
     }
 
-    public static abstract class Builder<T> {
+    public static class Builder<T> {
 
         private String resKey;
 
@@ -116,10 +115,6 @@ public class FileRequest<T> {
 
 
         public Builder() {
-            Type genType = this.getClass().getGenericSuperclass();
-            if (genType != null && genType instanceof ParameterizedType) {
-                this.type = ((ParameterizedType) genType).getActualTypeArguments()[0];
-            }
         }
 
         public FileRequest build() {
@@ -154,6 +149,7 @@ public class FileRequest<T> {
 
         public Builder tag(T tag) {
             this.tag = tag;
+            this.type = tag.getClass();
             return this;
         }
 

@@ -13,13 +13,13 @@ import com.eric.hyh.tools.download.bean.TaskInfo;
  * @data 2017/5/17
  */
 
-public abstract class LocalDownloadAgentImpl extends SuperDownloadAgent implements IDownloadAgent.ILocalDownloadAgent {
+public abstract class LocalDownloadProxyImpl extends SuperDownloadProxy implements IDownloadProxy.ILocalDownloadProxy {
 
     private Callback mCallback;
     private ServiceBridge mServiceBridge;
 
 
-    LocalDownloadAgentImpl(Context context, ServiceBridge serviceBridge) {
+    LocalDownloadProxyImpl(Context context, ServiceBridge serviceBridge) {
         super(context);
         this.mServiceBridge = serviceBridge;
     }

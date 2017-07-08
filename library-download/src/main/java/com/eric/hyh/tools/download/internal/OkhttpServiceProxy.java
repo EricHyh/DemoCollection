@@ -2,6 +2,7 @@ package com.eric.hyh.tools.download.internal;
 
 import android.content.Context;
 
+import com.eric.hyh.tools.download.IClient;
 import com.eric.hyh.tools.download.api.HttpClient;
 import com.eric.hyh.tools.download.internal.db.bean.TaskDBInfo;
 
@@ -14,10 +15,10 @@ import java.util.concurrent.Executor;
  * @data 2017/5/17
  */
 
-public class OkhttpServiceAgent extends ServiceDownloadAgentImpl {
+public class OkhttpServiceProxy extends ServiceDownloadProxyImpl {
 
-    OkhttpServiceAgent(Context context, Executor executor, Map<String, TaskDBInfo> taskDBInfoContainer) {
-        super(context, executor, taskDBInfoContainer);
+    OkhttpServiceProxy(Context context, Map<Integer, IClient> clients, Executor executor, Map<String, TaskDBInfo> taskDBInfoContainer) {
+        super(context, clients, executor, taskDBInfoContainer);
     }
 
     @Override

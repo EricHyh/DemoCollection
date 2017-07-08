@@ -5,16 +5,20 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.os.IBinder;
+import android.os.Process;
 import android.os.RemoteException;
+import android.text.TextUtils;
 
-import com.eric.hyh.tools.download.ICallback;
+import com.eric.hyh.tools.download.IClient;
 import com.eric.hyh.tools.download.IRequest;
 import com.eric.hyh.tools.download.api.Callback;
+import com.eric.hyh.tools.download.api.FileDownloader;
+import com.eric.hyh.tools.download.bean.Command;
 import com.eric.hyh.tools.download.bean.State;
 import com.eric.hyh.tools.download.bean.TaskInfo;
-import com.google.gson.Gson;
 
 import java.lang.reflect.Type;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -29,65 +33,89 @@ public class ServiceBridge {
 
 
     private static final int MAX_CONNECTION_RETRY_TIMES = 3;
-    private int currentConnectionRetryTimes = 0;
-    private volatile boolean connected;
-    private volatile ServiceConnection connection;
-    private Context context;
-    private IRequest serviceAgent;
-    private Callback callback;
-    private Map<String, Callback> callbacks = new HashMap<>();
-    private Map<String, Type> types = new HashMap<>();
-    private Map<String, TaskCache> cacheTasks = new LinkedHashMap<>();
-    private Map<String, TaskInfo> cacheDBTasks = new LinkedHashMap<>();
-    private Map<String, Object> tags = new HashMap<>();
-    private Executor executor;
-    private Gson gson;
+    private int mConnectionRetryTimes = 0;
+    private volatile boolean mIsConnected = false;
+    private boolean mIsStartBind = false;
+    private volatile ServiceConnection mConnection;
+    private Context mContext;
+    private IRequest mServiceAgent;
+    private Callback mCallback;
+    private Map<String, Callback> mCallbacks = new HashMap<>();
+    private Map<String, Type> mTypes = new HashMap<>();
+    private Map<String, TaskCache> mCacheTasks = new LinkedHashMap<>();
+    private Map<String, TaskInfo> mCacheDBTasks = new LinkedHashMap<>();
+    private Map<String, Object> mTags = new HashMap<>();
+    private HashMap<String, ArrayList<Callback>> mCallbackMap;
+    private boolean mHasOtherProcess = true;
+    private Executor mExecutor;
+    private final int mPid;
 
     public ServiceBridge(Context context, Executor executor) {
-        this.context = context.getApplicationContext();
-        this.executor = executor;
-        this.gson = new Gson();
+        this.mContext = context.getApplicationContext();
+        this.mExecutor = executor;
+        this.mPid = Process.myPid();
     }
 
     public void bindService() {
-        if (connected) {
+        if (mIsConnected || mIsStartBind) {
             return;
         }
-        if (connection == null) {
-            connection = getConnection();
+        mIsStartBind = true;
+        if (mConnection == null) {
+            mConnection = getConnection();
         }
-        Intent intent = new Intent(context, DownloadService.class);
-        context.bindService(intent, connection, Context.BIND_AUTO_CREATE);
-        context.startService(intent);
+        Intent intent = new Intent(mContext, FDLService.class);
+        mContext.bindService(intent, mConnection, Context.BIND_AUTO_CREATE);
+        mContext.startService(intent);
     }
 
     public void unBindService() {
-        if (connection != null) {
+        if (mConnection != null) {
             try {
-                serviceAgent.unRegisterAll();
+                int pid = Process.myPid();
+                mServiceAgent.unRegister(pid);
             } catch (RemoteException e) {
                 e.printStackTrace();
             }
-            context.unbindService(connection);
-            connection = null;
-            connected = false;
+            mContext.unbindService(mConnection);
+            mConnection = null;
+            mIsConnected = false;
         }
     }
 
-    public void request(int command, TaskInfo taskInfo) {
-        request(command, taskInfo, null);
+    public void addCallback(String key, Callback callback) {
+        ArrayList<Callback> callbackList;
+        if (mCallbackMap == null) {
+            mCallbackMap = new HashMap<>();
+            callbackList = new ArrayList<>();
+            callbackList.add(callback);
+        } else {
+            callbackList = mCallbackMap.get(key);
+            if (callbackList == null) {
+                callbackList = new ArrayList<>();
+            }
+            callbackList.add(callback);
+        }
+        mCallbackMap.put(key, callbackList);
+    }
+
+    public void putCallback(String resKey, Callback callback) {
+        mCallbacks.put(resKey, callback);
     }
 
     public <T> void request(int command, TaskInfo taskInfo, Callback<T> callback) {
         String resKey = taskInfo.getResKey();
         TaskCache taskCache = new TaskCache(command, taskInfo, callback);
-        cacheTasks.put(resKey, taskCache);
-        if (connected) {
+        mCacheTasks.put(resKey, taskCache);
+        if (mIsConnected) {
             try {
-                types.put(resKey, taskInfo.getTagType());
-                tags.put(resKey, taskInfo.getTag());
-                serviceAgent.request(command, taskInfo);
-                cacheTasks.remove(resKey);
+                mTypes.put(resKey, taskInfo.getTagType());
+                mTags.put(resKey, taskInfo.getTag());
+                mCallbacks.put(resKey, callback);
+                int pid = Process.myPid();
+                mServiceAgent.register(pid, mClient);
+                mServiceAgent.request(pid, command, taskInfo);
+                mCacheTasks.remove(resKey);
             } catch (RemoteException e) {
                 e.printStackTrace();
             }
@@ -99,11 +127,11 @@ public class ServiceBridge {
 
     public void requestOperateDB(TaskInfo taskInfo) {
         String resKey = taskInfo.getResKey();
-        cacheDBTasks.put(resKey, taskInfo);
-        if (connected) {
-            TaskInfo remove = cacheDBTasks.remove(resKey);
+        mCacheDBTasks.put(resKey, taskInfo);
+        if (mIsConnected) {
+            TaskInfo remove = mCacheDBTasks.remove(resKey);
             try {
-                serviceAgent.requestOperateDB(remove);
+                mServiceAgent.onCall(mPid, remove);
             } catch (RemoteException e) {
                 e.printStackTrace();
             }
@@ -114,32 +142,25 @@ public class ServiceBridge {
 
 
     public boolean correctDBErroStatus() {
-        if (connected) {
+        if (mIsConnected) {
             try {
-                serviceAgent.correctDBErroStatus();
+                mServiceAgent.correctDBErroStatus();
                 return true;
             } catch (RemoteException e) {
                 e.printStackTrace();
-                if (currentConnectionRetryTimes++ >= MAX_CONNECTION_RETRY_TIMES) {
-                    return false;
-                }
-                return correctDBErroStatus();
             }
         } else {
-            if (currentConnectionRetryTimes++ >= MAX_CONNECTION_RETRY_TIMES) {
-                return false;
-            }
             bindService();
-            return correctDBErroStatus();
         }
+        return false;
     }
 
     public <T> void setCallback(Callback<T> callBack) {
-        this.callback = callBack;
+        this.mCallback = callBack;
     }
 
 
-    private ICallback.Stub iCallback = new ICallback.Stub() {
+    private IClient.Stub mClient = new IClient.Stub() {
         @SuppressWarnings("unchecked")
         @Override
         public void onCall(TaskInfo taskInfo) throws RemoteException {
@@ -147,137 +168,243 @@ public class ServiceBridge {
                 return;
             }
             String resKey = taskInfo.getResKey();
-            Callback singleCallback = callbacks.get(resKey);
+            ArrayList<Callback> singleCallbacks = getSingleCallbacks(resKey);
+            Callback singleCallback = mCallbacks.get(resKey);
             supplementTaskInfo(taskInfo);
             switch (taskInfo.getCurrentStatus()) {
                 case State.PREPARE:
+                    if (singleCallbacks != null) {
+                        for (Callback callback : singleCallbacks) {
+                            callback.onPrepare(taskInfo);
+                        }
+                    }
                     if (singleCallback != null) {
                         singleCallback.onPrepare(taskInfo);
                     }
-                    if (callback != null) {
-                        callback.onPrepare(taskInfo);
+                    if (mCallback != null) {
+                        mCallback.onPrepare(taskInfo);
                     }
                     break;
                 case State.START_WRITE:
+                    if (singleCallbacks != null) {
+                        for (Callback callback : singleCallbacks) {
+                            callback.onFirstFileWrite(taskInfo);
+                        }
+                    }
                     if (singleCallback != null) {
                         singleCallback.onFirstFileWrite(taskInfo);
                     }
-                    if (callback != null) {
-                        callback.onFirstFileWrite(taskInfo);
+                    if (mCallback != null) {
+                        mCallback.onFirstFileWrite(taskInfo);
                     }
                     break;
                 case State.DOWNLOADING:
+                    if (singleCallbacks != null) {
+                        for (Callback callback : singleCallbacks) {
+                            callback.onDownloading(taskInfo);
+                        }
+                    }
                     if (singleCallback != null) {
                         singleCallback.onDownloading(taskInfo);
                     }
-                    if (callback != null) {
-                        callback.onDownloading(taskInfo);
+                    if (mCallback != null) {
+                        mCallback.onDownloading(taskInfo);
                     }
                     break;
                 case State.WAITING_IN_QUEUE:
+                    if (singleCallbacks != null) {
+                        for (Callback callback : singleCallbacks) {
+                            callback.onWaitingInQueue(taskInfo);
+                        }
+                    }
                     if (singleCallback != null) {
                         singleCallback.onWaitingInQueue(taskInfo);
                     }
-                    if (callback != null) {
-                        callback.onWaitingInQueue(taskInfo);
+                    if (mCallback != null) {
+                        mCallback.onWaitingInQueue(taskInfo);
                     }
                     break;
                 case State.WAITING_FOR_WIFI:
+                    if (singleCallbacks != null) {
+                        for (Callback callback : singleCallbacks) {
+                            callback.onWaitingForWifi(taskInfo);
+                        }
+                    }
                     if (singleCallback != null) {
                         singleCallback.onWaitingForWifi(taskInfo);
                     }
-                    if (callback != null) {
-                        callback.onWaitingForWifi(taskInfo);
+                    if (mCallback != null) {
+                        mCallback.onWaitingForWifi(taskInfo);
                     }
                     break;
                 case State.PAUSE:
+                    if (singleCallbacks != null) {
+                        for (Callback callback : singleCallbacks) {
+                            callback.onPause(taskInfo);
+                        }
+                    }
                     if (singleCallback != null) {
                         singleCallback.onPause(taskInfo);
                     }
-                    if (callback != null) {
-                        callback.onPause(taskInfo);
+                    if (mCallback != null) {
+                        mCallback.onPause(taskInfo);
+                    }
+                    mCallbacks.remove(resKey);
+                    if (mCallbackMap != null) {
+                        mCallbackMap.remove(resKey);
                     }
                     break;
                 case State.DELETE:
+                    if (singleCallbacks != null) {
+                        for (Callback callback : singleCallbacks) {
+                            callback.onDelete(taskInfo);
+                        }
+                    }
                     if (singleCallback != null) {
                         singleCallback.onDelete(taskInfo);
                     }
-                    if (callback != null) {
-                        callback.onDelete(taskInfo);
+                    if (mCallback != null) {
+                        mCallback.onDelete(taskInfo);
+                    }
+                    mCallbacks.remove(resKey);
+                    if (mCallbackMap != null) {
+                        mCallbackMap.remove(resKey);
                     }
                     break;
                 case State.SUCCESS:
+                    if (singleCallbacks != null) {
+                        for (Callback callback : singleCallbacks) {
+                            callback.onSuccess(taskInfo);
+                        }
+                    }
                     if (singleCallback != null) {
                         singleCallback.onSuccess(taskInfo);
                     }
-                    if (callback != null) {
-                        callback.onSuccess(taskInfo);
+                    if (mCallback != null) {
+                        mCallback.onSuccess(taskInfo);
+                    }
+                    if (TextUtils.isEmpty(taskInfo.getPackageName())) {
+                        mCallbacks.remove(resKey);
+                    }
+                    if (mCallbackMap != null && TextUtils.isEmpty(taskInfo.getPackageName())) {
+                        mCallbackMap.remove(resKey);
                     }
                     break;
                 case State.FAILURE:
+                    if (singleCallbacks != null) {
+                        for (Callback callback : singleCallbacks) {
+                            callback.onFailure(taskInfo);
+                        }
+                    }
                     if (singleCallback != null) {
                         singleCallback.onFailure(taskInfo);
                     }
-                    if (callback != null) {
-                        callback.onFailure(taskInfo);
+                    if (mCallback != null) {
+                        mCallback.onFailure(taskInfo);
+                    }
+                    mCallbacks.remove(resKey);
+                    if (mCallbackMap != null) {
+                        mCallbackMap.remove(resKey);
                     }
                     break;
                 case State.INSTALL:
+                    if (singleCallbacks != null) {
+                        for (Callback callback : singleCallbacks) {
+                            callback.onInstall(taskInfo);
+                        }
+                    }
                     if (singleCallback != null) {
                         singleCallback.onInstall(taskInfo);
                     }
-                    if (callback != null) {
-                        callback.onInstall(taskInfo);
+                    if (mCallback != null) {
+                        mCallback.onInstall(taskInfo);
                     }
                     break;
                 case State.UNINSTALL:
+                    if (singleCallbacks != null) {
+                        for (Callback callback : singleCallbacks) {
+                            callback.onUnInstall(taskInfo);
+                        }
+                    }
                     if (singleCallback != null) {
                         singleCallback.onUnInstall(taskInfo);
                     }
-                    if (callback != null) {
-                        callback.onUnInstall(taskInfo);
+                    if (mCallback != null) {
+                        mCallback.onUnInstall(taskInfo);
+                    }
+                    mCallbacks.remove(resKey);
+                    if (mCallbackMap != null) {
+                        mCallbackMap.remove(resKey);
                     }
                     break;
             }
         }
 
         @Override
-        public void onHaveNoTask() throws RemoteException {
-            if (callback != null) {
-                callback.onHaveNoTask();
+        public void otherProcessCommand(int command, String resKey) throws RemoteException {
+            switch (command) {
+                case Command.PAUSE:
+                    FileDownloader.getInstance(mContext).pauseTask(resKey);
+                    break;
+                case Command.DELETE:
+                    FileDownloader.getInstance(mContext).deleteTask(resKey);
+                    break;
             }
+        }
+
+
+        @Override
+        public void onHaveNoTask() throws RemoteException {
+            if (mCallback != null) {
+                mCallback.onHaveNoTask();
+            }
+        }
+
+        @Override
+        public boolean isFileDownloading(String resKey) throws RemoteException {
+            return FileDownloader.getInstance(mContext).isFileDownloading(resKey);
+        }
+
+        @Override
+        public void onProcessChanged(boolean hasOtherProcess) throws RemoteException {
+            mHasOtherProcess = hasOtherProcess;
         }
     };
 
     @SuppressWarnings("unchecked")
     private void supplementTaskInfo(TaskInfo taskInfo) {
         String resKey = taskInfo.getResKey();
-        Type type = types.get(resKey);
-        Object tag = tags.get(resKey);
+        Type type = mTypes.get(resKey);
+        Object tag = mTags.get(resKey);
         taskInfo.setTagType(type);
         taskInfo.setTag(tag);
     }
 
 
     private ServiceConnection getConnection() {
-        return connection = new ServiceConnection() {
+        return mConnection = new ServiceConnection() {
             @Override
             public void onServiceConnected(ComponentName name, IBinder service) {
-                serviceAgent = IRequest.Stub.asInterface(service);
-                connected = true;
+                mConnectionRetryTimes = 0;
+                mServiceAgent = IRequest.Stub.asInterface(service);
+                mIsConnected = true;
+                mIsStartBind = false;
                 try {
-                    serviceAgent.registerAll(iCallback);
+                    mServiceAgent.register(mPid, mClient);
+                    synchronized (ServiceBridge.class) {
+                        ServiceBridge.class.notifyAll();
+                    }
                 } catch (RemoteException e) {
                     e.printStackTrace();
                 }
-                if (cacheTasks.size() > 0) {
-                    Collection<TaskCache> values = cacheTasks.values();
+                if (mCacheTasks.size() > 0) {
+                    Collection<TaskCache> values = mCacheTasks.values();
                     for (TaskCache taskCache : values) {
                         request(taskCache.command, taskCache.taskInfo, taskCache.callback);
                     }
                 }
-                if (cacheDBTasks.size() > 0) {
-                    Collection<TaskInfo> values = cacheDBTasks.values();
+                if (mCacheDBTasks.size() > 0) {
+                    Collection<TaskInfo> values = mCacheDBTasks.values();
                     for (TaskInfo taskInfo : values) {
                         requestOperateDB(taskInfo);
                     }
@@ -286,8 +413,64 @@ public class ServiceBridge {
 
             @Override
             public void onServiceDisconnected(ComponentName name) {
-
+                mIsStartBind = false;
+                if (mConnectionRetryTimes++ >= MAX_CONNECTION_RETRY_TIMES) {
+                    bindService();
+                }
             }
         };
+    }
+
+    private ArrayList<Callback> getSingleCallbacks(String key) {
+        ArrayList<Callback> callbacks = null;
+        if (mCallbackMap != null) {
+            callbacks = mCallbackMap.get(key);
+        }
+        return callbacks;
+    }
+
+    public boolean isFileDownloading(String resKey) {
+        if (mHasOtherProcess) {
+            try {
+                if (mIsConnected) {
+                    return mServiceAgent.isFileDownloading(mPid, resKey);
+                } else {
+                    mExecutor.execute(new Runnable() {
+                        @Override
+                        public void run() {
+                            bindService();
+                        }
+                    });
+                    synchronized (ServiceBridge.class) {
+                        while (true) {
+                            ServiceBridge.class.wait();
+                            if (mIsConnected) {
+                                break;
+                            }
+                        }
+                        return mServiceAgent.isFileDownloading(mPid, resKey);
+                    }
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        return false;
+    }
+
+    public void onUnInstall(TaskInfo taskInfo) {
+        try {
+            mClient.onCall(taskInfo);
+        } catch (RemoteException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void onInstall(TaskInfo taskInfo) {
+        try {
+            mClient.onCall(taskInfo);
+        } catch (RemoteException e) {
+            e.printStackTrace();
+        }
     }
 }

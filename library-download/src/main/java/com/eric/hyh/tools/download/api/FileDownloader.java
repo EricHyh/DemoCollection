@@ -1,15 +1,19 @@
 package com.eric.hyh.tools.download.api;
 
+import android.annotation.SuppressLint;
 import android.app.PendingIntent;
 import android.content.Context;
+import android.content.Intent;
 import android.os.SystemClock;
 import android.text.TextUtils;
 
 import com.eric.hyh.tools.download.bean.Command;
 import com.eric.hyh.tools.download.bean.State;
 import com.eric.hyh.tools.download.bean.TaskInfo;
-import com.eric.hyh.tools.download.internal.IDownloadAgent;
-import com.eric.hyh.tools.download.internal.OkhttpLocalAgent;
+import com.eric.hyh.tools.download.internal.Constans;
+import com.eric.hyh.tools.download.internal.FDLService;
+import com.eric.hyh.tools.download.internal.IDownloadProxy;
+import com.eric.hyh.tools.download.internal.OkhttpLocalProxy;
 import com.eric.hyh.tools.download.internal.ServiceBridge;
 import com.eric.hyh.tools.download.internal.Utils;
 import com.eric.hyh.tools.download.internal.db.bean.TaskDBInfo;
@@ -23,13 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
-
-import static com.eric.hyh.tools.download.internal.Utils.deleteDownloadFile;
-
 
 /**
  * Created by Administrator on 2017/3/8.
@@ -37,48 +35,40 @@ import static com.eric.hyh.tools.download.internal.Utils.deleteDownloadFile;
 @SuppressWarnings("unchecked")
 public class FileDownloader {
 
+    private static final long KEEP_ALIVE_TIME_OUTAPP = 30 * 1000;
+
+    private static final long KEEP_ALIVE_TIME_INAPP = 60 * 1000;
+
+    @SuppressLint("StaticFieldLeak")
     private static FileDownloader sFileDownloader;
 
-    private ThreadPoolExecutor executor = new ThreadPoolExecutor(0//单线程池，用于操作数据库
-            , 1
-            , 60L
-            , TimeUnit.SECONDS
-            , new LinkedBlockingQueue<Runnable>()
-            , new ThreadFactory() {
+    private ThreadPoolExecutor mExecutor = Utils.buildExecutor(4, 4, 120, "FileDownload Thread", true);
 
-        @Override
-        public Thread newThread(Runnable r) {
-            return new Thread(r, "FileDownloader dbPool");
-        }
-    });
+    private Gson mGson = new Gson();
 
-    private Gson gson = new Gson();
+    private Context mContext;
 
-    private Context context;
-
-    private IDownloadAgent.ILocalDownloadAgent mLocalAgent;//下载代理类
+    private IDownloadProxy.ILocalDownloadProxy mLocalProxy;//本地下载代理类
 
     private ServiceBridge mServiceBridge;//远程服务操作类
 
-    private Map<String, FileCall> fileCalls = new ConcurrentHashMap<>();//存储当前正在进行的任务
+    private ConcurrentHashMap<String, FileCall> mFileCalls = new ConcurrentHashMap<>();//存储当前正在进行的任务
 
-    private Utils.DBUtil dbUtil;//数据库操作工具类
+    private Utils.DBUtil mDBUtil;//数据库操作工具类
 
-    private volatile boolean isExit = false;//应用是否已退出
+    private volatile boolean haveNoTask = true;//是否有下载任务正在进行
 
-    private boolean isForceDestroy = false;
+    private volatile boolean released = false;//内存是否已释放
 
-    private volatile boolean isHaveNoTask = true;//是否有下载任务正在进行
+    private volatile boolean releaseStarted;//是否开始释放内存的任务
 
-    private volatile boolean isRelease = false;//内存是否已释放
+    private volatile boolean mIsCorrectDBErroStatus = false;//是否已矫正数据库中所存储任务的异常状态
 
-    private volatile boolean correctDBErroStatus = false;//是否已矫正数据库中所存储任务的异常状态
+    private List<Callback> mListeners = new ArrayList<>();//存储外部注册的回调
 
-    private List<Callback> listeners = new ArrayList<>();//存储外部注册的回调
+    private Map<String, TaskDBInfo> mHistoryTasks = new ConcurrentHashMap<>();//数据库中所有任务的列表
 
-    private Map<String, TaskDBInfo> tasks = new ConcurrentHashMap<>();//数据库中所有任务的列表
-
-    private final DownloadListener mListener;//下载过程的回调
+    private DownloadListener mListener;//下载过程的回调
 
 
     public static FileDownloader getInstance(Context context) {
@@ -94,104 +84,81 @@ public class FileDownloader {
     }
 
     private FileDownloader(Context context) {
-      /*  int pid = android.os.Process.myPid();
-        Log.d("tag===", "FileDownloader: " + pid);*/
-        this.context = context.getApplicationContext();
-        dbUtil = Utils.DBUtil.getInstance(this.context);
-        mServiceBridge = new ServiceBridge(this.context, executor);
-        mListener = new DownloadListener();
-        mLocalAgent = new OkhttpLocalAgent(this.context, mServiceBridge);
-        mServiceBridge.bindService();
-        mLocalAgent.setCallback(mListener);
-        mServiceBridge.setCallback(mListener);
+        this.mContext = context.getApplicationContext();
+        this.mDBUtil = Utils.DBUtil.getInstance(this.mContext);
+        this.mServiceBridge = new ServiceBridge(this.mContext, mExecutor);
+        this.mListener = new DownloadListener();
+        this.mLocalProxy = new OkhttpLocalProxy(this.mContext, mServiceBridge);
+        this.mServiceBridge.bindService();
+        this.mLocalProxy.setCallback(mListener);
+        this.mServiceBridge.setCallback(mListener);
         correctDBErroStatus();
-        initTasks();
+        initHistoryTasks();
     }
 
     private void initFileDownloader() {
-        if (!isRelease) {
+        if (!released) {
             return;
         }
         synchronized (FileDownloader.class) {
-            if (isRelease) {
+            if (released) {
                 mServiceBridge.bindService();
                 correctDBErroStatus();
-                isRelease = false;
+                released = false;
             }
         }
     }
 
 
     private void correctDBErroStatus() {
-        if (!isHaveNoTask) {
+        if (!haveNoTask) {
             return;
         }
-        executor.execute(new Runnable() {
+        mExecutor.execute(new Runnable() {
             @Override
             public void run() {
-                correctDBErroStatus = mServiceBridge.correctDBErroStatus();
-                if (!correctDBErroStatus) {
-                    correctDBErroStatus = dbUtil.correctDBErroStatus(context);
+                mIsCorrectDBErroStatus = mServiceBridge.correctDBErroStatus();
+                if (!mIsCorrectDBErroStatus) {
+                    mIsCorrectDBErroStatus = mDBUtil.correctDBErroStatus(mContext);
+                }
+                synchronized (FileDownloader.class) {
+                    FileDownloader.class.notifyAll();
                 }
             }
         });
     }
 
 
-    private void initTasks() {
-        executor.execute(new Runnable() {
+    private void initHistoryTasks() {
+        mExecutor.execute(new Runnable() {
             @Override
             public void run() {
-                tasks = dbUtil.getAllTasks(tasks);
+                mHistoryTasks = mDBUtil.getAllTasks(mHistoryTasks);
             }
         });
     }
 
 
-    private ThreadPoolExecutor buildExecutor() {
-        return new ThreadPoolExecutor(0//单线程池，用于操作数据库
-                , 1
-                , 60L
-                , TimeUnit.SECONDS
-                , new LinkedBlockingQueue<Runnable>()
-                , new ThreadFactory() {
+    public <T> void startTask(FileRequest<T> fileRequest) {
+        startTask(fileRequest, null);
+    }
 
+    public <T> void startTask(final FileRequest<T> fileRequest, final Callback<T> callback) {
+        mExecutor.execute(new Runnable() {
             @Override
-            public Thread newThread(Runnable r) {
-                return new Thread(r, "FileDownloader dbPool");
+            public void run() {
+                FileCall<T> fileCall = newCall(fileRequest, callback);
+                if (fileCall != null) {
+                    fileCall.fileRequest().changeCommand(Command.START);
+                    fileCall.enqueue(callback);
+                } else {
+                    if (mFileCalls.isEmpty()) {
+                        //TODO 没任务了
+                        mListener.onHaveNoTask();
+                    }
+                }
             }
         });
-    }
-
-
-    public <T> boolean startTask(FileRequest<T> fileRequest) {
-        FileCall<T> fileCall = newCall(fileRequest, null);
-        if (fileCall != null) {
-            fileCall.fileRequest().changeCommand(Command.START);
-            fileCall.enqueue();
-            return true;
-        } else {
-            if (fileCalls.isEmpty()) {
-                //TODO 没任务了
-                mListener.onHaveNoTask();
-            }
-            return false;
-        }
-    }
-
-    public <T> boolean startTask(FileRequest<T> fileRequest, Callback<T> callback) {
-        FileCall<T> fileCall = newCall(fileRequest, callback);
-        if (fileCall != null) {
-            fileCall.fileRequest().changeCommand(Command.START);
-            fileCall.enqueue(callback);
-            return true;
-        } else {
-            if (fileCalls.isEmpty()) {
-                //TODO 没任务了
-                mListener.onHaveNoTask();
-            }
-            return false;
-        }
     }
 
 
@@ -201,8 +168,7 @@ public class FileDownloader {
             public void onResult(List<TaskInfo<T>> result) {
                 if (result != null && !result.isEmpty()) {
                     for (TaskInfo<T> taskInfo : result) {
-                        FileRequest<T> fileRequest = new FileRequest.Builder<T>() {
-                        }
+                        FileRequest<T> fileRequest = new FileRequest.Builder<T>()
                                 .tag(taskInfo.getTag())
                                 .type(taskInfo.getTagType())
                                 .key(taskInfo.getResKey())
@@ -221,49 +187,76 @@ public class FileDownloader {
     }
 
 
+    public boolean isFileDownloading(String resKey) {
+        return mFileCalls.get(resKey) != null;
+    }
+
+    public boolean isFileDownloaded(String resKey) {
+        TaskDBInfo taskDBInfo = mDBUtil.getTaskDBInfoByResKey(resKey);
+        return taskDBInfo != null && taskDBInfo.getCurrentStatus() == State.SUCCESS;
+    }
+
+
     public <T> PendingIntent buildPendingIntent(FileRequest<T> fileRequest, Callback<T> callback) {
-        /*initFileDownloader();
-        FileCall<T> fileCall = newCall(fileRequest, callback);
+        String resKey = fileRequest.key();
+        int command = fileRequest.command();
+        FileCall fileCall = mFileCalls.get(resKey);
         if (fileCall != null) {
-            Intent intent = new Intent(context, DownloadService.class);
-            intent.putExtra(Constans.COMMADN, fileRequest.command());
-            intent.putExtra(Constans.COMMADN, fileCall.taskInfo());
-            return PendingIntent.getService(context, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
-        }*/
+            if (command == Command.PAUSE || command == Command.DELETE) {
+                mServiceBridge.addCallback(resKey, callback);
+                Intent intent = new Intent(mContext, FDLService.class);
+                intent.putExtra(Constans.COMMADN, fileRequest.command());
+                intent.putExtra(Constans.REQUEST_INFO, fileCall.taskInfo());
+                return PendingIntent.getService(mContext, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
+            }
+        } else {
+            if (command == Command.UPDATE || command == Command.START) {
+                fileCall = newCall(fileRequest, callback);
+                mServiceBridge.addCallback(resKey, callback);
+                if (fileCall != null) {
+                    Intent intent = new Intent(mContext, FDLService.class);
+                    intent.putExtra(Constans.COMMADN, fileRequest.command());
+                    intent.putExtra(Constans.REQUEST_INFO, fileCall.taskInfo());
+                    return PendingIntent.getService(mContext, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
+                }
+            } else {
+                mServiceBridge.addCallback(resKey, callback);
+                Intent intent = new Intent(mContext, FDLService.class);
+                intent.putExtra(Constans.COMMADN, fileRequest.command());
+                File file = Utils.getDownLoadFile(mContext, resKey);//获取已下载文件
+                long currentSize = 0;
+                if (file.exists()) {
+                    currentSize = file.length();
+                }
+                TaskInfo<T> taskInfo = generateTaskInfo(fileRequest, file, currentSize);
+                intent.putExtra(Constans.REQUEST_INFO, taskInfo);
+                return PendingIntent.getService(mContext, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
+            }
+        }
         return null;
     }
 
     public void deleteTask(final String resKey) {
-        initFileDownloader();
-        FileCall fileCall = fileCalls.remove(resKey);
+        FileCall fileCall = mFileCalls.remove(resKey);
         if (fileCall != null) {
             fileCall.fileRequest().changeCommand(Command.DELETE);
             fileCall.enqueue();
         } else {
-            if (!tasks.isEmpty()) {
-                TaskDBInfo taskDBInfo = tasks.get(resKey);
-                if (taskDBInfo != null) {
-                    mListener.onDelete(TaskInfo.taskDBInfo2TaskInfo(taskDBInfo, gson));
-                    deleteDownloadFile(context, resKey);
-                }
-            } else {
-                executor.execute(new Runnable() {
-                    @Override
-                    public void run() {
-                        TaskDBInfo taskDBInfo = dbUtil.getTaskDBInfoByResKey(resKey);
-                        if (taskDBInfo != null) {
-                            mListener.onDelete(TaskInfo.taskDBInfo2TaskInfo(taskDBInfo, gson));
-                            deleteDownloadFile(context, resKey);
-                        }
+            mExecutor.execute(new Runnable() {
+                @Override
+                public void run() {
+                    TaskDBInfo taskDBInfo = mDBUtil.getTaskDBInfoByResKey(resKey);
+                    if (taskDBInfo != null) {
+                        mListener.onDelete(TaskInfo.taskDBInfo2TaskInfo(taskDBInfo, mGson));
+                        Utils.deleteDownloadFile(mContext, resKey);
                     }
-                });
-            }
+                }
+            });
         }
     }
 
     public void pauseTask(String resKey) {
-        initFileDownloader();
-        FileCall fileCall = fileCalls.remove(resKey);
+        FileCall fileCall = mFileCalls.remove(resKey);
         if (fileCall != null) {
             fileCall.fileRequest().changeCommand(Command.PAUSE);
             fileCall.enqueue();
@@ -284,37 +277,37 @@ public class FileDownloader {
     }
 
     public void deleteAllTasks() {
-        Set<String> resKeys = fileCalls.keySet();
+        Set<String> resKeys = mFileCalls.keySet();
         for (String resKey : resKeys) {
             deleteTask(resKey);
         }
     }
 
     public void pauseAllTasks() {
-        Set<String> resKeys = fileCalls.keySet();
+        Set<String> resKeys = mFileCalls.keySet();
         for (String resKey : resKeys) {
             pauseTask(resKey);
         }
     }
 
     public <T> void addListener(Callback<T> callback) {
-        listeners.add(callback);
+        mListeners.add(callback);
     }
 
     public <T> void removeListener(Callback<T> callback) {
-        listeners.remove(callback);
+        mListeners.remove(callback);
     }
 
     public <T> void removeAllListener() {
-        listeners.clear();
+        mListeners.clear();
     }
 
 
     public <T> List<TaskInfo<T>> getSaveInDBWaitingForWifiTasksSynch() {
         ArrayList<TaskInfo<T>> taskInfos = new ArrayList<>();
-        List<TaskDBInfo> list = dbUtil.getWaitingForWifiTasks();
+        List<TaskDBInfo> list = mDBUtil.getWaitingForWifiTasks();
         for (TaskDBInfo taskDBInfo : list) {
-            TaskInfo<T> taskInfo = TaskInfo.taskDBInfo2TaskInfo(taskDBInfo, gson);
+            TaskInfo<T> taskInfo = TaskInfo.taskDBInfo2TaskInfo(taskDBInfo, mGson);
             taskInfos.add(taskInfo);
         }
         return taskInfos;
@@ -322,7 +315,7 @@ public class FileDownloader {
 
 
     public <T> void getSaveInDBWaitingForWifiTasksAsynch(final SearchListener<List<TaskInfo<T>>> callback) {
-        executor.execute(new Runnable() {
+        mExecutor.execute(new Runnable() {
             @Override
             public void run() {
                 List<TaskInfo<T>> taskInfos = getSaveInDBWaitingForWifiTasksSynch();
@@ -334,9 +327,9 @@ public class FileDownloader {
 
     public <T> List<TaskInfo<T>> getSaveInDBWaitingForWifiTasksSynch(Type tagType) {
         ArrayList<TaskInfo<T>> taskInfos = new ArrayList<>();
-        List<TaskDBInfo> list = dbUtil.getWaitingForWifiTasks();
+        List<TaskDBInfo> list = mDBUtil.getWaitingForWifiTasks();
         for (TaskDBInfo taskDBInfo : list) {
-            TaskInfo<T> taskInfo = TaskInfo.taskDBInfo2TaskInfo(taskDBInfo, tagType, gson);
+            TaskInfo<T> taskInfo = TaskInfo.taskDBInfo2TaskInfo(taskDBInfo, tagType, mGson);
             taskInfos.add(taskInfo);
         }
         return taskInfos;
@@ -345,9 +338,9 @@ public class FileDownloader {
 
     public <T> List<TaskInfo<T>> getSaveInDBSuccessTasksSynch(Type tagType) {
         ArrayList<TaskInfo<T>> taskInfos = new ArrayList<>();
-        List<TaskDBInfo> list = dbUtil.getSuccessTasks();
+        List<TaskDBInfo> list = mDBUtil.getSuccessTasks();
         for (TaskDBInfo taskDBInfo : list) {
-            TaskInfo<T> taskInfo = TaskInfo.taskDBInfo2TaskInfo(taskDBInfo, tagType, gson);
+            TaskInfo<T> taskInfo = TaskInfo.taskDBInfo2TaskInfo(taskDBInfo, tagType, mGson);
             taskInfos.add(taskInfo);
         }
         return taskInfos;
@@ -355,25 +348,25 @@ public class FileDownloader {
 
     public <T> List<TaskInfo<T>> getSaveInDBInstalledTasksSynch(Type tagType) {
         ArrayList<TaskInfo<T>> taskInfos = new ArrayList<>();
-        List<TaskDBInfo> list = dbUtil.getInstalledTasks();
+        List<TaskDBInfo> list = mDBUtil.getInstalledTasks();
         for (TaskDBInfo taskDBInfo : list) {
-            TaskInfo<T> taskInfo = TaskInfo.taskDBInfo2TaskInfo(taskDBInfo, tagType, gson);
+            TaskInfo<T> taskInfo = TaskInfo.taskDBInfo2TaskInfo(taskDBInfo, tagType, mGson);
             taskInfos.add(taskInfo);
         }
         return taskInfos;
     }
 
     public <T> List<TaskInfo<T>> getAllAppsSynch(Type tagType) {
-        if (!correctDBErroStatus && isHaveNoTask) {
-            correctDBErroStatus = mServiceBridge.correctDBErroStatus();
-            if (!correctDBErroStatus) {
-                correctDBErroStatus = dbUtil.correctDBErroStatus(context);
+        if (!mIsCorrectDBErroStatus && haveNoTask) {
+            mIsCorrectDBErroStatus = mServiceBridge.correctDBErroStatus();
+            if (!mIsCorrectDBErroStatus) {
+                mIsCorrectDBErroStatus = mDBUtil.correctDBErroStatus(mContext);
             }
         }
-        List<TaskDBInfo> list = dbUtil.getAllTasks();
+        List<TaskDBInfo> list = mDBUtil.getAllTasks();
         List<TaskInfo<T>> taskInfos = new ArrayList<>();
         for (TaskDBInfo taskDBInfo : list) {
-            TaskInfo<T> taskInfo = TaskInfo.taskDBInfo2TaskInfo(taskDBInfo, tagType, gson);
+            TaskInfo<T> taskInfo = TaskInfo.taskDBInfo2TaskInfo(taskDBInfo, tagType, mGson);
             taskInfos.add(taskInfo);
         }
         return taskInfos;
@@ -381,7 +374,7 @@ public class FileDownloader {
 
 
     public <T> void getSaveInDBWaitingForWifiTasksAsynch(final Type type, final SearchListener<List<TaskInfo<T>>> callback) {
-        executor.execute(new Runnable() {
+        mExecutor.execute(new Runnable() {
             @Override
             public void run() {
                 List<TaskInfo<T>> taskInfos = getSaveInDBWaitingForWifiTasksSynch(type);
@@ -392,7 +385,7 @@ public class FileDownloader {
 
 
     public <T> void getSaveInDBSuccessTasksAsynch(final Type type, final SearchListener<List<TaskInfo<T>>> callback) {
-        executor.execute(new Runnable() {
+        mExecutor.execute(new Runnable() {
             @Override
             public void run() {
                 List<TaskInfo<T>> taskInfos = getSaveInDBSuccessTasksSynch(type);
@@ -404,7 +397,7 @@ public class FileDownloader {
 
 
     public <T> void getSaveInDBInstalledTasksAsynch(final Type type, final SearchListener<List<TaskInfo<T>>> callback) {
-        executor.execute(new Runnable() {
+        mExecutor.execute(new Runnable() {
             @Override
             public void run() {
                 List<TaskInfo<T>> taskInfos = getSaveInDBInstalledTasksSynch(type);
@@ -416,7 +409,7 @@ public class FileDownloader {
 
 
     public <T> void getAllAppsAsynch(final Type tagType, final SearchListener<List<TaskInfo<T>>> callback) {
-        executor.execute(new Runnable() {
+        mExecutor.execute(new Runnable() {
             @Override
             public void run() {
                 List<TaskInfo<T>> taskInfos = getAllAppsSynch(tagType);
@@ -428,28 +421,151 @@ public class FileDownloader {
 
     private <T> FileCall<T> newCall(final FileRequest<T> request, Callback<T> callback) {
         initFileDownloader();
-        isHaveNoTask = false;
+        if (!mIsCorrectDBErroStatus) {
+            synchronized (FileDownloader.class) {
+                while (!mIsCorrectDBErroStatus) {
+                    try {
+                        FileDownloader.class.wait();
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        }
+        haveNoTask = false;
         final String resKey = request.key();
-        File file = Utils.getDownLoadFile(context, request.key());//获取已下载文件
+
+        // TODO: 2017/6/23 问下其他进程的兄弟有没有在下载这个任务
+        boolean isFileDownloading = mServiceBridge.isFileDownloading(resKey);
+        if (isFileDownloading) {
+            return null;
+        }
+
+        File file = Utils.getDownLoadFile(mContext, request.key());//获取已下载文件
         long currentSize = 0;
         if (file.exists()) {
             currentSize = file.length();
         }
         TaskInfo<T> taskInfo = generateTaskInfo(request, file, currentSize);
-        FileCall fileCall = fileCalls.get(resKey);
+        FileCall fileCall = mFileCalls.get(resKey);
         if (fileCall != null) {
             boolean byService = fileCall.fileRequest().byService();
             if (byService != request.byService()) {
                 return null;
             } else {
-                fileCalls.remove(resKey);
+                mFileCalls.remove(resKey);
             }
-            fileCall = new FileCall(request, mLocalAgent, mServiceBridge, taskInfo);
-            fileCalls.put(resKey, fileCall);
+            fileCall = new FileCall(request, mLocalProxy, mServiceBridge, taskInfo);
+            mFileCalls.put(resKey, fileCall);
             return fileCall;
         }
         //校验之前下载的文件
         checkOldFile(request, resKey, taskInfo);
+        currentSize = taskInfo.getCurrentSize();
+
+        TaskDBInfo taskDBInfo = mHistoryTasks.isEmpty() ? mDBUtil.getTaskDBInfoByResKey(resKey) : mHistoryTasks.get(resKey);
+
+        boolean isUpdate = request.command() == Command.UPDATE;
+        boolean isAppInstall = false;
+        if (!isUpdate) {//更新指令
+            String packageName = request.packageName();
+            if (TextUtils.isEmpty(packageName) && taskDBInfo != null) {
+                packageName = taskDBInfo.getPackageName();
+            }
+            boolean hasPackageName = !TextUtils.isEmpty(packageName);
+            int oldVersionCode = -1;
+            if (hasPackageName) {
+                oldVersionCode = Utils.getVersionCode(mContext, request.packageName());
+                if (oldVersionCode > 0) {
+                    isAppInstall = true;
+                }
+            } else {
+                if (taskDBInfo != null) {
+                    oldVersionCode = taskDBInfo.getVersionCode() == null ? -1 : taskDBInfo.getVersionCode();
+                }
+            }
+            if (request.versionCode() > 0 && (oldVersionCode != request.versionCode())) {
+                isUpdate = true;
+            }
+        }
+        if (isUpdate) {
+            if (!hasEnoughDiskSpace(request.fileSize())) {//判断磁盘空间大小
+                //TODO 磁盘空间不足
+                if (callback != null) {
+                    callback.onNoEnoughSpace(taskInfo);
+                }
+                mListener.onNoEnoughSpace(taskInfo);
+                return null;
+            }
+            fileCall = new FileCall(request, mLocalProxy, mServiceBridge, taskInfo);
+            mFileCalls.put(resKey, fileCall);
+            return fileCall;
+        }
+        if (isAppInstall) {
+            //TODO 已经安装
+            if (taskDBInfo == null) {
+                taskInfo.setCurrentStatus(State.INSTALL);
+                if (callback != null) {
+                    callback.onInstall(taskInfo);
+                }
+                mListener.onInstall(taskInfo);
+                mServiceBridge.requestOperateDB(taskInfo);
+            } else {
+                taskInfo = TaskInfo.taskDBInfo2TaskInfo(taskDBInfo, mGson);
+                taskInfo.setCurrentStatus(State.INSTALL);
+                if (callback != null) {
+                    callback.onInstall(taskInfo);
+                }
+                mListener.onInstall(taskInfo);
+                if (taskDBInfo.getCurrentStatus() == null || taskDBInfo.getCurrentStatus() != State.INSTALL) {
+                    mServiceBridge.requestOperateDB(taskInfo);
+                }
+            }
+            return null;
+        }
+
+
+        if (taskDBInfo != null) {
+            if (taskDBInfo.getCurrentStatus() != null && taskDBInfo.getCurrentStatus() == State.SUCCESS) {
+                //TODO 下载成功
+                taskInfo = TaskInfo.taskDBInfo2TaskInfo(taskDBInfo, mGson);
+                if (callback != null) {
+                    callback.onSuccess(taskInfo);
+                    if (!TextUtils.isEmpty(taskDBInfo.getPackageName())) {
+                        mServiceBridge.putCallback(resKey, callback);
+                    }
+                }
+                mListener.onSuccess(taskInfo);
+                return null;
+            }
+        }
+
+        long fileSize = request.fileSize();
+        if (fileSize == 0) {
+            if (taskDBInfo != null) {
+                fileSize = taskDBInfo.getTotalSize() == null ? 0 : taskDBInfo.getTotalSize();
+            }
+        }
+
+        if (currentSize > 0 && currentSize == fileSize) {
+            //TODO 下载成功
+            if (taskDBInfo != null) {
+                taskDBInfo.setCurrentStatus(State.SUCCESS);
+                taskDBInfo.setTotalSize(fileSize);
+                taskDBInfo.setCurrentSize(currentSize);
+                taskDBInfo.setProgress(100);
+                taskInfo = TaskInfo.taskDBInfo2TaskInfo(taskDBInfo, mGson);
+            }
+            taskInfo.setCurrentStatus(State.SUCCESS);
+            if (callback != null) {
+                callback.onSuccess(taskInfo);
+                if (!TextUtils.isEmpty(taskInfo.getPackageName())) {
+                    mServiceBridge.putCallback(resKey, callback);
+                }
+            }
+            mListener.onSuccess(taskInfo);
+            return null;
+        }
 
         if (!hasEnoughDiskSpace(request.fileSize())) {//判断磁盘空间大小
             //TODO 磁盘空间不足
@@ -460,115 +576,35 @@ public class FileDownloader {
             return null;
         }
 
-
-        boolean isUpdate = request.command() == Command.UPDATE;
-        if (isUpdate) {//更新指令
-            fileCall = new FileCall(request, mLocalAgent, mServiceBridge, taskInfo);
-            fileCalls.put(resKey, fileCall);
-            return fileCall;
-        }
-
-
-        String packageName = request.packageName();
-        boolean hasPackageName = !TextUtils.isEmpty(packageName);
-        if (hasPackageName) {
-            int oldVersionCode = Utils.getVersionCode(context, request.packageName());
-            if (oldVersionCode > 0) {//应用已安装
-                int versionCode = request.versionCode();
-                if (versionCode == oldVersionCode) {//应用不需要更新
-                    taskInfo.setCurrentStatus(State.INSTALL);
-                    if (callback != null) {
-                        callback.onInstall(taskInfo);
-                    }
-                    mListener.onInstall(taskInfo);
-                    mServiceBridge.requestOperateDB(taskInfo);
-                    return null;
-                } else {
-                    if (currentSize > 0 && request.fileSize() == currentSize) {
-                        //TODO 下载成功
-                        taskInfo.setCurrentStatus(State.SUCCESS);
-                        if (callback != null) {
-                            callback.onSuccess(taskInfo);
-                        }
-                        mListener.onSuccess(taskInfo);
-                        mServiceBridge.requestOperateDB(taskInfo);
-                        return null;
-                    }
-                }
-            } else {//应用未安装
-                if (currentSize > 0 && request.fileSize() == currentSize) {
-                    //TODO 下载成功
-                    taskInfo.setCurrentStatus(State.SUCCESS);
-                    if (callback != null) {
-                        callback.onSuccess(taskInfo);
-                    }
-                    mListener.onSuccess(taskInfo);
-                    mServiceBridge.requestOperateDB(taskInfo);
-                    return null;
-                }
-            }
-        } else {
-            long requestFileSize = request.fileSize();
-            TaskDBInfo taskDBInfo = tasks.isEmpty() ? dbUtil.getTaskDBInfoByResKey(resKey) : tasks.get(resKey);
-            if (requestFileSize == 0) {
-                if (taskDBInfo != null) {
-                    requestFileSize = taskDBInfo.getTotalSize();
-                }
-            }
-            if (currentSize == 0
-                    && taskDBInfo != null
-                    && !TextUtils.isEmpty(taskDBInfo.getPackageName())
-                    && Utils.isAppInstall(context, taskDBInfo.getPackageName())) {
-                //TODO 已经安装
-                taskInfo.setCurrentStatus(State.INSTALL);
-                if (callback != null) {
-                    callback.onInstall(taskInfo);
-                }
-                mListener.onInstall(taskInfo);
-                if (taskDBInfo.getCurrentStatus() == null || taskDBInfo.getCurrentStatus() != State.INSTALL) {
-                    mServiceBridge.requestOperateDB(taskInfo);
-                }
-                return null;
-            } else if (currentSize > 0 && requestFileSize == currentSize) {
-                //TODO 下载成功
-                taskInfo.setCurrentStatus(State.SUCCESS);
-                if (callback != null) {
-                    callback.onSuccess(taskInfo);
-                }
-                mListener.onSuccess(taskInfo);
-                if (taskDBInfo.getCurrentStatus() == null || taskDBInfo.getCurrentStatus() != State.SUCCESS) {
-                    mServiceBridge.requestOperateDB(taskInfo);
-                }
-                return null;
-            }
-        }
-
-        fileCall = new FileCall(request, mLocalAgent, mServiceBridge, taskInfo);
-        fileCalls.put(resKey, fileCall);
+        fileCall = new FileCall(request, mLocalProxy, mServiceBridge, taskInfo);
+        mFileCalls.put(resKey, fileCall);
         return fileCall;
+
+
     }
 
-    private <T> void checkOldFile(FileRequest<T> request, String resKey, TaskInfo<T> taskInfo) {//校验之前下载的文件
+    private void checkOldFile(FileRequest request, String resKey, TaskInfo taskInfo) {//校验之前下载的文件
         int saveVersionCode = -1;
         long saveFileTotalSize = 0;
-        if (tasks.isEmpty()) {
-            TaskDBInfo taskDBInfo = dbUtil.getTaskDBInfoByResKey(resKey);
+        if (mHistoryTasks.isEmpty()) {
+            TaskDBInfo taskDBInfo = mDBUtil.getTaskDBInfoByResKey(resKey);
             if (taskDBInfo != null) {
                 Integer versionCode = taskDBInfo.getVersionCode();//获取数据库中存储的版本号
                 saveVersionCode = (versionCode == null ? -1 : versionCode);
                 saveFileTotalSize = (taskDBInfo.getTotalSize() == null ? 0 : taskDBInfo.getTotalSize());
-                tasks.put(taskDBInfo.getResKey(), taskDBInfo);
+                mHistoryTasks.put(taskDBInfo.getResKey(), taskDBInfo);
             }
         } else {
-            TaskDBInfo taskDBInfo = tasks.get(resKey);
+            TaskDBInfo taskDBInfo = mHistoryTasks.get(resKey);
             if (taskDBInfo != null) {
                 saveVersionCode = (taskDBInfo.getVersionCode() == null ? -1 : taskDBInfo.getVersionCode());
                 saveFileTotalSize = (taskDBInfo.getTotalSize() == null ? 0 : taskDBInfo.getTotalSize());
             }
         }
+
         if ((request.versionCode() > 0 && (request.versionCode() != saveVersionCode))
                 || (request.fileSize() > 0 && (request.fileSize() != saveFileTotalSize))) {
-            boolean delete = deleteDownloadFile(context, resKey);
+            boolean delete = Utils.deleteDownloadFile(mContext, resKey);
             if (delete) {
                 taskInfo.setProgress(0);
                 taskInfo.setCurrentSize(0);
@@ -577,7 +613,7 @@ public class FileDownloader {
     }
 
     private boolean hasEnoughDiskSpace(long fileSize) {
-        Collection<FileCall> values = fileCalls.values();
+        Collection<FileCall> values = mFileCalls.values();
         for (FileCall value : values) {
             fileSize += value.fileRequest().fileSize();
         }
@@ -598,7 +634,7 @@ public class FileDownloader {
     private <T> TaskInfo<T> generateTaskInfo(FileRequest<T> request, File file, Long currentSize) {
         TaskInfo taskInfo = new TaskInfo();
         if (request.fileSize() > 0) {
-            taskInfo.setProgress((int) ((currentSize * 100.0 / request.fileSize()) + 0.5));
+            taskInfo.setProgress((int) ((currentSize * 100.0f / request.fileSize()) + 0.5f));
         }
         taskInfo.setFilePath(file.getPath());
         taskInfo.setCurrentSize(currentSize);
@@ -620,7 +656,7 @@ public class FileDownloader {
         }
         taskInfo.setTagClassName(tagClassName);
         if (type != null && tag != null) {
-            taskInfo.setTagJson(gson.toJson(tag, type));
+            taskInfo.setTagJson(mGson.toJson(tag, type));
         }
         taskInfo.setTag(tag);
         taskInfo.setTagType(type);
@@ -632,7 +668,7 @@ public class FileDownloader {
 
         @Override
         public void onNoEnoughSpace(TaskInfo taskInfo) {
-            for (Callback listener : listeners) {
+            for (Callback listener : mListeners) {
                 if (listener != null) {
                     listener.onPrepare(taskInfo);
                 }
@@ -641,8 +677,8 @@ public class FileDownloader {
 
         @Override
         public void onPrepare(TaskInfo taskInfo) {
-            tasks.put(taskInfo.getResKey(), TaskInfo.taskInfo2TaskDBInfo(taskInfo));
-            for (Callback listener : listeners) {
+            mHistoryTasks.put(taskInfo.getResKey(), TaskInfo.taskInfo2TaskDBInfo(taskInfo));
+            for (Callback listener : mListeners) {
                 if (listener != null) {
                     listener.onPrepare(taskInfo);
                 }
@@ -651,7 +687,7 @@ public class FileDownloader {
 
         @Override
         public void onFirstFileWrite(TaskInfo taskInfo) {
-            for (Callback listener : listeners) {
+            for (Callback listener : mListeners) {
                 if (listener != null) {
                     listener.onFirstFileWrite(taskInfo);
                 }
@@ -660,7 +696,7 @@ public class FileDownloader {
 
         @Override
         public void onDownloading(TaskInfo taskInfo) {
-            for (Callback listener : listeners) {
+            for (Callback listener : mListeners) {
                 if (listener != null) {
                     listener.onDownloading(taskInfo);
                 }
@@ -669,7 +705,7 @@ public class FileDownloader {
 
         @Override
         public void onWaitingInQueue(TaskInfo taskInfo) {
-            for (Callback listener : listeners) {
+            for (Callback listener : mListeners) {
                 if (listener != null) {
                     listener.onWaitingInQueue(taskInfo);
                 }
@@ -678,7 +714,7 @@ public class FileDownloader {
 
         @Override
         public void onWaitingForWifi(TaskInfo taskInfo) {
-            for (Callback listener : listeners) {
+            for (Callback listener : mListeners) {
                 if (listener != null) {
                     listener.onWaitingForWifi(taskInfo);
                 }
@@ -688,8 +724,9 @@ public class FileDownloader {
         @Override
         public void onDelete(TaskInfo taskInfo) {
             String resKey = taskInfo.getResKey();
-            tasks.remove(resKey);
-            for (Callback listener : listeners) {
+            mHistoryTasks.remove(resKey);
+            mFileCalls.remove(resKey);
+            for (Callback listener : mListeners) {
                 if (listener != null) {
                     listener.onDelete(taskInfo);
                 }
@@ -698,7 +735,10 @@ public class FileDownloader {
 
         @Override
         public void onPause(TaskInfo taskInfo) {
-            for (Callback listener : listeners) {
+            String resKey = taskInfo.getResKey();
+            mHistoryTasks.put(resKey, TaskInfo.taskInfo2TaskDBInfo(taskInfo));
+            mFileCalls.remove(resKey);
+            for (Callback listener : mListeners) {
                 if (listener != null) {
                     listener.onPause(taskInfo);
                 }
@@ -708,8 +748,9 @@ public class FileDownloader {
         @Override
         public void onSuccess(TaskInfo taskInfo) {
             String resKey = taskInfo.getResKey();
-            fileCalls.remove(taskInfo.getResKey());
-            for (Callback listener : listeners) {
+            mHistoryTasks.put(resKey, TaskInfo.taskInfo2TaskDBInfo(taskInfo));
+            mFileCalls.remove(resKey);
+            for (Callback listener : mListeners) {
                 if (listener != null) {
                     listener.onSuccess(taskInfo);
                 }
@@ -718,7 +759,7 @@ public class FileDownloader {
 
         @Override
         public void onInstall(TaskInfo taskInfo) {
-            for (Callback listener : listeners) {
+            for (Callback listener : mListeners) {
                 if (listener != null) {
                     listener.onInstall(taskInfo);
                 }
@@ -728,8 +769,8 @@ public class FileDownloader {
         @Override
         public void onUnInstall(TaskInfo taskInfo) {
             String resKey = taskInfo.getResKey();
-            tasks.remove(resKey);
-            for (Callback listener : listeners) {
+            mHistoryTasks.remove(resKey);
+            for (Callback listener : mListeners) {
                 if (listener != null) {
                     listener.onUnInstall(taskInfo);
                 }
@@ -738,8 +779,9 @@ public class FileDownloader {
 
         @Override
         public void onFailure(TaskInfo taskInfo) {
-            fileCalls.remove(taskInfo.getResKey());
-            for (Callback listener : listeners) {
+            mHistoryTasks.put(taskInfo.getResKey(), TaskInfo.taskInfo2TaskDBInfo(taskInfo));
+            mFileCalls.remove(taskInfo.getResKey());
+            for (Callback listener : mListeners) {
                 if (listener != null) {
                     listener.onFailure(taskInfo);
                 }
@@ -748,80 +790,52 @@ public class FileDownloader {
 
         @Override
         public void onHaveNoTask() {
-            for (Callback listener : listeners) {
+            for (Callback listener : mListeners) {
                 if (listener != null) {
                     listener.onHaveNoTask();
                 }
             }
-            isHaveNoTask = true;
-            if (Utils.isAppExit(context)) {
-                release();
-            } else {
-                isExit = false;
+            haveNoTask = true;
+            if (!releaseStarted && !released) {
+                startRelease();
             }
         }
     }
 
-
-    public void onDestory() {
-        isExit = true;
-        if (isHaveNoTask) {
-            release();
-        }
-    }
-
-    public void forceDestory() {
-        isForceDestroy = true;
-        if (isHaveNoTask) {
-            release();
-        }
-    }
-
-
-    private void release() {
-        executor.execute(new Runnable() {
+    private void startRelease() {
+        releaseStarted = true;
+        mExecutor.execute(new Runnable() {
             @Override
             public void run() {
-                if (isForceDestroy && isHaveNoTask) {
-                    mServiceBridge.unBindService();
-                    isRelease = true;
-                    isForceDestroy = false;
+                if (Utils.isAppExit(mContext)) {
+                    SystemClock.sleep(KEEP_ALIVE_TIME_OUTAPP);
                 } else {
-                    SystemClock.sleep(32 * 1000);
-                    if (Utils.isAppExit(context)) {
-                        isExit = true;
-                    } else {
-                        isExit = false;
-                    }
-                    if (isExit && isHaveNoTask) {
-                        mServiceBridge.unBindService();
-                        isRelease = true;
-                    }
+                    SystemClock.sleep(KEEP_ALIVE_TIME_INAPP);
                 }
+                if (haveNoTask) {
+                    mServiceBridge.unBindService();
+                    released = true;
+                }
+                releaseStarted = false;
             }
         });
     }
 
-
-    public interface SearchListener<T> {
-        void onResult(T result);
-    }
-
     public void onInstall(TaskDBInfo taskDBInfo) {
-        TaskInfo taskInfo = TaskInfo.taskDBInfo2TaskInfo(taskDBInfo, gson);
+        TaskInfo taskInfo = TaskInfo.taskDBInfo2TaskInfo(taskDBInfo, mGson);
         taskInfo.setCurrentStatus(State.INSTALL);
-        mListener.onInstall(taskInfo);
-        if (fileCalls.isEmpty()) {
+        mServiceBridge.onInstall(taskInfo);
+        if (mFileCalls.isEmpty()) {
             //TODO 没任务了
             mListener.onHaveNoTask();
         }
     }
 
     public void onUnInstall(TaskDBInfo taskDBInfo) {
-        TaskInfo taskInfo = TaskInfo.taskDBInfo2TaskInfo(taskDBInfo, gson);
+        TaskInfo taskInfo = TaskInfo.taskDBInfo2TaskInfo(taskDBInfo, mGson);
         taskInfo.setCurrentStatus(State.UNINSTALL);
-        mListener.onUnInstall(taskInfo);
-        if (fileCalls.isEmpty()) {
+        mServiceBridge.onUnInstall(taskInfo);
+        if (mFileCalls.isEmpty()) {
             //TODO 没任务了
             mListener.onHaveNoTask();
         }

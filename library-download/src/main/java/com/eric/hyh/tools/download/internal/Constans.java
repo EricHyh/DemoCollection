@@ -8,7 +8,7 @@ public class Constans {
 
     public static final String COMMADN = "command";
 
-    public static final String REQUEST_SERVICE = "request_service";
+    public static final String REQUEST_INFO = "request_info";
 
     static final int MEMORY_SIZE_ERROR = -1;
 

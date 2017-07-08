@@ -2,7 +2,7 @@ package com.eric.hyh.tools.download.api;
 
 
 import com.eric.hyh.tools.download.bean.TaskInfo;
-import com.eric.hyh.tools.download.internal.IDownloadAgent;
+import com.eric.hyh.tools.download.internal.IDownloadProxy;
 import com.eric.hyh.tools.download.internal.ServiceBridge;
 
 /**
@@ -13,10 +13,10 @@ public class FileCall<T> {
 
     private FileRequest<T> request;
     private TaskInfo taskInfo;
-    private IDownloadAgent.ILocalDownloadAgent mLocalAgent;
+    private IDownloadProxy.ILocalDownloadProxy mLocalAgent;
     private ServiceBridge serviceBridge;
 
-    FileCall(FileRequest<T> request, IDownloadAgent.ILocalDownloadAgent localAgent, ServiceBridge serviceBridge, TaskInfo<T> taskInfo) {
+    FileCall(FileRequest<T> request, IDownloadProxy.ILocalDownloadProxy localAgent, ServiceBridge serviceBridge, TaskInfo<T> taskInfo) {
         this.request = request;
         this.mLocalAgent = localAgent;
         this.serviceBridge = serviceBridge;

@@ -11,9 +11,9 @@ import com.eric.hyh.tools.download.api.HttpClient;
  * @data 2017/5/16
  */
 
-public class OkhttpLocalAgent extends LocalDownloadAgentImpl {
+public class OkhttpLocalProxy extends LocalDownloadProxyImpl {
 
-    public OkhttpLocalAgent(Context context, ServiceBridge serviceBridge) {
+    public OkhttpLocalProxy(Context context, ServiceBridge serviceBridge) {
         super(context, serviceBridge);
     }
 

@@ -33,12 +33,12 @@ import java.util.concurrent.CopyOnWriteArrayList;
  * @data 2017/5/16
  */
 
-public abstract class SuperDownloadAgent implements IDownloadAgent {
+public abstract class SuperDownloadProxy implements IDownloadProxy {
 
     protected Context context;
     protected HttpClient client;
 
-    SuperDownloadAgent(Context context) {
+    SuperDownloadProxy(Context context) {
         this.context = context;
         client = getHttpClient();
     }

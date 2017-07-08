@@ -8,6 +8,7 @@ import android.database.sqlite.SQLiteDatabase;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.Environment;
+import android.os.Process;
 import android.os.StatFs;
 import android.text.TextUtils;
 
@@ -29,9 +30,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executor;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.eric.hyh.tools.download.bean.State.INSTALL;
-import static com.eric.hyh.tools.download.bean.State.SUCCESS;
 
 
 /**
@@ -260,9 +265,38 @@ public class Utils {
     }
 
 
+    public static ThreadPoolExecutor buildExecutor(int corePoolSize,
+                                                   int maximumPoolSize,
+                                                   long keepAliveTime,
+                                                   final String threadName,
+                                                   boolean allowCoreThreadTimeOut) {
+        ThreadPoolExecutor executor = new ThreadPoolExecutor(corePoolSize
+                , maximumPoolSize
+                , keepAliveTime
+                , TimeUnit.SECONDS
+                , new LinkedBlockingQueue<Runnable>()
+                , new ThreadFactory() {
+
+            private AtomicInteger mInteger = new AtomicInteger();
+
+            @Override
+            public Thread newThread(Runnable r) {
+                Thread thread = new Thread(r, threadName.concat(" - ")
+                        .concat(String.valueOf(Process.myPid()))
+                        .concat(" : ")
+                        .concat(String.valueOf(mInteger.incrementAndGet())));
+                thread.setDaemon(true);
+                return thread;
+            }
+        });
+        executor.allowCoreThreadTimeOut(allowCoreThreadTimeOut);
+        return executor;
+    }
+
+
     public static class DBUtil {
 
-        private TaskDBInfoDao dao;
+        private TaskDBInfoDao mDao;
 
         private static volatile DBUtil sDBUtil;
 
@@ -283,7 +317,7 @@ public class Utils {
             SQLiteDatabase db = devOpenHelper.getWritableDatabase();
             DaoMaster master = new DaoMaster(db);
             DaoSession session = master.newSession();
-            this.dao = session.getTaskDBInfoDao();
+            this.mDao = session.getTaskDBInfoDao();
         }
 
 
@@ -301,13 +335,13 @@ public class Utils {
                 @Override
                 public void run() {
                     TaskDBInfo newTaskDBInfo = taskInfo2TaskDBInfo(taskInfo, taskDBInfo);
-                    dao.insertOrReplace(newTaskDBInfo);
+                    mDao.insertOrReplace(newTaskDBInfo);
                 }
             });
         }
 
         synchronized void insertOrReplace(TaskDBInfo taskDBInfo) {
-            dao.insertOrReplace(taskDBInfo);
+            mDao.insertOrReplace(taskDBInfo);
         }
 
 
@@ -316,26 +350,26 @@ public class Utils {
                 @Override
                 public void run() {
                     TaskDBInfo newTaskDBInfo = taskInfo2TaskDBInfo(taskInfo, taskDBInfo);
-                    Query<TaskDBInfo> query = dao.queryBuilder()
+                    Query<TaskDBInfo> query = mDao.queryBuilder()
                             .where(TaskDBInfoDao.Properties.ResKey.eq(newTaskDBInfo.getResKey()))
                             .orderDesc(TaskDBInfoDao.Properties.Time)
                             .build();
                     if (query != null && query.list().size() > 0) {
-                        dao.delete(query.list().get(0));
+                        mDao.delete(query.list().get(0));
                     }
                 }
             });
         }
 
         synchronized void delete(final TaskDBInfo taskDBInfo) {
-            dao.delete(taskDBInfo);
+            mDao.delete(taskDBInfo);
         }
 
 
         synchronized List<String> getSuccessList() {
             List<String> list = new ArrayList<>();
-            Query<TaskDBInfo> query = dao.queryBuilder()
-                    .where(TaskDBInfoDao.Properties.CurrentStatus.eq(SUCCESS))
+            Query<TaskDBInfo> query = mDao.queryBuilder()
+                    .where(TaskDBInfoDao.Properties.CurrentStatus.eq(State.SUCCESS))
                     /*.whereOr(TaskDBInfoDao.Properties.CurrentStatus.eq(State.SUCCESS), TaskDBInfoDao.Properties.CurrentStatus.eq(INSTALL))*/
                     .build();
             if (query != null && query.list() != null) {
@@ -349,7 +383,7 @@ public class Utils {
 
 
         public synchronized Map<String, TaskDBInfo> getAllTasks(Map<String, TaskDBInfo> map) {
-            List<TaskDBInfo> taskDBInfos = dao.loadAll();
+            List<TaskDBInfo> taskDBInfos = mDao.loadAll();
             if (taskDBInfos != null && taskDBInfos.size() > 0) {
                 for (TaskDBInfo taskDBInfo : taskDBInfos) {
                     map.put(taskDBInfo.getResKey(), taskDBInfo);
@@ -365,20 +399,20 @@ public class Utils {
 
 
         public synchronized List<TaskDBInfo> getSuccessTasks() {
-            return getTasks(SUCCESS);
+            return getTasks(State.SUCCESS);
         }
 
         public synchronized List<TaskDBInfo> getInstalledTasks() {
-            return getTasks(INSTALL);
+            return getTasks(State.INSTALL);
         }
 
         public synchronized List<TaskDBInfo> getAllTasks() {
-            List<TaskDBInfo> taskDBInfos = dao.loadAll();
+            List<TaskDBInfo> taskDBInfos = mDao.loadAll();
             return taskDBInfos == null ? new ArrayList<TaskDBInfo>() : taskDBInfos;
         }
 
         public synchronized boolean correctDBErroStatus(Context context) {
-            List<TaskDBInfo> taskDBInfos = dao.loadAll();
+            List<TaskDBInfo> taskDBInfos = mDao.loadAll();
             if (taskDBInfos.isEmpty()) {
                 return true;
             }
@@ -392,7 +426,7 @@ public class Utils {
                             taskDBInfo.setCurrentSize(0L);
                             taskDBInfo.setProgress(0);
                             taskDBInfo.setCurrentStatus(State.PAUSE);
-                            dao.insertOrReplace(taskDBInfo);
+                            mDao.insertOrReplace(taskDBInfo);
                             continue;
                         }
                     }
@@ -400,22 +434,22 @@ public class Utils {
                 if (taskDBInfo.getCurrentStatus() == State.PREPARE || taskDBInfo.getCurrentStatus() == State.WAITING_IN_QUEUE
                         || taskDBInfo.getCurrentStatus() == State.START_WRITE || taskDBInfo.getCurrentStatus() == State.DOWNLOADING) {
                     taskDBInfo.setCurrentStatus(State.PAUSE);
-                    dao.insertOrReplace(taskDBInfo);
-                } else if (taskDBInfo.getCurrentStatus() == SUCCESS
+                    mDao.insertOrReplace(taskDBInfo);
+                } else if (taskDBInfo.getCurrentStatus() == State.SUCCESS
                         && Utils.isAppInstall(context, taskDBInfo.getPackageName())
                         && ((taskDBInfo.getVersionCode() != null) && taskDBInfo.getVersionCode() == Utils.getVersionCode(context, taskDBInfo.getPackageName()))) {
                     taskDBInfo.setCurrentStatus(INSTALL);
                     Utils.deleteDownloadFile(context, taskDBInfo.getResKey());
-                    dao.insertOrReplace(taskDBInfo);
+                    mDao.insertOrReplace(taskDBInfo);
                 } else if (taskDBInfo.getCurrentStatus() == INSTALL && !Utils.isAppInstall(context, taskDBInfo.getPackageName())) {
-                    dao.delete(taskDBInfo);
+                    mDao.delete(taskDBInfo);
                 }
             }
             return true;
         }
 
         private List<TaskDBInfo> getTasks(int status) {
-            Query<TaskDBInfo> query = dao.queryBuilder()
+            Query<TaskDBInfo> query = mDao.queryBuilder()
                     .where(TaskDBInfoDao.Properties.CurrentStatus.eq(status))
                     .orderDesc(TaskDBInfoDao.Properties.Time)
                     .build();
@@ -426,7 +460,7 @@ public class Utils {
         }
 
         public synchronized TaskDBInfo getTaskDBInfoByResKey(String resKey) {
-            Query<TaskDBInfo> query = dao.queryBuilder().where(TaskDBInfoDao.Properties.ResKey.eq(resKey)).build();
+            Query<TaskDBInfo> query = mDao.queryBuilder().where(TaskDBInfoDao.Properties.ResKey.eq(resKey)).build();
             if (query != null && query.list() != null && query.list().size() > 0) {
                 return query.list().get(0);
             } else {
@@ -435,7 +469,7 @@ public class Utils {
         }
 
         synchronized TaskDBInfo getTaskDBInfoByPackageName(String packageName) {
-            Query<TaskDBInfo> query = dao.queryBuilder().where(TaskDBInfoDao.Properties.PackageName.eq(packageName)).build();
+            Query<TaskDBInfo> query = mDao.queryBuilder().where(TaskDBInfoDao.Properties.PackageName.eq(packageName)).build();
             if (query != null && query.list() != null && query.list().size() > 0) {
                 return query.list().get(0);
             } else {
@@ -445,9 +479,10 @@ public class Utils {
 
 
         synchronized boolean isSuccessOrInstall(String resKey) {
-            Query<TaskDBInfo> query = dao.queryBuilder()
+            Query<TaskDBInfo> query = mDao.queryBuilder()
                     .where(TaskDBInfoDao.Properties.ResKey.eq(resKey))
-                    .whereOr(TaskDBInfoDao.Properties.CurrentStatus.eq(State.SUCCESS), TaskDBInfoDao.Properties.CurrentStatus.eq(State.INSTALL))
+                    .whereOr(TaskDBInfoDao.Properties.CurrentStatus.eq(State.SUCCESS),
+                            TaskDBInfoDao.Properties.CurrentStatus.eq(INSTALL))
                     .build();
             if (query == null) {
                 return false;
