@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/FileDownloader-master.iml" filepath="$PROJECT_DIR$/FileDownloader-master.iml" />
+      <module fileurl="file://$PROJECT_DIR$/Filedownloader-master.iml" filepath="$PROJECT_DIR$/Filedownloader-master.iml" />
       <module fileurl="file://$PROJECT_DIR$/library-download/library-download.iml" filepath="$PROJECT_DIR$/library-download/library-download.iml" />
       <module fileurl="file://$PROJECT_DIR$/sample/sample.iml" filepath="$PROJECT_DIR$/sample/sample.iml" />
     </modules>
