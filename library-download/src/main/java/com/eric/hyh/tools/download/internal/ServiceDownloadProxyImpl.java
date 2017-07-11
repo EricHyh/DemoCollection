@@ -4,7 +4,6 @@ import android.content.Context;
 import android.os.RemoteException;
 
 import com.eric.hyh.tools.download.IClient;
-import com.eric.hyh.tools.download.api.Callback;
 import com.eric.hyh.tools.download.bean.TaskInfo;
 import com.eric.hyh.tools.download.internal.db.bean.TaskDBInfo;
 
@@ -25,8 +24,9 @@ public abstract class ServiceDownloadProxyImpl extends SuperDownloadProxy implem
     private Executor mExecutor;
     private Map<String, TaskDBInfo> mTaskDBInfoContainer;
 
-    ServiceDownloadProxyImpl(Context context, Map<Integer, IClient> clients, Executor executor, Map<String, TaskDBInfo> taskDBInfoContainer) {
-        super(context);
+    ServiceDownloadProxyImpl(Context context, Map<Integer, IClient> clients, Executor executor, Map<String, TaskDBInfo> taskDBInfoContainer,
+                             int maxSynchronousDownloadNum) {
+        super(context, maxSynchronousDownloadNum);
         this.mClients = clients;
         this.mExecutor = executor;
         if (taskDBInfoContainer != null) {
@@ -49,7 +49,7 @@ public abstract class ServiceDownloadProxyImpl extends SuperDownloadProxy implem
     }
 
     @Override
-    protected void handleCallbackAndDB(TaskInfo taskInfo, Callback... callback) {
+    protected void handleCallbackAndDB(TaskInfo taskInfo) {
         Collection<IClient> values = mClients.values();
         try {
             for (IClient value : values) {

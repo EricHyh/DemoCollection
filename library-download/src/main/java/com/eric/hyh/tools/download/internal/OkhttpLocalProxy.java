@@ -13,8 +13,8 @@ import com.eric.hyh.tools.download.api.HttpClient;
 
 public class OkhttpLocalProxy extends LocalDownloadProxyImpl {
 
-    public OkhttpLocalProxy(Context context, ServiceBridge serviceBridge) {
-        super(context, serviceBridge);
+    public OkhttpLocalProxy(Context context, int maxSynchronousDownloadNum) {
+        super(context, maxSynchronousDownloadNum);
     }
 
     @Override

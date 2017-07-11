@@ -30,6 +30,10 @@ public class PackageReceive extends BroadcastReceiver {
     @Override
     public void onReceive(final Context context, Intent intent) {
 
+        final FileDownloader fileDownloader = FileDownloader.getInstance();
+        if (fileDownloader == null) {
+            return;
+        }
         String packageName = intent.getData().getSchemeSpecificPart();
         if (!TextUtils.isEmpty(packageName)) {
             Utils.DBUtil dbUtil = Utils.DBUtil.getInstance(context);
@@ -49,7 +53,6 @@ public class PackageReceive extends BroadcastReceiver {
                     removeTasks.remove(taskDBInfo);
                 }
             }
-            final FileDownloader fileDownloader = FileDownloader.getInstance(context);
             if (TextUtils.equals(intent.getAction(), Intent.ACTION_PACKAGE_ADDED)) {//安装成功
                 taskDBInfo.setCurrentStatus(State.INSTALL);
                 taskDBInfo.setVersionCode(Utils.getVersionCode(context, packageName));

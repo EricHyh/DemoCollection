@@ -10,13 +10,11 @@ interface IRequest {
      * and return values in AIDL.
      */
 
-    void request(int pid, int command, in TaskInfo request);
+    void request(int pid, int command, in TaskInfo taskInfo);
 
-    void onCall(int pid, in TaskInfo request);
+    void onCall(int pid, in TaskInfo taskInfo);
 
     void register(int pid, in IClient client);
-
-    void correctDBErroStatus();
 
     void unRegister(int pid);
 

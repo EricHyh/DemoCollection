@@ -10,6 +10,8 @@ public class Constans {
 
     public static final String REQUEST_INFO = "request_info";
 
+    public static final String MAX_SYNCHRONOUS_DOWNLOAD_NUM = "max_synchronous_download_num";
+
     static final int MEMORY_SIZE_ERROR = -1;
 
     static class ResponseCode {

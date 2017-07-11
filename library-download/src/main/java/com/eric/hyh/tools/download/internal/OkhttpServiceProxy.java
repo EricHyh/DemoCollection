@@ -17,8 +17,9 @@ import java.util.concurrent.Executor;
 
 public class OkhttpServiceProxy extends ServiceDownloadProxyImpl {
 
-    OkhttpServiceProxy(Context context, Map<Integer, IClient> clients, Executor executor, Map<String, TaskDBInfo> taskDBInfoContainer) {
-        super(context, clients, executor, taskDBInfoContainer);
+    OkhttpServiceProxy(Context context, Map<Integer, IClient> clients, Executor executor, Map<String, TaskDBInfo> taskDBInfoContainer
+            , int maxSynchronousDownloadNum) {
+        super(context, clients, executor, taskDBInfoContainer, maxSynchronousDownloadNum);
     }
 
     @Override

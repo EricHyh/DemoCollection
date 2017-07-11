@@ -3,8 +3,13 @@ package com.eric.hyh.tools.download.internal;
 import android.content.Context;
 
 import com.eric.hyh.tools.download.api.Callback;
+import com.eric.hyh.tools.download.api.FileDownloader;
 import com.eric.hyh.tools.download.bean.State;
 import com.eric.hyh.tools.download.bean.TaskInfo;
+import com.eric.hyh.tools.download.internal.db.bean.TaskDBInfo;
+
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ThreadPoolExecutor;
 
 
 /**
@@ -16,13 +21,38 @@ import com.eric.hyh.tools.download.bean.TaskInfo;
 public abstract class LocalDownloadProxyImpl extends SuperDownloadProxy implements IDownloadProxy.ILocalDownloadProxy {
 
     private Callback mCallback;
-    private ServiceBridge mServiceBridge;
+    private final Utils.DBUtil mDBUtil;
+    private ConcurrentHashMap<String, TaskDBInfo> mTaskDBInfoContainer;
+    private ThreadPoolExecutor mDatabaseExecutor;
 
+    LocalDownloadProxyImpl(Context context, int maxSynchronousDownloadNum) {
+        super(context, maxSynchronousDownloadNum);
+        mDBUtil = Utils.DBUtil.getInstance(context);
+        mTaskDBInfoContainer = new ConcurrentHashMap<>();
+        mDatabaseExecutor = Utils.buildExecutor(1, 1, 120, "FDLService Database Thread", true);
 
-    LocalDownloadProxyImpl(Context context, ServiceBridge serviceBridge) {
-        super(context);
-        this.mServiceBridge = serviceBridge;
     }
+
+
+    @Override
+    public void initProxy(final FileDownloader.LockConfig lockConfig) {
+        mDatabaseExecutor.execute(new Runnable() {
+            @Override
+            public void run() {
+                mDBUtil.correctDBErroStatus(context);
+                synchronized (lockConfig) {
+                    lockConfig.setInitProxyFinish(true);
+                    lockConfig.notifyAll();
+                }
+            }
+        });
+    }
+
+    @Override
+    public boolean isFileDownloading(String resKey) {
+        return false;
+    }
+
 
     @Override
     protected void handleHaveNoTask() {
@@ -32,14 +62,7 @@ public abstract class LocalDownloadProxyImpl extends SuperDownloadProxy implemen
     }
 
     @Override
-    protected void handleCallbackAndDB(TaskInfo taskInfo, Callback... callback) {
-        if (callback != null && callback.length > 0) {
-            for (Callback singleCallback : callback) {
-                if (singleCallback != null) {
-                    handleCallback(taskInfo, singleCallback);
-                }
-            }
-        }
+    protected void handleCallbackAndDB(TaskInfo taskInfo) {
         if (mCallback != null) {
             handleCallback(taskInfo, mCallback);
         }
@@ -48,7 +71,6 @@ public abstract class LocalDownloadProxyImpl extends SuperDownloadProxy implemen
 
     @SuppressWarnings("unchecked")
     private void handleCallback(TaskInfo taskInfo, Callback callback) {
-
         switch (taskInfo.getCurrentStatus()) {
             case State.PREPARE:
                 callback.onPrepare(taskInfo);
@@ -87,12 +109,28 @@ public abstract class LocalDownloadProxyImpl extends SuperDownloadProxy implemen
     }
 
     private void handleDB(TaskInfo taskInfo) {
-        mServiceBridge.requestOperateDB(taskInfo);
+        String resKey = taskInfo.getResKey();
+        TaskDBInfo taskDBInfo = mTaskDBInfoContainer.get(resKey);
+        if (taskDBInfo == null) {
+            taskDBInfo = new TaskDBInfo();
+            mTaskDBInfoContainer.put(resKey, taskDBInfo);
+        }
+        mDBUtil.operate(taskInfo, taskDBInfo, mDatabaseExecutor);
     }
 
 
     @Override
-    public void setCallback(Callback callback) {
+    public void operateDatebase(TaskInfo taskInfo) {
+        handleDB(taskInfo);
+    }
+
+    @Override
+    public void setAllTaskCallback(Callback callback) {
         this.mCallback = callback;
+    }
+
+    @Override
+    public void destroy() {
+
     }
 }

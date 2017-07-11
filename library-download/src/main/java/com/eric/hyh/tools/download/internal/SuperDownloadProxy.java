@@ -6,7 +6,6 @@ import android.os.SystemClock;
 import android.text.TextUtils;
 import android.util.Log;
 
-import com.eric.hyh.tools.download.api.Callback;
 import com.eric.hyh.tools.download.api.HttpCall;
 import com.eric.hyh.tools.download.api.HttpCallback;
 import com.eric.hyh.tools.download.api.HttpClient;
@@ -36,35 +35,35 @@ import java.util.concurrent.CopyOnWriteArrayList;
 public abstract class SuperDownloadProxy implements IDownloadProxy {
 
     protected Context context;
-    protected HttpClient client;
 
-    SuperDownloadProxy(Context context) {
+    private HttpClient client;
+
+    private int mMaxSynchronousDownloadNum;
+
+    SuperDownloadProxy(Context context, int maxSynchronousDownloadNum) {
         this.context = context;
-        client = getHttpClient();
+        this.client = getHttpClient();
+        this.mMaxSynchronousDownloadNum = maxSynchronousDownloadNum;
     }
 
-
-    private final int LIMIT_TASK_SIZE = 2;
+    @Override
+    public void setMaxSynchronousDownloadNum(int maxSynchronousDownloadNum) {
+        mMaxSynchronousDownloadNum = maxSynchronousDownloadNum;
+    }
 
     private Map<String, HttpCallbackImpl> httpCallbacks = new ConcurrentHashMap<>();
 
     private List<TaskCache> waitingQueue = new CopyOnWriteArrayList<>();
 
 
-    HttpCall getCall(String resKey, String url, long oldSize) {
+    private HttpCall getCall(String resKey, String url, long oldSize) {
         return client.newCall(resKey, url, oldSize);
     }
 
     protected abstract HttpClient getHttpClient();
 
-
     @Override
     public void enqueue(int command, TaskInfo taskInfo) {
-        enqueue(command, taskInfo, null);
-    }
-
-    @Override
-    public void enqueue(int command, TaskInfo taskInfo, Callback callback) {
         String resKey = taskInfo.getResKey();
         switch (command) {
             case Command.START:
@@ -78,14 +77,13 @@ public abstract class SuperDownloadProxy implements IDownloadProxy {
                 if (tTaskInfo != null && !State.canDownload(tTaskInfo.getCurrentStatus())) {//检查状态
                     return;
                 }
-                if (runningTasksize >= LIMIT_TASK_SIZE) {
-                    handleWaitingInQueue(taskInfo, callback);
+                if (runningTasksize >= mMaxSynchronousDownloadNum) {
+                    handleWaitingInQueue(taskInfo);
                     return;
                 }
-                handlePrepare(taskInfo, null);
+                handlePrepare(taskInfo);
                 HttpCall call = getCall(resKey, taskInfo.getUrl(), taskInfo.getCurrentSize());
                 httpCallbackImpl = new HttpCallbackImpl(call, taskInfo);
-                httpCallbackImpl.setCallback(callback);
                 httpCallbacks.put(resKey, httpCallbackImpl);
                 call.enqueue(httpCallbackImpl);
                 break;
@@ -96,11 +94,7 @@ public abstract class SuperDownloadProxy implements IDownloadProxy {
                     if (remove.call != null && !remove.call.isCanceled()) {
                         remove.call.cancel();
                     }
-                    if (callback == remove.callback) {
-                        handlePause(taskInfo, callback);
-                    } else {
-                        handlePause(taskInfo, callback, remove.callback);
-                    }
+                    handlePause(taskInfo);
                 } else {
                     TaskCache taskCache = null;
                     for (TaskCache task : waitingQueue) {
@@ -109,16 +103,10 @@ public abstract class SuperDownloadProxy implements IDownloadProxy {
                             break;
                         }
                     }
-                    Callback removeCallback = null;
                     if (taskCache != null) {
                         waitingQueue.remove(taskCache);
-                        removeCallback = taskCache.callback;
                     }
-                    if (callback == removeCallback) {
-                        handlePause(taskInfo, callback);
-                    } else {
-                        handlePause(taskInfo, callback, removeCallback);
-                    }
+                    handlePause(taskInfo);
                 }
                 break;
             case Command.DELETE:
@@ -128,11 +116,7 @@ public abstract class SuperDownloadProxy implements IDownloadProxy {
                     if (remove.call != null && !remove.call.isCanceled()) {
                         remove.call.cancel();
                     }
-                    if (callback == remove.callback) {
-                        handleDelete(taskInfo, callback);
-                    } else {
-                        handleDelete(taskInfo, callback, remove.callback);
-                    }
+                    handleDelete(taskInfo);
                 } else {
                     TaskCache taskCache = null;
                     for (TaskCache task : waitingQueue) {
@@ -141,16 +125,10 @@ public abstract class SuperDownloadProxy implements IDownloadProxy {
                             break;
                         }
                     }
-                    Callback removeCallback = null;
                     if (taskCache != null) {
                         waitingQueue.remove(taskCache);
-                        removeCallback = taskCache.callback;
                     }
-                    if (callback == removeCallback) {
-                        handleDelete(taskInfo, callback);
-                    } else {
-                        handleDelete(taskInfo, callback, removeCallback);
-                    }
+                    handleDelete(taskInfo);
                 }
                 break;
         }
@@ -160,7 +138,7 @@ public abstract class SuperDownloadProxy implements IDownloadProxy {
     private void startNextTask() {
         if (!waitingQueue.isEmpty()) {
             TaskCache remove = waitingQueue.remove(0);
-            enqueue(Command.START, remove.taskInfo, remove.callback);
+            enqueue(Command.START, remove.taskInfo);
         } else {
             if (httpCallbacks.isEmpty()) {
                 //TODO 没任务了
@@ -171,16 +149,16 @@ public abstract class SuperDownloadProxy implements IDownloadProxy {
     }
 
 
-    private void handleWaitingInQueue(TaskInfo taskInfo, Callback callback) {
+    private void handleWaitingInQueue(TaskInfo taskInfo) {
         taskInfo.setCurrentStatus(State.WAITING_IN_QUEUE);
-        TaskCache taskCache = new TaskCache(taskInfo.getResKey(), taskInfo, callback);
+        TaskCache taskCache = new TaskCache(taskInfo.getResKey(), taskInfo);
         waitingQueue.remove(taskCache);
         waitingQueue.add(taskCache);
-        handleCallbackAndDB(taskInfo, callback);
+        handleCallbackAndDB(taskInfo);
     }
 
 
-    private void handleSuccess(TaskInfo taskInfo, Callback callback) {
+    private void handleSuccess(TaskInfo taskInfo) {
         taskInfo.setCurrentStatus(State.SUCCESS);
         String resKey = taskInfo.getResKey();
         httpCallbacks.remove(resKey);
@@ -190,36 +168,36 @@ public abstract class SuperDownloadProxy implements IDownloadProxy {
                 taskInfo.setPackageName(packageInfo.packageName);
             }
         }
-        handleCallbackAndDB(taskInfo, callback);
+        handleCallbackAndDB(taskInfo);
         startNextTask();
     }
 
 
-    private void handleDelete(TaskInfo taskInfo, Callback... callback) {
+    private void handleDelete(TaskInfo taskInfo) {
         taskInfo.setCurrentStatus(State.DELETE);
-        handleCallbackAndDB(taskInfo, callback);
+        handleCallbackAndDB(taskInfo);
         Utils.deleteDownloadFile(context, taskInfo.getResKey());
         startNextTask();
     }
 
-    private void handlePause(TaskInfo taskInfo, Callback... callback) {
+    private void handlePause(TaskInfo taskInfo) {
         taskInfo.setCurrentStatus(State.PAUSE);
-        handleCallbackAndDB(taskInfo, callback);
+        handleCallbackAndDB(taskInfo);
         startNextTask();
     }
 
 
-    private void handlePrepare(TaskInfo taskInfo, Callback callback) {
+    private void handlePrepare(TaskInfo taskInfo) {
         taskInfo.setCurrentStatus(State.PREPARE);
-        handleCallbackAndDB(taskInfo, callback);
+        handleCallbackAndDB(taskInfo);
     }
 
-    private void handleFirstFileWrite(TaskInfo taskInfo, Callback callback) {
+    private void handleFirstFileWrite(TaskInfo taskInfo) {
         taskInfo.setCurrentStatus(State.START_WRITE);
-        handleCallbackAndDB(taskInfo, callback);
+        handleCallbackAndDB(taskInfo);
     }
 
-    private void handleFailure(TaskInfo taskInfo, Callback callback) {
+    private void handleFailure(TaskInfo taskInfo) {
         if (taskInfo.isWifiAutoRetry()) {
             taskInfo.setCurrentStatus(State.WAITING_FOR_WIFI);
         } else {
@@ -227,20 +205,20 @@ public abstract class SuperDownloadProxy implements IDownloadProxy {
         }
         String resKey = taskInfo.getResKey();
         httpCallbacks.remove(resKey);
-        handleCallbackAndDB(taskInfo, callback);
+        handleCallbackAndDB(taskInfo);
         startNextTask();
     }
 
 
-    private void handleDownloading(TaskInfo taskInfo, Callback callback) {
+    private void handleDownloading(TaskInfo taskInfo) {
         taskInfo.setCurrentStatus(State.DOWNLOADING);
-        handleCallbackAndDB(taskInfo, callback);
+        handleCallbackAndDB(taskInfo);
     }
 
     protected abstract void handleHaveNoTask();
 
 
-    protected abstract void handleCallbackAndDB(TaskInfo taskInfo, Callback... callback);
+    protected abstract void handleCallbackAndDB(TaskInfo taskInfo);
 
 
     /**
@@ -252,8 +230,6 @@ public abstract class SuperDownloadProxy implements IDownloadProxy {
         HttpCall call;
 
         TaskInfo taskInfo;
-
-        Callback callback;
 
         Timer timer;
 
@@ -291,10 +267,10 @@ public abstract class SuperDownloadProxy implements IDownloadProxy {
                 if (totalSize == 0) {
                     taskInfo.setTotalSize(response.contentLength() + taskInfo.getCurrentSize());
                 }
-                handleDownload(response, taskInfo, callback);
+                handleDownload(response, taskInfo);
             } else if (code == Constans.ResponseCode.NOT_FOUND) {
                 // TODO: 2017/5/16 未找到文件
-                handleFailure(taskInfo, callback);
+                handleFailure(taskInfo);
             } else {
                 retry();
             }
@@ -307,7 +283,7 @@ public abstract class SuperDownloadProxy implements IDownloadProxy {
             retry();
         }
 
-        private void handleDownload(HttpResponse response, TaskInfo taskInfo, Callback callback) throws IOException {
+        private void handleDownload(HttpResponse response, TaskInfo taskInfo) throws IOException {
             InputStream inputStream = response.inputStream();
             BufferedInputStream bis = new BufferedInputStream(inputStream);
             BufferedOutputStream bos = null;
@@ -321,7 +297,7 @@ public abstract class SuperDownloadProxy implements IDownloadProxy {
                 int len;
                 while ((len = bis.read(buffer)) != -1) {
                     if (currentSize == 0 && len > 0) {
-                        handleFirstFileWrite(taskInfo, callback);
+                        handleFirstFileWrite(taskInfo);
                     }
                     bos.write(buffer, 0, len);
                     currentSize += len;
@@ -330,7 +306,7 @@ public abstract class SuperDownloadProxy implements IDownloadProxy {
                     if (progress != oldProgress) {
                         currentRetryTimes = 0;
                         taskInfo.setProgress(progress);
-                        handleDownloading(taskInfo, callback);
+                        handleDownloading(taskInfo);
                         oldProgress = progress;
                     }
                     if (pause) {
@@ -351,7 +327,7 @@ public abstract class SuperDownloadProxy implements IDownloadProxy {
                 Utils.close(response);
             }
             if (taskInfo.getCurrentSize() == taskInfo.getTotalSize()) {
-                handleSuccess(taskInfo, callback);
+                handleSuccess(taskInfo);
             } else if (!isException && (!pause && !delete)) {
                 //TODO 下载的文件长度有误
             }
@@ -367,7 +343,7 @@ public abstract class SuperDownloadProxy implements IDownloadProxy {
             }
             if (currentRetryTimes >= RETRY_MAX_TIMES) {
                 //TODO 处理请求失败
-                handleFailure(taskInfo, callback);
+                handleFailure(taskInfo);
                 if (timer != null) {
                     timer.cancel();
                     timer = null;
@@ -425,10 +401,6 @@ public abstract class SuperDownloadProxy implements IDownloadProxy {
             }
         }
 
-        void setCallback(Callback callback) {
-            this.callback = callback;
-        }
-
         void setPause(boolean pause) {
             this.pause = pause;
         }
@@ -437,5 +409,4 @@ public abstract class SuperDownloadProxy implements IDownloadProxy {
             this.delete = delete;
         }
     }
-
 }

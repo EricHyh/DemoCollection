@@ -1,10 +1,10 @@
 package com.eric.hyh.tools.download.internal;
 
-import android.annotation.SuppressLint;
 import android.app.Service;
 import android.content.Intent;
 import android.os.IBinder;
 import android.os.RemoteException;
+import android.util.Log;
 
 import com.eric.hyh.tools.download.IClient;
 import com.eric.hyh.tools.download.IRequest;
@@ -28,8 +28,9 @@ public class FDLService extends Service {
 
     private ThreadPoolExecutor mCommandExecutor;
 
-    @SuppressLint("UseSparseArrays")
     private final ConcurrentHashMap<Integer, IClient> mClients = new ConcurrentHashMap<>();
+
+    private int maxSynchronousDownloadNum = 2;
 
     private final ConcurrentHashMap<String, TaskDBInfo> mTaskDBInfoContainer = new ConcurrentHashMap<>();
 
@@ -63,6 +64,7 @@ public class FDLService extends Service {
             Utils.DBUtil.getInstance(getApplicationContext()).operate(taskInfo, taskDBInfo, mDatabaseExecutor);
         }
 
+
         @Override
         public void register(int pid, IClient client) throws RemoteException {
             mClients.put(pid, client);
@@ -74,11 +76,6 @@ public class FDLService extends Service {
             }
         }
 
-
-        @Override
-        public void correctDBErroStatus() throws RemoteException {
-            Utils.DBUtil.getInstance(getApplicationContext()).correctDBErroStatus(getApplicationContext());
-        }
 
         @Override
         public void unRegister(int pid) throws RemoteException {
@@ -112,6 +109,14 @@ public class FDLService extends Service {
 
     @Override
     public IBinder onBind(Intent intent) {
+        Log.d("FDL_HH==", "bind service");
+        if (intent != null) {
+            maxSynchronousDownloadNum = intent.getIntExtra(Constans.MAX_SYNCHRONOUS_DOWNLOAD_NUM, 2);
+            if (mServiceProxy != null) {
+                mServiceProxy.setMaxSynchronousDownloadNum(maxSynchronousDownloadNum);
+            }
+            Log.d("FDL_HH", "bind service maxSynchronousDownloadNum=" + maxSynchronousDownloadNum);
+        }
         return mAgent.asBinder();
     }
 
@@ -119,7 +124,12 @@ public class FDLService extends Service {
     public void onCreate() {
         super.onCreate();
         mDatabaseExecutor = Utils.buildExecutor(1, 1, 120, "FDLService Database Thread", true);
-        mServiceProxy = new OkhttpServiceProxy(this.getApplicationContext(), mClients, mDatabaseExecutor, mTaskDBInfoContainer);
+        mServiceProxy = new OkhttpServiceProxy(
+                this.getApplicationContext(),
+                mClients,
+                mDatabaseExecutor,
+                mTaskDBInfoContainer,
+                maxSynchronousDownloadNum);
     }
 
     @Override

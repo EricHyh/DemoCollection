@@ -29,6 +29,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadFactory;
@@ -188,6 +189,18 @@ public class Utils {
         }
         return packageList;
     }
+
+
+    public static boolean isServiceRunning(Context context, String serviceClassName) {
+        ActivityManager manager = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
+        for (ActivityManager.RunningServiceInfo service : manager.getRunningServices(Integer.MAX_VALUE)) {
+            if (TextUtils.equals(serviceClassName, service.service.getClassName())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
 
     /**
      * @param context
@@ -382,14 +395,15 @@ public class Utils {
         }
 
 
-        public synchronized Map<String, TaskDBInfo> getAllTasks(Map<String, TaskDBInfo> map) {
+        public synchronized Map<String, TaskDBInfo> getAllTaskMap() {
+            Map<String, TaskDBInfo> historyTasks = new ConcurrentHashMap<>();
             List<TaskDBInfo> taskDBInfos = mDao.loadAll();
             if (taskDBInfos != null && taskDBInfos.size() > 0) {
                 for (TaskDBInfo taskDBInfo : taskDBInfos) {
-                    map.put(taskDBInfo.getResKey(), taskDBInfo);
+                    historyTasks.put(taskDBInfo.getResKey(), taskDBInfo);
                 }
             }
-            return map;
+            return historyTasks;
         }
 
 
@@ -406,7 +420,7 @@ public class Utils {
             return getTasks(State.INSTALL);
         }
 
-        public synchronized List<TaskDBInfo> getAllTasks() {
+        public synchronized List<TaskDBInfo> getAllTaskList() {
             List<TaskDBInfo> taskDBInfos = mDao.loadAll();
             return taskDBInfos == null ? new ArrayList<TaskDBInfo>() : taskDBInfos;
         }

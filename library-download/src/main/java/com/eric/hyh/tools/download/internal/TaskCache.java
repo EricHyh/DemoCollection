@@ -1,6 +1,5 @@
 package com.eric.hyh.tools.download.internal;
 
-import com.eric.hyh.tools.download.api.Callback;
 import com.eric.hyh.tools.download.bean.TaskInfo;
 
 /**
@@ -15,18 +14,15 @@ public class TaskCache {
 
     TaskInfo taskInfo;
 
-    Callback callback;
 
-    TaskCache(int command, TaskInfo taskInfo, Callback callback) {
+    TaskCache(int command, TaskInfo taskInfo) {
         this.command = command;
         this.taskInfo = taskInfo;
-        this.callback = callback;
     }
 
-    TaskCache(String resKey, TaskInfo taskInfo, Callback callback) {
+    TaskCache(String resKey, TaskInfo taskInfo) {
         this.resKey = resKey;
         this.taskInfo = taskInfo;
-        this.callback = callback;
     }
 
     TaskCache(String resKey) {

@@ -2,6 +2,7 @@ package com.eric.hyh.tools.download.internal;
 
 
 import com.eric.hyh.tools.download.api.Callback;
+import com.eric.hyh.tools.download.api.FileDownloader;
 import com.eric.hyh.tools.download.bean.TaskInfo;
 
 /**
@@ -15,7 +16,7 @@ public interface IDownloadProxy {
 
     void enqueue(int command, TaskInfo taskInfo);
 
-    void enqueue(int command, TaskInfo taskInfo, Callback callback);
+    void setMaxSynchronousDownloadNum(int num);
 
     interface IServiceDownloadProxy extends IDownloadProxy {
 
@@ -23,7 +24,14 @@ public interface IDownloadProxy {
 
     interface ILocalDownloadProxy extends IDownloadProxy {
 
-        void setCallback(Callback callback);
+        void initProxy(FileDownloader.LockConfig lockConfig);
 
+        void setAllTaskCallback(Callback callback);
+
+        boolean isFileDownloading(String resKey);
+
+        void operateDatebase(TaskInfo taskInfo);
+
+        void destroy();
     }
 }

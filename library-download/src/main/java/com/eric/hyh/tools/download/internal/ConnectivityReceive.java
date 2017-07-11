@@ -18,7 +18,10 @@ public class ConnectivityReceive extends BroadcastReceiver {
 
     @Override
     public void onReceive(Context context, Intent intent) {
-
+        FileDownloader fileDownloader = FileDownloader.getInstance();
+        if (fileDownloader == null) {
+            return;
+        }
         // 监听网络连接，包括wifi和移动数据的打开和关闭,以及连接上可用的连接都会接到监听
         if (ConnectivityManager.CONNECTIVITY_ACTION.equals(intent.getAction())) {
             ConnectivityManager connectivityManager = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
@@ -28,7 +31,7 @@ public class ConnectivityReceive extends BroadcastReceiver {
                 if (NetworkInfo.State.CONNECTED == networkInfo.getState() && networkInfo.isAvailable()) {
                     if (networkInfo.getType() == ConnectivityManager.TYPE_WIFI) {
                         //有网络
-                        FileDownloader.getInstance(context).startWaitingForWifiTasks();
+                        FileDownloader.getInstance().startWaitingForWifiTasks();
                     }
                 }
             }
