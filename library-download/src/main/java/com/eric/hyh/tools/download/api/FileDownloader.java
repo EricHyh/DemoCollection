@@ -103,6 +103,7 @@ public class FileDownloader implements DownloadProxyFactory {
 
         mDownloadProxy.setAllTaskCallback(mListenerManager);
         mDownloadProxy.initProxy(mLockConfig);
+
         initHistoryTasks();
     }
 
