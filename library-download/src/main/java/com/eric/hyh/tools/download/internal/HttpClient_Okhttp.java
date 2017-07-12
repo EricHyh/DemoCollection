@@ -36,8 +36,8 @@ public class HttpClient_Okhttp implements HttpClient {
     }
 
     @Override
-    public HttpCall newCall(String resKey, String url, long oldSize) {
-        Request.Builder builder = new Request.Builder().url(url).tag(resKey);
+    public HttpCall newCall(String tag, String url, long oldSize) {
+        Request.Builder builder = new Request.Builder().url(url).tag(tag);
         if (oldSize > 0) {
             builder.addHeader("RANGE", "bytes=" + oldSize + "-");//断点续传要用到的，指示下载的区间
         }
@@ -45,6 +45,28 @@ public class HttpClient_Okhttp implements HttpClient {
         Call call = mClient.newCall(okhttpRequest);
         return new OkhttpCall(call);
     }
+
+    @Override
+    public HttpCall newCall(String tag, String url, long startPosition, long endPosition) {
+        Request.Builder builder = new Request.Builder().url(url).tag(tag);
+        builder.addHeader("RANGE", "bytes=" + startPosition + "-" + endPosition);//断点续传要用到的，指示下载的区间
+        Request okhttpRequest = builder.build();
+        Call call = mClient.newCall(okhttpRequest);
+        return new OkhttpCall(call);
+    }
+
+    @Override
+    public long getContentLength(String url) throws IOException {
+        Request request = new Request.Builder().url(url).build();
+        Call call = mClient.newCall(request);
+        Response response = call.execute();
+        if (response.isSuccessful()) {
+            return response.body().contentLength();
+        } else {
+            throw new IOException("getContentLength failed, url is " + url);
+        }
+    }
+
 
     private static class OkhttpCall implements HttpCall {
 

@@ -16,33 +16,35 @@ import java.lang.reflect.Type;
 public class TaskInfo<T> implements Parcelable {
 
 
-    protected String resKey;
+    private String resKey;
 
-    protected String url;
+    private String url;
 
-    protected String packageName;
+    private String packageName;
 
-    protected int versionCode;
+    private int versionCode;
 
-    protected String filePath;
+    private String filePath;
 
-    protected int progress;
+    private int progress;
 
-    protected long currentSize;
+    private int rangeNum;
 
-    protected long totalSize;
+    private long currentSize;
 
-    protected int currentStatus;
+    private long[] startPositions;
 
-    protected boolean byService;
+    private long totalSize;
 
-    protected boolean wifiAutoRetry;
+    private int currentStatus;
 
-    protected String expand;
+    private boolean wifiAutoRetry;
 
-    protected String tagJson;
+    private String expand;
 
-    protected String tagClassName;
+    private String tagJson;
+
+    private String tagClassName;
 
     protected int code;
 
@@ -76,10 +78,11 @@ public class TaskInfo<T> implements Parcelable {
         versionCode = in.readInt();
         filePath = in.readString();
         progress = in.readInt();
+        rangeNum = in.readInt();
         currentSize = in.readLong();
+        startPositions = in.createLongArray();
         totalSize = in.readLong();
         currentStatus = in.readInt();
-        byService = in.readByte() != 0;
         wifiAutoRetry = in.readByte() != 0;
         expand = in.readString();
         tagJson = in.readString();
@@ -109,10 +112,10 @@ public class TaskInfo<T> implements Parcelable {
                 ", versionCode=" + versionCode +
                 ", filePath='" + filePath + '\'' +
                 ", progress=" + progress +
+                ", rangeNum=" + rangeNum +
                 ", currentSize=" + currentSize +
                 ", totalSize=" + totalSize +
                 ", currentStatus=" + currentStatus +
-                ", byService=" + byService +
                 ", wifiAutoRetry=" + wifiAutoRetry +
                 ", expand='" + expand + '\'' +
                 ", tagJson='" + tagJson + '\'' +
@@ -145,10 +148,11 @@ public class TaskInfo<T> implements Parcelable {
         dest.writeInt(versionCode);
         dest.writeString(filePath);
         dest.writeInt(progress);
+        dest.writeInt(rangeNum);
         dest.writeLong(currentSize);
+        dest.writeLongArray(startPositions);
         dest.writeLong(totalSize);
         dest.writeInt(currentStatus);
-        dest.writeByte((byte) (byService ? 1 : 0));
         dest.writeByte((byte) (wifiAutoRetry ? 1 : 0));
         dest.writeString(expand);
         dest.writeString(tagJson);
@@ -196,12 +200,28 @@ public class TaskInfo<T> implements Parcelable {
         this.progress = progress;
     }
 
+    public int getRangeNum() {
+        return rangeNum;
+    }
+
+    public void setRangeNum(int rangeNum) {
+        this.rangeNum = rangeNum;
+    }
+
     public long getCurrentSize() {
         return currentSize;
     }
 
     public void setCurrentSize(long currentSize) {
         this.currentSize = currentSize;
+    }
+
+    public long[] getStartPositions() {
+        return startPositions;
+    }
+
+    public void setStartPositions(long[] startPositions) {
+        this.startPositions = startPositions;
     }
 
     public long getTotalSize() {
@@ -218,14 +238,6 @@ public class TaskInfo<T> implements Parcelable {
 
     public void setCurrentStatus(int currentStatus) {
         this.currentStatus = currentStatus;
-    }
-
-    public boolean isByService() {
-        return byService;
-    }
-
-    public void setByService(boolean byService) {
-        this.byService = byService;
     }
 
     public boolean isWifiAutoRetry() {
@@ -284,10 +296,10 @@ public class TaskInfo<T> implements Parcelable {
         taskInfo.setFilePath(taskDBInfo.getFilePath());
         taskInfo.setVersionCode(taskDBInfo.getVersionCode() == null ? -1 : taskDBInfo.getVersionCode());
         taskInfo.setProgress(taskDBInfo.getProgress() == null ? 0 : taskDBInfo.getProgress());
+        taskInfo.setRangeNum(taskDBInfo.getRangeNum() == null ? 0 : taskDBInfo.getRangeNum());
         taskInfo.setTotalSize(taskDBInfo.getTotalSize() == null ? 0 : taskDBInfo.getTotalSize());
         taskInfo.setCurrentSize(taskDBInfo.getCurrentSize() == null ? 0 : taskDBInfo.getCurrentSize());
         taskInfo.setCurrentStatus(taskDBInfo.getCurrentStatus() == null ? State.NONE : taskDBInfo.getCurrentStatus());
-        taskInfo.setByService(taskDBInfo.getByService() == null ? true : taskDBInfo.getByService());
         taskInfo.setWifiAutoRetry(taskDBInfo.getWifiAutoRetry() == null ? true : taskDBInfo.getWifiAutoRetry());
         taskInfo.setCode(taskDBInfo.getResponseCode() == null ? 0 : taskDBInfo.getResponseCode());
         taskInfo.setExpand(taskDBInfo.getExpand());
@@ -314,10 +326,10 @@ public class TaskInfo<T> implements Parcelable {
         taskInfo.setFilePath(taskDBInfo.getFilePath());
         taskInfo.setVersionCode(taskDBInfo.getVersionCode() == null ? -1 : taskDBInfo.getVersionCode());
         taskInfo.setProgress(taskDBInfo.getProgress() == null ? 0 : taskDBInfo.getProgress());
+        taskInfo.setRangeNum(taskDBInfo.getRangeNum() == null ? 0 : taskDBInfo.getRangeNum());
         taskInfo.setTotalSize(taskDBInfo.getTotalSize() == null ? 0 : taskDBInfo.getTotalSize());
         taskInfo.setCurrentSize(taskDBInfo.getCurrentSize() == null ? 0 : taskDBInfo.getCurrentSize());
         taskInfo.setCurrentStatus(taskDBInfo.getCurrentStatus() == null ? State.NONE : taskDBInfo.getCurrentStatus());
-        taskInfo.setByService(taskDBInfo.getByService() == null ? true : taskDBInfo.getByService());
         taskInfo.setWifiAutoRetry(taskDBInfo.getWifiAutoRetry() == null ? true : taskDBInfo.getWifiAutoRetry());
         taskInfo.setCode(taskDBInfo.getResponseCode() == null ? 0 : taskDBInfo.getResponseCode());
         taskInfo.setExpand(taskDBInfo.getExpand());
@@ -348,11 +360,11 @@ public class TaskInfo<T> implements Parcelable {
         taskDBInfo.setCurrentSize(taskInfo.getCurrentSize());
         taskDBInfo.setCurrentStatus(taskInfo.getCurrentStatus());
         taskDBInfo.setTotalSize(taskInfo.getTotalSize());
-        taskDBInfo.setByService(taskInfo.isByService());
         taskDBInfo.setPackageName(taskInfo.getPackageName());
         taskDBInfo.setVersionCode(taskInfo.getVersionCode());
         taskDBInfo.setTagClassName(taskInfo.getTagClassName());
         taskDBInfo.setProgress(taskInfo.getProgress());
+        taskDBInfo.setRangeNum(taskInfo.getRangeNum());
         taskDBInfo.setWifiAutoRetry(taskInfo.isWifiAutoRetry());
         taskDBInfo.setTagJson(taskInfo.getTagJson());
         taskDBInfo.setTime(System.currentTimeMillis());

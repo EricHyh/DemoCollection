@@ -31,13 +31,13 @@ public class TaskDBInfoDao extends AbstractDao<TaskDBInfo, Long> {
         public final static Property Progress = new Property(4, Integer.class, "progress", false, "PROGRESS");
         public final static Property VersionCode = new Property(5, Integer.class, "versionCode", false, "VERSION_CODE");
         public final static Property ResponseCode = new Property(6, Integer.class, "responseCode", false, "RESPONSE_CODE");
-        public final static Property TotalSize = new Property(7, Long.class, "totalSize", false, "TOTAL_SIZE");
-        public final static Property CurrentSize = new Property(8, Long.class, "currentSize", false, "CURRENT_SIZE");
-        public final static Property Time = new Property(9, Long.class, "time", false, "TIME");
-        public final static Property PackageName = new Property(10, String.class, "packageName", false, "PACKAGE_NAME");
-        public final static Property FilePath = new Property(11, String.class, "filePath", false, "FILE_PATH");
-        public final static Property Expand = new Property(12, String.class, "expand", false, "EXPAND");
-        public final static Property ByService = new Property(13, Boolean.class, "byService", false, "BY_SERVICE");
+        public final static Property RangeNum = new Property(7, Integer.class, "rangeNum", false, "RANGE_NUM");
+        public final static Property TotalSize = new Property(8, Long.class, "totalSize", false, "TOTAL_SIZE");
+        public final static Property CurrentSize = new Property(9, Long.class, "currentSize", false, "CURRENT_SIZE");
+        public final static Property Time = new Property(10, Long.class, "time", false, "TIME");
+        public final static Property PackageName = new Property(11, String.class, "packageName", false, "PACKAGE_NAME");
+        public final static Property FilePath = new Property(12, String.class, "filePath", false, "FILE_PATH");
+        public final static Property Expand = new Property(13, String.class, "expand", false, "EXPAND");
         public final static Property WifiAutoRetry = new Property(14, Boolean.class, "wifiAutoRetry", false, "WIFI_AUTO_RETRY");
         public final static Property TagJson = new Property(15, String.class, "tagJson", false, "TAG_JSON");
         public final static Property TagClassName = new Property(16, String.class, "tagClassName", false, "TAG_CLASS_NAME");
@@ -63,13 +63,13 @@ public class TaskDBInfoDao extends AbstractDao<TaskDBInfo, Long> {
                 "\"PROGRESS\" INTEGER," + // 4: progress
                 "\"VERSION_CODE\" INTEGER," + // 5: versionCode
                 "\"RESPONSE_CODE\" INTEGER," + // 6: responseCode
-                "\"TOTAL_SIZE\" INTEGER," + // 7: totalSize
-                "\"CURRENT_SIZE\" INTEGER," + // 8: currentSize
-                "\"TIME\" INTEGER," + // 9: time
-                "\"PACKAGE_NAME\" TEXT," + // 10: packageName
-                "\"FILE_PATH\" TEXT," + // 11: filePath
-                "\"EXPAND\" TEXT," + // 12: expand
-                "\"BY_SERVICE\" INTEGER," + // 13: byService
+                "\"RANGE_NUM\" INTEGER," + // 7: rangeNum
+                "\"TOTAL_SIZE\" INTEGER," + // 8: totalSize
+                "\"CURRENT_SIZE\" INTEGER," + // 9: currentSize
+                "\"TIME\" INTEGER," + // 10: time
+                "\"PACKAGE_NAME\" TEXT," + // 11: packageName
+                "\"FILE_PATH\" TEXT," + // 12: filePath
+                "\"EXPAND\" TEXT," + // 13: expand
                 "\"WIFI_AUTO_RETRY\" INTEGER," + // 14: wifiAutoRetry
                 "\"TAG_JSON\" TEXT," + // 15: tagJson
                 "\"TAG_CLASS_NAME\" TEXT);"); // 16: tagClassName
@@ -120,39 +120,39 @@ public class TaskDBInfoDao extends AbstractDao<TaskDBInfo, Long> {
             stmt.bindLong(7, responseCode);
         }
  
+        Integer rangeNum = entity.getRangeNum();
+        if (rangeNum != null) {
+            stmt.bindLong(8, rangeNum);
+        }
+ 
         Long totalSize = entity.getTotalSize();
         if (totalSize != null) {
-            stmt.bindLong(8, totalSize);
+            stmt.bindLong(9, totalSize);
         }
  
         Long currentSize = entity.getCurrentSize();
         if (currentSize != null) {
-            stmt.bindLong(9, currentSize);
+            stmt.bindLong(10, currentSize);
         }
  
         Long time = entity.getTime();
         if (time != null) {
-            stmt.bindLong(10, time);
+            stmt.bindLong(11, time);
         }
  
         String packageName = entity.getPackageName();
         if (packageName != null) {
-            stmt.bindString(11, packageName);
+            stmt.bindString(12, packageName);
         }
  
         String filePath = entity.getFilePath();
         if (filePath != null) {
-            stmt.bindString(12, filePath);
+            stmt.bindString(13, filePath);
         }
  
         String expand = entity.getExpand();
         if (expand != null) {
-            stmt.bindString(13, expand);
-        }
- 
-        Boolean byService = entity.getByService();
-        if (byService != null) {
-            stmt.bindLong(14, byService ? 1L: 0L);
+            stmt.bindString(14, expand);
         }
  
         Boolean wifiAutoRetry = entity.getWifiAutoRetry();
@@ -210,39 +210,39 @@ public class TaskDBInfoDao extends AbstractDao<TaskDBInfo, Long> {
             stmt.bindLong(7, responseCode);
         }
  
+        Integer rangeNum = entity.getRangeNum();
+        if (rangeNum != null) {
+            stmt.bindLong(8, rangeNum);
+        }
+ 
         Long totalSize = entity.getTotalSize();
         if (totalSize != null) {
-            stmt.bindLong(8, totalSize);
+            stmt.bindLong(9, totalSize);
         }
  
         Long currentSize = entity.getCurrentSize();
         if (currentSize != null) {
-            stmt.bindLong(9, currentSize);
+            stmt.bindLong(10, currentSize);
         }
  
         Long time = entity.getTime();
         if (time != null) {
-            stmt.bindLong(10, time);
+            stmt.bindLong(11, time);
         }
  
         String packageName = entity.getPackageName();
         if (packageName != null) {
-            stmt.bindString(11, packageName);
+            stmt.bindString(12, packageName);
         }
  
         String filePath = entity.getFilePath();
         if (filePath != null) {
-            stmt.bindString(12, filePath);
+            stmt.bindString(13, filePath);
         }
  
         String expand = entity.getExpand();
         if (expand != null) {
-            stmt.bindString(13, expand);
-        }
- 
-        Boolean byService = entity.getByService();
-        if (byService != null) {
-            stmt.bindLong(14, byService ? 1L: 0L);
+            stmt.bindString(14, expand);
         }
  
         Boolean wifiAutoRetry = entity.getWifiAutoRetry();
@@ -276,13 +276,13 @@ public class TaskDBInfoDao extends AbstractDao<TaskDBInfo, Long> {
             cursor.isNull(offset + 4) ? null : cursor.getInt(offset + 4), // progress
             cursor.isNull(offset + 5) ? null : cursor.getInt(offset + 5), // versionCode
             cursor.isNull(offset + 6) ? null : cursor.getInt(offset + 6), // responseCode
-            cursor.isNull(offset + 7) ? null : cursor.getLong(offset + 7), // totalSize
-            cursor.isNull(offset + 8) ? null : cursor.getLong(offset + 8), // currentSize
-            cursor.isNull(offset + 9) ? null : cursor.getLong(offset + 9), // time
-            cursor.isNull(offset + 10) ? null : cursor.getString(offset + 10), // packageName
-            cursor.isNull(offset + 11) ? null : cursor.getString(offset + 11), // filePath
-            cursor.isNull(offset + 12) ? null : cursor.getString(offset + 12), // expand
-            cursor.isNull(offset + 13) ? null : cursor.getShort(offset + 13) != 0, // byService
+            cursor.isNull(offset + 7) ? null : cursor.getInt(offset + 7), // rangeNum
+            cursor.isNull(offset + 8) ? null : cursor.getLong(offset + 8), // totalSize
+            cursor.isNull(offset + 9) ? null : cursor.getLong(offset + 9), // currentSize
+            cursor.isNull(offset + 10) ? null : cursor.getLong(offset + 10), // time
+            cursor.isNull(offset + 11) ? null : cursor.getString(offset + 11), // packageName
+            cursor.isNull(offset + 12) ? null : cursor.getString(offset + 12), // filePath
+            cursor.isNull(offset + 13) ? null : cursor.getString(offset + 13), // expand
             cursor.isNull(offset + 14) ? null : cursor.getShort(offset + 14) != 0, // wifiAutoRetry
             cursor.isNull(offset + 15) ? null : cursor.getString(offset + 15), // tagJson
             cursor.isNull(offset + 16) ? null : cursor.getString(offset + 16) // tagClassName
@@ -299,13 +299,13 @@ public class TaskDBInfoDao extends AbstractDao<TaskDBInfo, Long> {
         entity.setProgress(cursor.isNull(offset + 4) ? null : cursor.getInt(offset + 4));
         entity.setVersionCode(cursor.isNull(offset + 5) ? null : cursor.getInt(offset + 5));
         entity.setResponseCode(cursor.isNull(offset + 6) ? null : cursor.getInt(offset + 6));
-        entity.setTotalSize(cursor.isNull(offset + 7) ? null : cursor.getLong(offset + 7));
-        entity.setCurrentSize(cursor.isNull(offset + 8) ? null : cursor.getLong(offset + 8));
-        entity.setTime(cursor.isNull(offset + 9) ? null : cursor.getLong(offset + 9));
-        entity.setPackageName(cursor.isNull(offset + 10) ? null : cursor.getString(offset + 10));
-        entity.setFilePath(cursor.isNull(offset + 11) ? null : cursor.getString(offset + 11));
-        entity.setExpand(cursor.isNull(offset + 12) ? null : cursor.getString(offset + 12));
-        entity.setByService(cursor.isNull(offset + 13) ? null : cursor.getShort(offset + 13) != 0);
+        entity.setRangeNum(cursor.isNull(offset + 7) ? null : cursor.getInt(offset + 7));
+        entity.setTotalSize(cursor.isNull(offset + 8) ? null : cursor.getLong(offset + 8));
+        entity.setCurrentSize(cursor.isNull(offset + 9) ? null : cursor.getLong(offset + 9));
+        entity.setTime(cursor.isNull(offset + 10) ? null : cursor.getLong(offset + 10));
+        entity.setPackageName(cursor.isNull(offset + 11) ? null : cursor.getString(offset + 11));
+        entity.setFilePath(cursor.isNull(offset + 12) ? null : cursor.getString(offset + 12));
+        entity.setExpand(cursor.isNull(offset + 13) ? null : cursor.getString(offset + 13));
         entity.setWifiAutoRetry(cursor.isNull(offset + 14) ? null : cursor.getShort(offset + 14) != 0);
         entity.setTagJson(cursor.isNull(offset + 15) ? null : cursor.getString(offset + 15));
         entity.setTagClassName(cursor.isNull(offset + 16) ? null : cursor.getString(offset + 16));

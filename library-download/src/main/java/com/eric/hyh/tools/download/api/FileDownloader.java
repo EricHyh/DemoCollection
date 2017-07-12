@@ -44,7 +44,9 @@ public class FileDownloader implements DownloadProxyFactory {
     @SuppressLint("StaticFieldLeak")
     private static FileDownloader sFileDownloader;
 
-    private ThreadPoolExecutor mExecutor = Utils.buildExecutor(4, 4, 120, "FileDownload Thread", true);
+    private final int multiThreadNum;
+
+    private ThreadPoolExecutor mExecutor = Utils.buildExecutor(4, 4, 60, "FileDownload Thread", true);
 
     private Gson mGson = new Gson();
 
@@ -70,7 +72,6 @@ public class FileDownloader implements DownloadProxyFactory {
 
     private final SingleTaskListenerManager mListenerManager;
 
-
     public static void initFileDownloader(Context context) {
         initFileDownloader(context, true, 2);
     }
@@ -91,12 +92,12 @@ public class FileDownloader implements DownloadProxyFactory {
         return sFileDownloader;
     }
 
-
     private FileDownloader(FileDownloaderBuilder builder) {
         if (builder == null) {
             throw new NullPointerException("Context is null, please init FileDownloader!!");
         }
         this.mContext = builder.context;
+        this.multiThreadNum = Utils.computeMultiThreadNum(builder.maxSynchronousDownloadNum);
         this.mDBUtil = Utils.DBUtil.getInstance(this.mContext);
         this.mListenerManager = new SingleTaskListenerManager(new DownloadListener());
         this.mDownloadProxy = produce(builder.byService, builder.maxSynchronousDownloadNum);
@@ -106,7 +107,6 @@ public class FileDownloader implements DownloadProxyFactory {
 
         initHistoryTasks();
     }
-
 
     private void initHistoryTasks() {
         mExecutor.execute(new Runnable() {
@@ -121,7 +121,6 @@ public class FileDownloader implements DownloadProxyFactory {
             }
         });
     }
-
 
     public <T> void startTask(FileRequest<T> fileRequest) {
         startTask(fileRequest, null);
@@ -148,7 +147,6 @@ public class FileDownloader implements DownloadProxyFactory {
         });
     }
 
-
     public <T> void startWaitingForWifiTasks() {
         getSaveInDBWaitingForWifiTasksAsynch(new SearchListener<List<TaskInfo<T>>>() {
             @Override
@@ -163,7 +161,6 @@ public class FileDownloader implements DownloadProxyFactory {
                                 .packageName(taskInfo.getPackageName())
                                 .fileSize(taskInfo.getTotalSize())
                                 .versionCode(taskInfo.getVersionCode())
-                                .byService(taskInfo.isByService())
                                 .wifiAutoRetry(taskInfo.isWifiAutoRetry())
                                 .build();
                         startTask(fileRequest);
@@ -173,7 +170,6 @@ public class FileDownloader implements DownloadProxyFactory {
         });
     }
 
-
     public boolean isFileDownloading(String resKey) {
         return mFileCalls.get(resKey) != null;
     }
@@ -182,7 +178,6 @@ public class FileDownloader implements DownloadProxyFactory {
         TaskDBInfo taskDBInfo = mDBUtil.getTaskDBInfoByResKey(resKey);
         return taskDBInfo != null && taskDBInfo.getCurrentStatus() == State.SUCCESS;
     }
-
 
     public <T> PendingIntent buildPendingIntent(FileRequest<T> fileRequest, Callback<T> callback) {
         String resKey = fileRequest.key();
@@ -256,7 +251,6 @@ public class FileDownloader implements DownloadProxyFactory {
         }
     }
 
-
     public void pauseTasks(List<String> resKeys) {
         for (String resKey : resKeys) {
             pauseTask(resKey);
@@ -289,7 +283,6 @@ public class FileDownloader implements DownloadProxyFactory {
         mListeners.clear();
     }
 
-
     public <T> List<TaskInfo<T>> getSaveInDBWaitingForWifiTasksSynch() {
         ArrayList<TaskInfo<T>> taskInfos = new ArrayList<>();
         List<TaskDBInfo> list = mDBUtil.getWaitingForWifiTasks();
@@ -299,7 +292,6 @@ public class FileDownloader implements DownloadProxyFactory {
         }
         return taskInfos;
     }
-
 
     public <T> void getSaveInDBWaitingForWifiTasksAsynch(final SearchListener<List<TaskInfo<T>>> callback) {
         mExecutor.execute(new Runnable() {
@@ -311,7 +303,6 @@ public class FileDownloader implements DownloadProxyFactory {
         });
     }
 
-
     public <T> List<TaskInfo<T>> getSaveInDBWaitingForWifiTasksSynch(Type tagType) {
         ArrayList<TaskInfo<T>> taskInfos = new ArrayList<>();
         List<TaskDBInfo> list = mDBUtil.getWaitingForWifiTasks();
@@ -321,7 +312,6 @@ public class FileDownloader implements DownloadProxyFactory {
         }
         return taskInfos;
     }
-
 
     public <T> List<TaskInfo<T>> getSaveInDBSuccessTasksSynch(Type tagType) {
         ArrayList<TaskInfo<T>> taskInfos = new ArrayList<>();
@@ -371,7 +361,6 @@ public class FileDownloader implements DownloadProxyFactory {
         }
     }
 
-
     public <T> void getSaveInDBWaitingForWifiTasksAsynch(final Type type, final SearchListener<List<TaskInfo<T>>> callback) {
         mExecutor.execute(new Runnable() {
             @Override
@@ -381,7 +370,6 @@ public class FileDownloader implements DownloadProxyFactory {
             }
         });
     }
-
 
     public <T> void getSaveInDBSuccessTasksAsynch(final Type type, final SearchListener<List<TaskInfo<T>>> callback) {
         mExecutor.execute(new Runnable() {
@@ -394,7 +382,6 @@ public class FileDownloader implements DownloadProxyFactory {
 
     }
 
-
     public <T> void getSaveInDBInstalledTasksAsynch(final Type type, final SearchListener<List<TaskInfo<T>>> callback) {
         mExecutor.execute(new Runnable() {
             @Override
@@ -406,7 +393,6 @@ public class FileDownloader implements DownloadProxyFactory {
 
     }
 
-
     public <T> void getAllAppsAsynch(final Type tagType, final SearchListener<List<TaskInfo<T>>> callback) {
         mExecutor.execute(new Runnable() {
             @Override
@@ -416,7 +402,6 @@ public class FileDownloader implements DownloadProxyFactory {
             }
         });
     }
-
 
     private <T> FileCall<T> newCall(final FileRequest<T> request, Callback<T> callback) {
         if (!mLockConfig.isInitHistoryFinish) {
@@ -451,12 +436,7 @@ public class FileDownloader implements DownloadProxyFactory {
         TaskInfo<T> taskInfo = generateTaskInfo(request, file, currentSize);
         FileCall fileCall = mFileCalls.get(resKey);
         if (fileCall != null) {
-            boolean byService = fileCall.fileRequest().byService();
-            if (byService != request.byService()) {
-                return null;
-            } else {
-                mFileCalls.remove(resKey);
-            }
+            mFileCalls.remove(resKey);
             fileCall = new FileCall(request, mDownloadProxy, taskInfo);
             mFileCalls.put(resKey, fileCall);
             return fileCall;
@@ -644,7 +624,11 @@ public class FileDownloader implements DownloadProxyFactory {
         taskInfo.setUrl(request.url());
         taskInfo.setTotalSize(request.fileSize());
         taskInfo.setVersionCode(request.versionCode());
-        taskInfo.setByService(request.byService());
+        if (request.byMultiThread()) {
+            taskInfo.setRangeNum(multiThreadNum);
+        } else {
+            taskInfo.setRangeNum(1);
+        }
         taskInfo.setPackageName(request.packageName());
         taskInfo.setWifiAutoRetry(request.wifiAutoRetry());
         T tag = request.tag();
@@ -664,7 +648,6 @@ public class FileDownloader implements DownloadProxyFactory {
         taskInfo.setTagType(type);
         return taskInfo;
     }
-
 
     private class DownloadListener implements Callback {
 
@@ -858,19 +841,6 @@ public class FileDownloader implements DownloadProxyFactory {
         }
     }
 
-    private static class FileDownloaderConfig {
-
-        boolean byService = true;
-
-        int maxSynchronousDownloadNum = 2;
-
-        FileDownloaderConfig(boolean byService, int maxSynchronousDownloadNum) {
-            this.byService = byService;
-            this.maxSynchronousDownloadNum = maxSynchronousDownloadNum;
-        }
-    }
-
-
     public static class LockConfig {
 
         boolean isInitProxyFinish;
@@ -885,7 +855,6 @@ public class FileDownloader implements DownloadProxyFactory {
             isInitHistoryFinish = initHistoryFinish;
         }
     }
-
 
     @Override
     public IDownloadProxy.ILocalDownloadProxy produce(boolean byService, int maxSynchronousDownloadNum) {

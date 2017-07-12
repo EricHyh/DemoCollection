@@ -15,7 +15,7 @@ public class FileRequest<T> {
 
     private String url;
 
-    private boolean byService;
+    private boolean byMultiThread;
 
     private boolean wifiAutoRetry;
 
@@ -56,8 +56,8 @@ public class FileRequest<T> {
     }
 
 
-    public boolean byService() {
-        return byService;
+    public boolean byMultiThread() {
+        return byMultiThread;
     }
 
     public boolean wifiAutoRetry() {
@@ -97,7 +97,7 @@ public class FileRequest<T> {
 
         private String url;
 
-        private boolean byService = true;
+        private boolean byMultiThread = false;
 
         private boolean wifiAutoRetry = false;
 
@@ -121,7 +121,7 @@ public class FileRequest<T> {
             FileRequest<T> fileRequest = new FileRequest<>();
             fileRequest.resKey = this.resKey;
             fileRequest.url = this.url;
-            fileRequest.byService = this.byService;
+            fileRequest.byMultiThread = this.byMultiThread;
             fileRequest.wifiAutoRetry = this.wifiAutoRetry;
             fileRequest.packageName = this.packageName;
             fileRequest.command = this.command;
@@ -159,8 +159,8 @@ public class FileRequest<T> {
         }
 
 
-        public Builder byService(boolean byService) {
-            this.byService = byService;
+        public Builder byMultiThread(boolean byMultiThread) {
+            this.byMultiThread = byMultiThread;
             return this;
         }
 

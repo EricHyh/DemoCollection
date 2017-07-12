@@ -1,5 +1,7 @@
 package com.eric.hyh.tools.download.api;
 
+import java.io.IOException;
+
 /**
  * @author Administrator
  * @description
@@ -8,6 +10,9 @@ package com.eric.hyh.tools.download.api;
 
 public interface HttpClient {
 
-    HttpCall newCall(String resKey, String url, long oldSize);
+    HttpCall newCall(String tag, String url, long oldSize);
 
+    HttpCall newCall(String tag, String url, long startPosition, long endPosition);
+
+    long getContentLength(String url) throws IOException;
 }

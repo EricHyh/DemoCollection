@@ -306,6 +306,10 @@ public class Utils {
         return executor;
     }
 
+    public static int computeMultiThreadNum(int maxSynchronousDownloadNum) {
+        return 3;
+    }
+
 
     public static class DBUtil {
 
@@ -517,7 +521,7 @@ public class Utils {
             taskDBInfo.setCurrentSize(taskInfo.getCurrentSize());
             taskDBInfo.setCurrentStatus(taskInfo.getCurrentStatus());
             taskDBInfo.setTotalSize(taskInfo.getTotalSize());
-            taskDBInfo.setByService(taskInfo.isByService());
+            taskDBInfo.setRangeNum(taskInfo.getRangeNum());
             taskDBInfo.setPackageName(taskInfo.getPackageName());
             taskDBInfo.setTagClassName(taskInfo.getTagClassName());
             taskDBInfo.setProgress(taskInfo.getProgress());

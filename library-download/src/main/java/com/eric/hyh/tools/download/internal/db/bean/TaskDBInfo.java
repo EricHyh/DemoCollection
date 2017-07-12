@@ -1,6 +1,5 @@
 package com.eric.hyh.tools.download.internal.db.bean;
 
-
 import com.eric.hyh.tools.download.bean.State;
 
 import org.greenrobot.greendao.annotation.Entity;
@@ -25,13 +24,13 @@ public class TaskDBInfo {
     private Integer progress;
     private Integer versionCode;
     private Integer responseCode;
+    private Integer rangeNum;
     private Long totalSize;
     private Long currentSize;
     private Long time;
     private String packageName;
     private String filePath;
     private String expand;
-    private Boolean byService;
     private Boolean wifiAutoRetry;
     private String tagJson;
     private String tagClassName;
@@ -45,7 +44,7 @@ public class TaskDBInfo {
     }
 
     @Generated
-    public TaskDBInfo(Long id, String resKey, String url, Integer currentStatus, Integer progress, Integer versionCode, Integer responseCode, Long totalSize, Long currentSize, Long time, String packageName, String filePath, String expand, Boolean byService, Boolean wifiAutoRetry, String tagJson, String tagClassName) {
+    public TaskDBInfo(Long id, String resKey, String url, Integer currentStatus, Integer progress, Integer versionCode, Integer responseCode, Integer rangeNum, Long totalSize, Long currentSize, Long time, String packageName, String filePath, String expand, Boolean wifiAutoRetry, String tagJson, String tagClassName) {
         this.id = id;
         this.resKey = resKey;
         this.url = url;
@@ -53,13 +52,13 @@ public class TaskDBInfo {
         this.progress = progress;
         this.versionCode = versionCode;
         this.responseCode = responseCode;
+        this.rangeNum = rangeNum;
         this.totalSize = totalSize;
         this.currentSize = currentSize;
         this.time = time;
         this.packageName = packageName;
         this.filePath = filePath;
         this.expand = expand;
-        this.byService = byService;
         this.wifiAutoRetry = wifiAutoRetry;
         this.tagJson = tagJson;
         this.tagClassName = tagClassName;
@@ -121,6 +120,14 @@ public class TaskDBInfo {
         this.responseCode = responseCode;
     }
 
+    public Integer getRangeNum() {
+        return rangeNum;
+    }
+
+    public void setRangeNum(Integer rangeNum) {
+        this.rangeNum = rangeNum;
+    }
+
     public Long getTotalSize() {
         return totalSize;
     }
@@ -169,14 +176,6 @@ public class TaskDBInfo {
         this.expand = expand;
     }
 
-    public Boolean getByService() {
-        return byService;
-    }
-
-    public void setByService(Boolean byService) {
-        this.byService = byService;
-    }
-
     public Boolean getWifiAutoRetry() {
         return wifiAutoRetry;
     }
@@ -207,6 +206,7 @@ public class TaskDBInfo {
         url = null;
         currentStatus = State.NONE;
         progress = 0;
+        rangeNum = 0;
         versionCode = 0;
         responseCode = 0;
         totalSize = 0L;
@@ -215,10 +215,8 @@ public class TaskDBInfo {
         packageName = null;
         filePath = null;
         expand = null;
-        byService = null;
         wifiAutoRetry = null;
         tagJson = null;
         tagClassName = null;
     }
-
 }

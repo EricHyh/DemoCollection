@@ -2,27 +2,20 @@ package com.eric.hyh.tools.download.internal;
 
 import android.content.Context;
 import android.content.pm.PackageInfo;
-import android.os.SystemClock;
 import android.text.TextUtils;
 import android.util.Log;
 
+import com.eric.hyh.tools.download.api.CallbackAdapter;
 import com.eric.hyh.tools.download.api.HttpCall;
-import com.eric.hyh.tools.download.api.HttpCallback;
 import com.eric.hyh.tools.download.api.HttpClient;
-import com.eric.hyh.tools.download.api.HttpResponse;
 import com.eric.hyh.tools.download.bean.Command;
 import com.eric.hyh.tools.download.bean.State;
 import com.eric.hyh.tools.download.bean.TaskInfo;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Timer;
-import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
@@ -38,17 +31,19 @@ public abstract class SuperDownloadProxy implements IDownloadProxy {
 
     private HttpClient client;
 
-    private int mMaxSynchronousDownloadNum;
+    private int maxSynchronousDownloadNum;
+
+    private int getTotalSizeRetryTimes;
 
     SuperDownloadProxy(Context context, int maxSynchronousDownloadNum) {
         this.context = context;
         this.client = getHttpClient();
-        this.mMaxSynchronousDownloadNum = maxSynchronousDownloadNum;
+        this.maxSynchronousDownloadNum = maxSynchronousDownloadNum;
     }
 
     @Override
     public void setMaxSynchronousDownloadNum(int maxSynchronousDownloadNum) {
-        mMaxSynchronousDownloadNum = maxSynchronousDownloadNum;
+        this.maxSynchronousDownloadNum = maxSynchronousDownloadNum;
     }
 
     private Map<String, HttpCallbackImpl> httpCallbacks = new ConcurrentHashMap<>();
@@ -56,12 +51,91 @@ public abstract class SuperDownloadProxy implements IDownloadProxy {
     private List<TaskCache> waitingQueue = new CopyOnWriteArrayList<>();
 
 
-    private HttpCall getCall(String resKey, String url, long oldSize) {
-        return client.newCall(resKey, url, oldSize);
+    private HttpCall getCall(TaskInfo taskInfo) {
+        String resKey = taskInfo.getResKey();
+        String url = taskInfo.getUrl();
+        int rangeNum = taskInfo.getRangeNum();
+        if (rangeNum <= 1) {
+            return client.newCall(resKey, url, taskInfo.getCurrentSize());
+        } else {
+            long totalSize = getTotalSize(taskInfo);
+            if (totalSize > 0) {
+                long[] startPositions = taskInfo.getStartPositions();
+                if (startPositions == null) {
+                    startPositions = getStartPositions(totalSize, rangeNum);
+                }
+                taskInfo.setStartPositions(startPositions);
+                long[] endPositions = getEndPositions(totalSize, rangeNum);
+                Map<String, HttpCall> httpCallMap = new HashMap<>();
+                for (int index = 0; index < rangeNum; index++) {
+                    long startPosition = startPositions[index];
+                    long endPosition = endPositions[index];
+                    if (startPosition < endPosition) {
+                        String tag = resKey.concat("-").concat(String.valueOf(index));
+                        httpCallMap.put(tag, client.newCall(tag, url, startPosition, endPosition));
+                    }
+                }
+                return new MultiHttpCall(httpCallMap);
+            }
+        }
+        return null;
+    }
+
+    private long getTotalSize(TaskInfo taskInfo) {
+        long totalSize = taskInfo.getTotalSize();
+        if (totalSize == 0) {
+            try {
+                totalSize = client.getContentLength(taskInfo.getUrl());
+                if (totalSize > 0) {
+                    taskInfo.setTotalSize(totalSize);
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+                if (getTotalSizeRetryTimes++ < 3) {
+                    return getTotalSize(taskInfo);
+                }
+            }
+        }
+        return totalSize;
+    }
+
+    private long[] getStartPositions(long totalSize, int rangeNum) {
+        long[] startPositions = new long[rangeNum];
+        long rangeSize = rangeNum / totalSize;
+        for (int index = 0; index < rangeNum; index++) {
+            if (index == 0) {
+                startPositions[index] = 0;
+            } else {
+                startPositions[index] = rangeSize * index + 1;
+            }
+
+        }
+        return startPositions;
+    }
+
+    private long[] getEndPositions(long totalSize, int rangeNum) {
+        long[] endPositions = new long[rangeNum];
+        long rangeSize = rangeNum / totalSize;
+        for (int index = 0; index < rangeNum; index++) {
+            if (index < rangeNum - 1) {
+                endPositions[index] = rangeSize * (index + 1);
+            } else {
+                endPositions[index] = totalSize;
+            }
+        }
+        return endPositions;
+    }
+
+
+    private HttpCallbackImpl getHttpCallbackImpl(TaskInfo taskInfo) {
+
+
+        return new HttpCallbackImpl(context, client, taskInfo, new DownloadCallback());
     }
 
     protected abstract HttpClient getHttpClient();
 
+    @SuppressWarnings("unchecked")
     @Override
     public void enqueue(int command, TaskInfo taskInfo) {
         String resKey = taskInfo.getResKey();
@@ -77,13 +151,17 @@ public abstract class SuperDownloadProxy implements IDownloadProxy {
                 if (tTaskInfo != null && !State.canDownload(tTaskInfo.getCurrentStatus())) {//检查状态
                     return;
                 }
-                if (runningTasksize >= mMaxSynchronousDownloadNum) {
+                if (runningTasksize >= maxSynchronousDownloadNum) {
                     handleWaitingInQueue(taskInfo);
                     return;
                 }
                 handlePrepare(taskInfo);
-                HttpCall call = getCall(resKey, taskInfo.getUrl(), taskInfo.getCurrentSize());
-                httpCallbackImpl = new HttpCallbackImpl(call, taskInfo);
+                HttpCall call = getCall(taskInfo);
+                if (call == null) {
+                    handleFailure(taskInfo);
+                    return;
+                }
+                httpCallbackImpl = getHttpCallbackImpl(taskInfo);
                 httpCallbacks.put(resKey, httpCallbackImpl);
                 call.enqueue(httpCallbackImpl);
                 break;
@@ -133,7 +211,6 @@ public abstract class SuperDownloadProxy implements IDownloadProxy {
                 break;
         }
     }
-
 
     private void startNextTask() {
         if (!waitingQueue.isEmpty()) {
@@ -221,192 +298,30 @@ public abstract class SuperDownloadProxy implements IDownloadProxy {
     protected abstract void handleCallbackAndDB(TaskInfo taskInfo);
 
 
-    /**
-     * okhttp请求数据的回调
-     */
-    private class HttpCallbackImpl implements HttpCallback {
-
-
-        HttpCall call;
-
-        TaskInfo taskInfo;
-
-        Timer timer;
-
-        volatile boolean pause;
-
-        volatile boolean delete;
-
-        //重试的当前次数
-        private volatile int currentRetryTimes = 0;
-        //重试的最大次数
-        private static final int RETRY_MAX_TIMES = 3;
-        //每次重试的延时
-        private static final long RETRYDELAY = 1000 * 2;
-        //获取wifi重试的最大次数
-        private static final int SEARCH_WIFI_MAX_TIMES = 15;
-
-        HttpCallbackImpl(HttpCall call, TaskInfo taskInfo) {
-            this.call = call;
-            this.taskInfo = taskInfo;
+    private class DownloadCallback extends CallbackAdapter {
+        @Override
+        public void onFirstFileWrite(TaskInfo taskInfo) {
+            handleFirstFileWrite(taskInfo);
         }
 
         @Override
-        public void onResponse(HttpCall call, HttpResponse response) throws IOException {
-            this.call = call;
-            if (delete || pause) {
-                if (this.call != null && !this.call.isCanceled()) {
-                    this.call.cancel();
-                }
-                return;
-            }
-            int code = response.code();
-            taskInfo.setCode(code);
-            if (code == Constans.ResponseCode.OK || code == Constans.ResponseCode.PARTIAL_CONTENT) {//请求数据成功
-                long totalSize = taskInfo.getTotalSize();
-                if (totalSize == 0) {
-                    taskInfo.setTotalSize(response.contentLength() + taskInfo.getCurrentSize());
-                }
-                handleDownload(response, taskInfo);
-            } else if (code == Constans.ResponseCode.NOT_FOUND) {
-                // TODO: 2017/5/16 未找到文件
-                handleFailure(taskInfo);
-            } else {
-                retry();
-            }
+        public void onDelete(TaskInfo taskInfo) {
+            handleDelete(taskInfo);
         }
-
 
         @Override
-        public void onFailure(HttpCall call, IOException e) {
-            this.call = call;
-            retry();
+        public void onPause(TaskInfo taskInfo) {
+            handlePause(taskInfo);
         }
 
-        private void handleDownload(HttpResponse response, TaskInfo taskInfo) throws IOException {
-            InputStream inputStream = response.inputStream();
-            BufferedInputStream bis = new BufferedInputStream(inputStream);
-            BufferedOutputStream bos = null;
-            long currentSize = taskInfo.getCurrentSize();
-            long totalSize = taskInfo.getTotalSize();
-            int oldProgress = (int) ((currentSize * 100.0 / totalSize) + 0.5);
-            boolean isException = false;
-            try {
-                bos = new BufferedOutputStream(new FileOutputStream(taskInfo.getFilePath(), true));
-                byte[] buffer = new byte[8 * 1024];
-                int len;
-                while ((len = bis.read(buffer)) != -1) {
-                    if (currentSize == 0 && len > 0) {
-                        handleFirstFileWrite(taskInfo);
-                    }
-                    bos.write(buffer, 0, len);
-                    currentSize += len;
-                    taskInfo.setCurrentSize(currentSize);
-                    int progress = (int) ((currentSize * 100.0 / totalSize) + 0.5);
-                    if (progress != oldProgress) {
-                        currentRetryTimes = 0;
-                        taskInfo.setProgress(progress);
-                        handleDownloading(taskInfo);
-                        oldProgress = progress;
-                    }
-                    if (pause) {
-                        break;
-                    }
-                    if (delete) {
-                        break;
-                    }
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
-                isException = true;
-                if (!pause && !delete) {
-                    retry();
-                }
-            } finally {
-                Utils.close(bos);
-                Utils.close(response);
-            }
-            if (taskInfo.getCurrentSize() == taskInfo.getTotalSize()) {
-                handleSuccess(taskInfo);
-            } else if (!isException && (!pause && !delete)) {
-                //TODO 下载的文件长度有误
-            }
+        @Override
+        public void onFailure(TaskInfo taskInfo) {
+            handleFailure(taskInfo);
         }
 
-
-        private boolean retry() {
-            if (call != null && !call.isCanceled()) {
-                call.cancel();
-            }
-            if (pause || delete) {
-                return false;
-            }
-            if (currentRetryTimes >= RETRY_MAX_TIMES) {
-                //TODO 处理请求失败
-                handleFailure(taskInfo);
-                if (timer != null) {
-                    timer.cancel();
-                    timer = null;
-                }
-                return false;
-            }
-            timer = new Timer("retry timer");
-            timer.schedule(new TimerTask() {
-                @Override
-                public void run() {
-                    if (isWifiOk(context)) {
-                        if (currentRetryTimes == 0 || currentRetryTimes == 1) {
-                            SystemClock.sleep(2 * 1000);
-                        }
-                        if (currentRetryTimes == 2) {
-                            SystemClock.sleep(4 * 1000);
-                        }
-                        if (pause || delete) {
-                            timer.cancel();
-                            timer = null;
-                            return;
-                        }
-                        HttpCall call = getCall(taskInfo.getResKey(), taskInfo.getUrl(), taskInfo.getCurrentSize());
-                        call.enqueue(HttpCallbackImpl.this);
-                        timer.cancel();
-                        timer = null;
-                    }
-                    currentRetryTimes++;
-
-                    if (pause || delete) {
-                        if (timer != null) {
-                            timer.cancel();
-                            timer = null;
-                        }
-                    }
-                }
-            }, RETRYDELAY);
-            return true;
-        }
-
-        private boolean isWifiOk(Context context) {
-            int count = 0;
-            while (true) {
-                if (pause || delete) {
-                    return false;
-                }
-                if (Utils.isWifi(context)) {
-                    return true;
-                }
-                SystemClock.sleep(2000);
-                count++;
-                if (count == SEARCH_WIFI_MAX_TIMES) {
-                    return false;
-                }
-            }
-        }
-
-        void setPause(boolean pause) {
-            this.pause = pause;
-        }
-
-        void setDelete(boolean delete) {
-            this.delete = delete;
+        @Override
+        public void onSuccess(TaskInfo taskInfo) {
+            handleSuccess(taskInfo);
         }
     }
 }
