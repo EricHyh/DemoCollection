@@ -56,15 +56,11 @@ public class HttpClient_Okhttp implements HttpClient {
     }
 
     @Override
-    public long getContentLength(String url) throws IOException {
+    public HttpResponse getHttpResponse(String url) throws IOException {
         Request request = new Request.Builder().url(url).build();
         Call call = mClient.newCall(request);
         Response response = call.execute();
-        if (response.isSuccessful()) {
-            return response.body().contentLength();
-        } else {
-            throw new IOException("getContentLength failed, url is " + url);
-        }
+        return new OkhttpResponse(response);
     }
 
 

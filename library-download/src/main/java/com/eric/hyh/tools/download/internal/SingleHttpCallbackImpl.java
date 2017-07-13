@@ -5,7 +5,6 @@ import android.os.SystemClock;
 
 import com.eric.hyh.tools.download.api.Callback;
 import com.eric.hyh.tools.download.api.HttpCall;
-import com.eric.hyh.tools.download.api.HttpCallback;
 import com.eric.hyh.tools.download.api.HttpClient;
 import com.eric.hyh.tools.download.api.HttpResponse;
 import com.eric.hyh.tools.download.bean.TaskInfo;
@@ -21,19 +20,16 @@ import java.util.TimerTask;
 /**
  * @author Administrator
  * @description
- * @data 2017/7/12
+ * @data 2017/7/13
  */
 @SuppressWarnings("unchecked")
-class HttpCallbackImpl implements HttpCallback {
-
+class SingleHttpCallbackImpl extends AbstractHttpCallback {
 
     private Context context;
 
     private HttpClient client;
 
-    HttpCall call;
-
-    TaskInfo taskInfo;
+    private HttpCall call;
 
     private Callback downloadCallback;
 
@@ -52,11 +48,8 @@ class HttpCallbackImpl implements HttpCallback {
     //获取wifi重试的最大次数
     private static final int SEARCH_WIFI_MAX_TIMES = 15;
 
-    HttpCallbackImpl(Context context, HttpClient client, TaskInfo taskInfo, Callback downloadCallback) {
-        this.context = context;
-        this.client = client;
-        this.taskInfo = taskInfo;
-        this.downloadCallback = downloadCallback;
+    SingleHttpCallbackImpl(TaskInfo taskInfo) {
+        super(taskInfo);
     }
 
     @Override
@@ -152,7 +145,7 @@ class HttpCallbackImpl implements HttpCallback {
     }
 
 
-    private boolean retry() {
+    boolean retry() {
         if (call != null && !call.isCanceled()) {
             call.cancel();
         }
@@ -187,7 +180,8 @@ class HttpCallbackImpl implements HttpCallback {
                         return;
                     }
                     HttpCall call = client.newCall(taskInfo.getResKey(), taskInfo.getUrl(), taskInfo.getCurrentSize());
-                    call.enqueue(HttpCallbackImpl.this);
+                    //HttpCall call = HttpCallFactory.produce(client, taskInfo);
+                    call.enqueue(SingleHttpCallbackImpl.this);
                     timer.cancel();
                     timer = null;
                 }
@@ -203,6 +197,8 @@ class HttpCallbackImpl implements HttpCallback {
         }, RETRYDELAY);
         return true;
     }
+
+
 
     private boolean isWifiOk(Context context) {
         int count = 0;
@@ -221,14 +217,16 @@ class HttpCallbackImpl implements HttpCallback {
         }
     }
 
-    protected void pause() {
-        this.pause = true;
+    @Override
+    void pause() {
+        this.delete = true;
         if (this.call != null && !this.call.isCanceled()) {
             this.call.cancel();
         }
     }
 
-    protected void delete() {
+    @Override
+    void delete() {
         this.delete = true;
         if (this.call != null && !this.call.isCanceled()) {
             this.call.cancel();

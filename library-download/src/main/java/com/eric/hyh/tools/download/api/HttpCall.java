@@ -6,9 +6,9 @@ package com.eric.hyh.tools.download.api;
  * @data 2017/5/16
  */
 
-public interface HttpCall<T extends HttpCallback> {
+public interface HttpCall {
 
-    void enqueue(T t);
+    void enqueue(HttpCallback httpCallback);
 
     void cancel();
 

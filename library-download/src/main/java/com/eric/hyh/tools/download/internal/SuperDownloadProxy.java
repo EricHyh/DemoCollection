@@ -8,6 +8,7 @@ import android.util.Log;
 import com.eric.hyh.tools.download.api.CallbackAdapter;
 import com.eric.hyh.tools.download.api.HttpCall;
 import com.eric.hyh.tools.download.api.HttpClient;
+import com.eric.hyh.tools.download.api.HttpResponse;
 import com.eric.hyh.tools.download.bean.Command;
 import com.eric.hyh.tools.download.bean.State;
 import com.eric.hyh.tools.download.bean.TaskInfo;
@@ -46,7 +47,7 @@ public abstract class SuperDownloadProxy implements IDownloadProxy {
         this.maxSynchronousDownloadNum = maxSynchronousDownloadNum;
     }
 
-    private Map<String, HttpCallbackImpl> httpCallbacks = new ConcurrentHashMap<>();
+    private Map<String, AbstractHttpCallback> httpCallbacks = new ConcurrentHashMap<>();
 
     private List<TaskCache> waitingQueue = new CopyOnWriteArrayList<>();
 
@@ -85,10 +86,14 @@ public abstract class SuperDownloadProxy implements IDownloadProxy {
         long totalSize = taskInfo.getTotalSize();
         if (totalSize == 0) {
             try {
-                totalSize = client.getContentLength(taskInfo.getUrl());
-                if (totalSize > 0) {
-                    taskInfo.setTotalSize(totalSize);
+                HttpResponse httpResponse = client.getHttpResponse(taskInfo.getUrl());
+                if (httpResponse.code() == Constans.ResponseCode.OK) {
+                    totalSize = httpResponse.contentLength();
+                    if (totalSize > 0) {
+                        taskInfo.setTotalSize(totalSize);
+                    }
                 }
+                taskInfo.setCode(httpResponse.code());
             } catch (IOException e) {
                 e.printStackTrace();
                 if (getTotalSizeRetryTimes++ < 3) {
@@ -127,10 +132,28 @@ public abstract class SuperDownloadProxy implements IDownloadProxy {
     }
 
 
-    private HttpCallbackImpl getHttpCallbackImpl(TaskInfo taskInfo) {
+    private AbstractHttpCallback getHttpCallbackImpl(TaskInfo taskInfo) {
+        return new AbstractHttpCallback(taskInfo) {
+            @Override
+            void pause() {
 
+            }
 
-        return new HttpCallbackImpl(context, client, taskInfo, new DownloadCallback());
+            @Override
+            void delete() {
+
+            }
+
+            @Override
+            public void onFailure(HttpCall httpCall, IOException e) {
+
+            }
+
+            @Override
+            public void onResponse(HttpCall httpCall, HttpResponse httpResponse) throws IOException {
+
+            }
+        };
     }
 
     protected abstract HttpClient getHttpClient();
@@ -143,9 +166,10 @@ public abstract class SuperDownloadProxy implements IDownloadProxy {
             case Command.START:
             case Command.UPDATE:
                 int runningTasksize = httpCallbacks.size();
-                HttpCallbackImpl httpCallbackImpl = httpCallbacks.get(resKey);
+                AbstractHttpCallback httpCallbackImpl = httpCallbacks.get(resKey);
                 TaskInfo tTaskInfo = null;
                 if (httpCallbackImpl != null) {
+
                     tTaskInfo = httpCallbackImpl.taskInfo;
                 }
                 if (tTaskInfo != null && !State.canDownload(tTaskInfo.getCurrentStatus())) {//检查状态
@@ -156,6 +180,7 @@ public abstract class SuperDownloadProxy implements IDownloadProxy {
                     return;
                 }
                 handlePrepare(taskInfo);
+
                 HttpCall call = getCall(taskInfo);
                 if (call == null) {
                     handleFailure(taskInfo);
@@ -166,12 +191,9 @@ public abstract class SuperDownloadProxy implements IDownloadProxy {
                 call.enqueue(httpCallbackImpl);
                 break;
             case Command.PAUSE:
-                HttpCallbackImpl remove = httpCallbacks.remove(resKey);
+                AbstractHttpCallback remove = httpCallbacks.remove(resKey);
                 if (remove != null) {
-                    remove.setPause(true);
-                    if (remove.call != null && !remove.call.isCanceled()) {
-                        remove.call.cancel();
-                    }
+                    remove.pause();
                     handlePause(taskInfo);
                 } else {
                     TaskCache taskCache = null;
@@ -190,10 +212,7 @@ public abstract class SuperDownloadProxy implements IDownloadProxy {
             case Command.DELETE:
                 remove = httpCallbacks.remove(resKey);
                 if (remove != null) {
-                    remove.setDelete(true);
-                    if (remove.call != null && !remove.call.isCanceled()) {
-                        remove.call.cancel();
-                    }
+                    remove.delete();
                     handleDelete(taskInfo);
                 } else {
                     TaskCache taskCache = null;

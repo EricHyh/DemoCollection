@@ -1,10 +1,10 @@
 package com.eric.hyh.tools.download.internal;
 
 import com.eric.hyh.tools.download.api.HttpCall;
+import com.eric.hyh.tools.download.api.HttpCallback;
 
 import java.util.Collection;
 import java.util.Map;
-import java.util.Set;
 
 /**
  * @author Administrator
@@ -12,7 +12,7 @@ import java.util.Set;
  * @data 2017/7/12
  */
 
-class MultiHttpCall implements HttpCall<MultiHttpCallbackImpl> {
+class MultiHttpCall implements HttpCall {
 
     private Map<String, HttpCall> httpCallMap;
 
@@ -22,13 +22,13 @@ class MultiHttpCall implements HttpCall<MultiHttpCallbackImpl> {
 
     @SuppressWarnings("unchecked")
     @Override
-    public void enqueue(MultiHttpCallbackImpl multiHttpCallbackImpl) {
-        Set<Map.Entry<String, HttpCall>> entrySet = httpCallMap.entrySet();
+    public void enqueue(HttpCallback httpCallback) {
+        /*Set<Map.Entry<String, HttpCall>> entrySet = httpCallMap.entrySet();
         for (Map.Entry<String, HttpCall> httpCallEntry : entrySet) {
             String tag = httpCallEntry.getKey();
             HttpCall httpCall = httpCallEntry.getValue();
             httpCall.enqueue(multiHttpCallbackImpl.getHttpCallback(tag));
-        }
+        }*/
     }
 
     @Override

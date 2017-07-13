@@ -29,18 +29,18 @@ class MultiHttpCallbackImpl extends HttpCallbackImpl {
     }
 
     @Override
-    protected void setPause(boolean pause) {
+    protected void pause() {
         Collection<HttpCallbackImpl> httpCallbacks = httpCallbackMap.values();
         for (HttpCallbackImpl httpCallback : httpCallbacks) {
-            httpCallback.setPause(pause);
+            httpCallback.pause();
         }
     }
 
     @Override
-    protected void setDelete(boolean delete) {
+    protected void delete() {
         Collection<HttpCallbackImpl> httpCallbacks = httpCallbackMap.values();
         for (HttpCallbackImpl httpCallback : httpCallbacks) {
-            httpCallback.setDelete(delete);
+            httpCallback.delete();
         }
     }
 }

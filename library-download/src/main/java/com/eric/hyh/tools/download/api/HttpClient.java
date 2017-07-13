@@ -14,5 +14,5 @@ public interface HttpClient {
 
     HttpCall newCall(String tag, String url, long startPosition, long endPosition);
 
-    long getContentLength(String url) throws IOException;
+    HttpResponse getHttpResponse(String url) throws IOException;
 }
