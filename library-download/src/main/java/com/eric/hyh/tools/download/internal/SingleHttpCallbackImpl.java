@@ -9,11 +9,7 @@ import com.eric.hyh.tools.download.api.HttpClient;
 import com.eric.hyh.tools.download.api.HttpResponse;
 import com.eric.hyh.tools.download.bean.TaskInfo;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -28,6 +24,8 @@ class SingleHttpCallbackImpl extends AbstractHttpCallback {
     private Context context;
 
     private HttpClient client;
+
+    private TaskInfo taskInfo;
 
     private HttpCall call;
 
@@ -48,9 +46,9 @@ class SingleHttpCallbackImpl extends AbstractHttpCallback {
     //获取wifi重试的最大次数
     private static final int SEARCH_WIFI_MAX_TIMES = 15;
 
-    SingleHttpCallbackImpl(TaskInfo taskInfo) {
-        super(taskInfo);
+    SingleHttpCallbackImpl(Context context, HttpClient client, TaskInfo taskInfo, Callback downloadCallback) {
     }
+
 
     @Override
     public void onResponse(HttpCall call, HttpResponse response) throws IOException {
@@ -79,6 +77,11 @@ class SingleHttpCallbackImpl extends AbstractHttpCallback {
         }
     }
 
+    @Override
+    TaskInfo getTaskInfo() {
+        return taskInfo;
+    }
+
 
     @Override
     public void onFailure(HttpCall call, IOException e) {
@@ -86,62 +89,50 @@ class SingleHttpCallbackImpl extends AbstractHttpCallback {
         retry();
     }
 
-    private void handleDownload(HttpResponse response, TaskInfo taskInfo) throws IOException {
-        InputStream inputStream = response.inputStream();
-        BufferedInputStream bis = new BufferedInputStream(inputStream);
-        BufferedOutputStream bos = null;
+    private void handleDownload(HttpResponse response, final TaskInfo taskInfo) {
+        final long currentSize = taskInfo.getCurrentSize();
+        final long totalSize = taskInfo.getTotalSize();
 
-        long currentSize = taskInfo.getCurrentSize();
-        long totalSize = taskInfo.getTotalSize();
-        int oldProgress = (int) ((currentSize * 100.0 / totalSize) + 0.5);
+        SingleFileWriteTask singleFileWriteTask = new SingleFileWriteTask(taskInfo.getFilePath(), currentSize, totalSize);
+        singleFileWriteTask.write(response, new SingleFileWriteTask.FileWriteListener() {
 
-        boolean isException = false;
-        try {
-            bos = new BufferedOutputStream(new FileOutputStream(taskInfo.getFilePath(), true));
-            byte[] buffer = new byte[8 * 1024];
-            int len;
-            while ((len = bis.read(buffer)) != -1) {
-                if (currentSize == 0 && len > 0) {
+            long oldSize = currentSize;
+
+            int oldProgress = (int) ((oldSize * 100.0f / totalSize) + 0.5f);
+
+            @Override
+            public void onWriteFile(long currentSize) {
+                if (oldSize == 0 && currentSize > 0) {
                     if (downloadCallback != null) {
                         downloadCallback.onFirstFileWrite(taskInfo);
                     }
-                }
-                bos.write(buffer, 0, len);
-                currentSize += len;
-                taskInfo.setCurrentSize(currentSize);
-                int progress = (int) ((currentSize * 100.0 / totalSize) + 0.5);
-                if (progress != oldProgress) {
-                    currentRetryTimes = 0;
-                    taskInfo.setProgress(progress);
-                    if (downloadCallback != null) {
-                        downloadCallback.onDownloading(taskInfo);
+                    taskInfo.setCurrentSize(currentSize);
+                    int progress = (int) ((currentSize * 100.0f / totalSize) + 0.5f);
+                    if (progress != oldProgress) {
+                        currentRetryTimes = 0;
+                        taskInfo.setProgress(progress);
+                        if (!pause && !delete && downloadCallback != null) {
+                            downloadCallback.onDownloading(taskInfo);
+                        }
+                        oldProgress = progress;
                     }
-                    oldProgress = progress;
-                }
-                if (pause) {
-                    break;
-                }
-                if (delete) {
-                    break;
                 }
             }
-        } catch (Exception e) {
-            e.printStackTrace();
-            isException = true;
-            if (!pause && !delete) {
-                retry();
+
+            @Override
+            public void onWriteFinish() {
+                if (downloadCallback != null) {
+                    downloadCallback.onSuccess(taskInfo);
+                }
             }
-        } finally {
-            Utils.close(bos);
-            Utils.close(response);
-        }
-        if (taskInfo.getCurrentSize() == taskInfo.getTotalSize()) {
-            if (downloadCallback != null) {
-                downloadCallback.onSuccess(taskInfo);
+
+            @Override
+            public void onWriteFailure() {
+                if (!pause && !delete) {
+                    retry();
+                }
             }
-        } else if (!isException && (!pause && !delete)) {
-            //TODO 下载的文件长度有误
-        }
+        });
     }
 
 
@@ -197,7 +188,6 @@ class SingleHttpCallbackImpl extends AbstractHttpCallback {
         }, RETRYDELAY);
         return true;
     }
-
 
 
     private boolean isWifiOk(Context context) {

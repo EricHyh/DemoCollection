@@ -13,7 +13,7 @@ import java.io.IOException;
  * @data 2017/7/13
  */
 
-class FileWriteTask {
+class SingleFileWriteTask implements FileWrite {
 
 
     private String filePath;
@@ -24,10 +24,15 @@ class FileWriteTask {
 
     private volatile boolean stop;
 
-    private FileWriteListener listener;
 
+    SingleFileWriteTask(String filePath, long currentSize, long endSize) {
+        this.filePath = filePath;
+        this.currentSize = currentSize;
+        this.endSize = endSize;
+    }
 
-    void write(HttpResponse response) {
+    @Override
+    public void write(HttpResponse response, FileWriteListener listener) {
         stop = false;
         BufferedOutputStream bos = null;
         boolean isException = false;
@@ -58,16 +63,8 @@ class FileWriteTask {
         }
     }
 
-    void stop() {
+    @Override
+    public void stop() {
         stop = true;
-    }
-
-    interface FileWriteListener {
-
-        void onWriteFile(long currentSize);
-
-        void onWriteFailure();
-
-        void onWriteFinish();
     }
 }

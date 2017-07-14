@@ -133,7 +133,7 @@ public abstract class SuperDownloadProxy implements IDownloadProxy {
 
 
     private AbstractHttpCallback getHttpCallbackImpl(TaskInfo taskInfo) {
-        return new AbstractHttpCallback(taskInfo) {
+        return new AbstractHttpCallback() {
             @Override
             void pause() {
 
@@ -153,6 +153,11 @@ public abstract class SuperDownloadProxy implements IDownloadProxy {
             public void onResponse(HttpCall httpCall, HttpResponse httpResponse) throws IOException {
 
             }
+
+            @Override
+            TaskInfo getTaskInfo() {
+                return null;
+            }
         };
     }
 
@@ -169,8 +174,7 @@ public abstract class SuperDownloadProxy implements IDownloadProxy {
                 AbstractHttpCallback httpCallbackImpl = httpCallbacks.get(resKey);
                 TaskInfo tTaskInfo = null;
                 if (httpCallbackImpl != null) {
-
-                    tTaskInfo = httpCallbackImpl.taskInfo;
+                    tTaskInfo = httpCallbackImpl.getTaskInfo();
                 }
                 if (tTaskInfo != null && !State.canDownload(tTaskInfo.getCurrentStatus())) {//检查状态
                     return;
