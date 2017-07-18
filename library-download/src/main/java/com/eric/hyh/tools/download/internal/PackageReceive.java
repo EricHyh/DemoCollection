@@ -57,18 +57,18 @@ public class PackageReceive extends BroadcastReceiver {
                 taskDBInfo.setCurrentStatus(State.INSTALL);
                 taskDBInfo.setVersionCode(Utils.getVersionCode(context, packageName));
                 dbUtil.insertOrReplace(taskDBInfo);
-                Utils.deleteDownloadFile(context, taskDBInfo.getResKey());
+                Utils.deleteDownloadFile(context, taskDBInfo.getResKey(), taskDBInfo.getRangeNum() == null ? 0 : taskDBInfo.getRangeNum());
                 fileDownloader.onInstall(taskDBInfo);
             } else if (TextUtils.equals(intent.getAction(), Intent.ACTION_PACKAGE_REPLACED)) {//替换成功
                 taskDBInfo.setCurrentStatus(State.INSTALL);
                 taskDBInfo.setVersionCode(Utils.getVersionCode(context, packageName));
                 dbUtil.insertOrReplace(taskDBInfo);
-                Utils.deleteDownloadFile(context, taskDBInfo.getResKey());
+                Utils.deleteDownloadFile(context, taskDBInfo.getResKey(), taskDBInfo.getRangeNum() == null ? 0 : taskDBInfo.getRangeNum());
                 fileDownloader.onInstall(taskDBInfo);
             } else if (TextUtils.equals(intent.getAction(), Intent.ACTION_PACKAGE_REMOVED)) {//卸载成功
                 taskDBInfo.setCurrentStatus(State.UNINSTALL);
                 dbUtil.delete(taskDBInfo);
-                Utils.deleteDownloadFile(context, taskDBInfo.getResKey());
+                Utils.deleteDownloadFile(context, taskDBInfo.getResKey(), taskDBInfo.getRangeNum() == null ? 0 : taskDBInfo.getRangeNum());
                 fileDownloader.onUnInstall(taskDBInfo);
                 if (removeTasks == null) {
                     removeTasks = new ArrayList<>();

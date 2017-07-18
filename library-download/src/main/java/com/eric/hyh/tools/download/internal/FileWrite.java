@@ -16,7 +16,7 @@ interface FileWrite {
 
     interface FileWriteListener {
 
-        void onWriteFile(long currentSize);
+        void onWriteFile(long writeLength);
 
         void onWriteFinish();
 

@@ -18,17 +18,17 @@ class SingleFileWriteTask implements FileWrite {
 
     private String filePath;
 
-    private long currentSize;
+    private long startPosition;
 
-    private long endSize;
+    private long endPosition;
 
     private volatile boolean stop;
 
 
-    SingleFileWriteTask(String filePath, long currentSize, long endSize) {
+    SingleFileWriteTask(String filePath, long startPosition, long endPosition) {
         this.filePath = filePath;
-        this.currentSize = currentSize;
-        this.endSize = endSize;
+        this.startPosition = startPosition;
+        this.endPosition = endPosition;
     }
 
     @Override
@@ -43,8 +43,8 @@ class SingleFileWriteTask implements FileWrite {
             int len;
             while ((len = bis.read(buffer)) != -1) {
                 bos.write(buffer, 0, len);
-                currentSize += len;
-                listener.onWriteFile(currentSize);
+                startPosition += len;
+                listener.onWriteFile(len);
                 if (stop) {
                     break;
                 }
@@ -56,7 +56,7 @@ class SingleFileWriteTask implements FileWrite {
             Utils.close(bos);
             Utils.close(response);
         }
-        if (currentSize == endSize) {
+        if (startPosition == endPosition) {
             listener.onWriteFinish();
         } else if (isException) {
             listener.onWriteFailure();

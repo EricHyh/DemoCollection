@@ -15,17 +15,20 @@ class MultiFileWriteTask implements FileWrite {
 
     private String filePath;
 
-    private long currentSize;
+    private String tempPath;
 
-    private long endSize;
+    private long startPosition;
+
+    private long endPosition;
 
     private boolean stop;
 
 
-    MultiFileWriteTask(String filePath, long currentSize, long totalSize) {
+    MultiFileWriteTask(String filePath, String tempPath, long startPosition, long endPosition) {
         this.filePath = filePath;
-        this.currentSize = currentSize;
-        this.endSize = totalSize;
+        this.tempPath = tempPath;
+        this.startPosition = startPosition;
+        this.endPosition = endPosition;
     }
 
     @Override
@@ -37,17 +40,17 @@ class MultiFileWriteTask implements FileWrite {
         try {
             BufferedInputStream bis = new BufferedInputStream(response.inputStream());
             fileRaf = new RandomAccessFile(filePath, "rw");
-            tempRaf = new RandomAccessFile(filePath, "rws");
+            tempRaf = new RandomAccessFile(tempPath, "rws");
 
-            fileRaf.seek(currentSize);
+            fileRaf.seek(startPosition);
             byte[] buffer = new byte[8 * 1024];
             int len;
             while ((len = bis.read(buffer)) != -1) {
                 fileRaf.write(buffer, 0, len);
-                currentSize += len;
+                startPosition += len;
                 tempRaf.seek(0);
-                tempRaf.writeLong(currentSize);
-                listener.onWriteFile(currentSize);
+                tempRaf.writeLong(startPosition);
+                listener.onWriteFile(len);
                 if (stop) {
                     break;
                 }
@@ -60,7 +63,7 @@ class MultiFileWriteTask implements FileWrite {
             Utils.close(tempRaf);
             Utils.close(response);
         }
-        if (currentSize == endSize) {
+        if (startPosition == endPosition + 1) {
             listener.onWriteFinish();
         } else if (isException) {
             listener.onWriteFailure();

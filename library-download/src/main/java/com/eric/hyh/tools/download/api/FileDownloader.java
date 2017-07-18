@@ -155,6 +155,7 @@ public class FileDownloader implements DownloadProxyFactory {
                     for (TaskInfo<T> taskInfo : result) {
                         FileRequest<T> fileRequest = new FileRequest.Builder<T>()
                                 .tag(taskInfo.getTag())
+                                .byMultiThread(taskInfo.getRangeNum() > 1)
                                 .type(taskInfo.getTagType())
                                 .key(taskInfo.getResKey())
                                 .url(taskInfo.getUrl())
@@ -205,12 +206,15 @@ public class FileDownloader implements DownloadProxyFactory {
                 mListenerManager.addSingleTaskCallback(resKey, callback);
                 Intent intent = new Intent(mContext, FDLService.class);
                 intent.putExtra(Constans.COMMADN, fileRequest.command());
-                File file = Utils.getDownLoadFile(mContext, resKey);//获取已下载文件
-                long currentSize = 0;
+
+                File file = Utils.getDownLoadFile(mContext, fileRequest.key());//获取已下载文件
+                Object[] currentSizeAndMultiPositions = null;
                 if (file.exists()) {
-                    currentSize = file.length();
+                    currentSizeAndMultiPositions = Utils.getCurrentSizeAndMultiPositions(mContext, fileRequest, file, mHistoryTasks.get(resKey));
                 }
-                TaskInfo<T> taskInfo = generateTaskInfo(fileRequest, file, currentSize);
+                TaskInfo<T> taskInfo = generateTaskInfo(fileRequest, file, currentSizeAndMultiPositions);
+
+
                 intent.putExtra(Constans.REQUEST_INFO, taskInfo);
                 return PendingIntent.getService(mContext, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
             }
@@ -230,7 +234,7 @@ public class FileDownloader implements DownloadProxyFactory {
                     TaskDBInfo taskDBInfo = mDBUtil.getTaskDBInfoByResKey(resKey);
                     if (taskDBInfo != null) {
                         mListenerManager.onDelete(TaskInfo.taskDBInfo2TaskInfo(taskDBInfo, mGson));
-                        Utils.deleteDownloadFile(mContext, resKey);
+                        Utils.deleteDownloadFile(mContext, resKey, taskDBInfo.getRangeNum() == null ? 0 : taskDBInfo.getRangeNum());
                     }
                 }
             });
@@ -404,6 +408,12 @@ public class FileDownloader implements DownloadProxyFactory {
     }
 
     private <T> FileCall<T> newCall(final FileRequest<T> request, Callback<T> callback) {
+        final String resKey = request.key();
+        FileCall fileCall = mFileCalls.get(resKey);
+        if (fileCall != null) {
+            return null;
+        }
+
         if (!mLockConfig.isInitHistoryFinish) {
             synchronized (mLockConfig) {
                 while (true) {
@@ -420,7 +430,7 @@ public class FileDownloader implements DownloadProxyFactory {
         }
 
         haveNoTask = false;
-        final String resKey = request.key();
+
 
         // TODO: 2017/6/23 问下其他进程的兄弟有没有在下载这个任务
         boolean isFileDownloading = mDownloadProxy.isFileDownloading(resKey);
@@ -429,21 +439,18 @@ public class FileDownloader implements DownloadProxyFactory {
         }
 
         File file = Utils.getDownLoadFile(mContext, request.key());//获取已下载文件
-        long currentSize = 0;
+        Object[] currentSizeAndMultiPositions = null;
         if (file.exists()) {
-            currentSize = file.length();
+            currentSizeAndMultiPositions = Utils.getCurrentSizeAndMultiPositions(mContext, request, file, mHistoryTasks.get(resKey));
         }
-        TaskInfo<T> taskInfo = generateTaskInfo(request, file, currentSize);
-        FileCall fileCall = mFileCalls.get(resKey);
-        if (fileCall != null) {
-            mFileCalls.remove(resKey);
-            fileCall = new FileCall(request, mDownloadProxy, taskInfo);
-            mFileCalls.put(resKey, fileCall);
-            return fileCall;
-        }
-        //校验之前下载的文件
+
+        TaskInfo<T> taskInfo = generateTaskInfo(request, file, currentSizeAndMultiPositions);
+
+
+        //校验之前下载的文件版本
         checkOldFile(request, resKey, taskInfo);
-        currentSize = taskInfo.getCurrentSize();
+
+        long currentSize = taskInfo.getCurrentSize();
 
         TaskDBInfo taskDBInfo = mHistoryTasks.isEmpty() ? mDBUtil.getTaskDBInfoByResKey(resKey) : mHistoryTasks.get(resKey);
 
@@ -466,7 +473,7 @@ public class FileDownloader implements DownloadProxyFactory {
                     oldVersionCode = taskDBInfo.getVersionCode() == null ? -1 : taskDBInfo.getVersionCode();
                 }
             }
-            if (request.versionCode() > 0 && (oldVersionCode != request.versionCode())) {
+            if (request.versionCode() > 0 && oldVersionCode > 0 && (oldVersionCode != request.versionCode())) {
                 isUpdate = true;
             }
         }
@@ -565,7 +572,7 @@ public class FileDownloader implements DownloadProxyFactory {
 
     }
 
-    private void checkOldFile(FileRequest request, String resKey, TaskInfo taskInfo) {//校验之前下载的文件
+    private void checkOldFile(FileRequest request, String resKey, TaskInfo taskInfo) {//校验之前下载的文件版本
         int saveVersionCode = -1;
         long saveFileTotalSize = 0;
         if (mHistoryTasks.isEmpty()) {
@@ -586,7 +593,7 @@ public class FileDownloader implements DownloadProxyFactory {
 
         if ((request.versionCode() > 0 && (request.versionCode() != saveVersionCode))
                 || (request.fileSize() > 0 && (request.fileSize() != saveFileTotalSize))) {
-            boolean delete = Utils.deleteDownloadFile(mContext, resKey);
+            boolean delete = Utils.deleteDownloadFile(mContext, resKey, taskInfo.getRangeNum());
             if (delete) {
                 taskInfo.setProgress(0);
                 taskInfo.setCurrentSize(0);
@@ -613,22 +620,40 @@ public class FileDownloader implements DownloadProxyFactory {
         return false;
     }
 
-    private <T> TaskInfo<T> generateTaskInfo(FileRequest<T> request, File file, Long currentSize) {
+    private <T> TaskInfo<T> generateTaskInfo(FileRequest<T> request, File file, Object[] currentSizeAndMultiPositions) {
         TaskInfo taskInfo = new TaskInfo();
+        long currentSize = 0;
+        if (currentSizeAndMultiPositions != null) {
+            currentSize = (long) currentSizeAndMultiPositions[0];
+            if (request.byMultiThread()) {
+                taskInfo.setStartPositions((long[]) currentSizeAndMultiPositions[1]);
+                taskInfo.setEndPositions((long[]) currentSizeAndMultiPositions[2]);
+            }
+        }
+
         if (request.fileSize() > 0) {
             taskInfo.setProgress((int) ((currentSize * 100.0f / request.fileSize()) + 0.5f));
+        } else {
+            TaskDBInfo taskDBInfo = mHistoryTasks.get(request.key());
+            if (taskDBInfo != null) {
+                taskInfo.setProgress(taskDBInfo.getProgress() == null ? 0 : taskDBInfo.getProgress());
+            }
         }
+
+        if (request.byMultiThread()) {
+            taskInfo.setRangeNum(multiThreadNum);
+        } else {
+            taskInfo.setRangeNum(1);
+        }
+
+
         taskInfo.setFilePath(file.getPath());
         taskInfo.setCurrentSize(currentSize);
         taskInfo.setResKey(request.key());
         taskInfo.setUrl(request.url());
         taskInfo.setTotalSize(request.fileSize());
         taskInfo.setVersionCode(request.versionCode());
-        if (request.byMultiThread()) {
-            taskInfo.setRangeNum(multiThreadNum);
-        } else {
-            taskInfo.setRangeNum(1);
-        }
+
         taskInfo.setPackageName(request.packageName());
         taskInfo.setWifiAutoRetry(request.wifiAutoRetry());
         T tag = request.tag();

@@ -91,6 +91,11 @@ public class FileRequest<T> {
         this.command = command;
     }
 
+    public void setByMultiThread(boolean byMultiThread) {
+        this.byMultiThread = byMultiThread;
+    }
+
+
     public static class Builder<T> {
 
         private String resKey;

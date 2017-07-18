@@ -15,14 +15,15 @@ import java.util.Map;
  * @data 2017/7/13
  */
 
-public class HttpCallFactory {
+class HttpCallFactory {
 
 
-    private static int sGetTotalSizeRetryTimes = 0;
+    private Map<String, Integer> mGetTotalSizeRetryTimesMap = new HashMap<>();
 
-    public static HttpCall produce(HttpClient client, TaskInfo taskInfo) {
-        sGetTotalSizeRetryTimes = 0;
+
+    HttpCall produce(HttpClient client, TaskInfo taskInfo) {
         String resKey = taskInfo.getResKey();
+        mGetTotalSizeRetryTimesMap.put(resKey, 0);
         String url = taskInfo.getUrl();
         int rangeNum = taskInfo.getRangeNum();
         if (rangeNum <= 1) {
@@ -33,9 +34,14 @@ public class HttpCallFactory {
                 long[] startPositions = taskInfo.getStartPositions();
                 if (startPositions == null) {
                     startPositions = computeStartPositions(totalSize, rangeNum);
+                    taskInfo.setStartPositions(startPositions);
                 }
-                taskInfo.setStartPositions(startPositions);
-                long[] endPositions = computeEndPositions(totalSize, rangeNum);
+                long[] endPositions = taskInfo.getEndPositions();
+                if (endPositions == null) {
+                    endPositions = computeEndPositions(totalSize, rangeNum);
+                    taskInfo.setEndPositions(endPositions);
+                }
+
                 Map<String, HttpCall> httpCallMap = new HashMap<>();
                 for (int index = 0; index < rangeNum; index++) {
                     long startPosition = startPositions[index];
@@ -51,7 +57,7 @@ public class HttpCallFactory {
         return null;
     }
 
-    private static long getTotalSize(HttpClient client, TaskInfo taskInfo) {
+    private long getTotalSize(HttpClient client, TaskInfo taskInfo) {
         long totalSize = taskInfo.getTotalSize();
         if (totalSize == 0) {
             try {
@@ -65,7 +71,10 @@ public class HttpCallFactory {
                 taskInfo.setCode(httpResponse.code());
             } catch (IOException e) {
                 e.printStackTrace();
-                if (sGetTotalSizeRetryTimes++ < 3) {
+                String resKey = taskInfo.getResKey();
+                Integer retryTimes = mGetTotalSizeRetryTimesMap.get(resKey);
+                mGetTotalSizeRetryTimesMap.put(resKey, retryTimes + 1);
+                if (retryTimes < 3) {
                     return getTotalSize(client, taskInfo);
                 }
             }
@@ -73,9 +82,9 @@ public class HttpCallFactory {
         return totalSize;
     }
 
-    private static long[] computeStartPositions(long totalSize, int rangeNum) {
+    private long[] computeStartPositions(long totalSize, int rangeNum) {
         long[] startPositions = new long[rangeNum];
-        long rangeSize = rangeNum / totalSize;
+        long rangeSize = totalSize / rangeNum;
         for (int index = 0; index < rangeNum; index++) {
             if (index == 0) {
                 startPositions[index] = 0;
@@ -86,17 +95,16 @@ public class HttpCallFactory {
         return startPositions;
     }
 
-    private static long[] computeEndPositions(long totalSize, int rangeNum) {
+    private long[] computeEndPositions(long totalSize, int rangeNum) {
         long[] endPositions = new long[rangeNum];
-        long rangeSize = rangeNum / totalSize;
+        long rangeSize = totalSize / rangeNum;
         for (int index = 0; index < rangeNum; index++) {
             if (index < rangeNum - 1) {
                 endPositions[index] = rangeSize * (index + 1);
             } else {
-                endPositions[index] = totalSize;
+                endPositions[index] = totalSize - 1;
             }
         }
         return endPositions;
     }
-
 }

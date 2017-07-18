@@ -1,6 +1,7 @@
 package com.eric.hyh.tools.download.internal;
 
 import android.content.Context;
+import android.os.SystemClock;
 
 import com.eric.hyh.tools.download.api.Callback;
 import com.eric.hyh.tools.download.api.HttpCall;
@@ -9,23 +10,54 @@ import com.eric.hyh.tools.download.api.HttpClient;
 import com.eric.hyh.tools.download.api.HttpResponse;
 import com.eric.hyh.tools.download.bean.TaskInfo;
 
+import java.io.File;
 import java.io.IOException;
+import java.io.RandomAccessFile;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Map;
+import java.util.Timer;
+import java.util.TimerTask;
 
 /**
  * @author Administrator
  * @description
  * @data 2017/7/12
  */
-
+@SuppressWarnings("unchecked")
 class MultiHttpCallbackImpl extends AbstractHttpCallback {
+
+    private Context context;
+
+    private HttpClient client;
 
     private Map<String, RealHttpCallbackImpl> httpCallbackMap;
 
+    private TaskInfo taskInfo;
+
+    private Callback downloadCallback;
+
+    private boolean isCallbackSuccess;
+
+    private boolean isCallbackFailure;
+
+    private int successCount;
+
+    private int failureCount;
+
 
     MultiHttpCallbackImpl(Context context, HttpClient client, TaskInfo taskInfo, Callback downloadCallback) {
-
+        this.context = context;
+        this.client = client;
+        this.taskInfo = taskInfo;
+        this.downloadCallback = downloadCallback;
+        this.httpCallbackMap = new HashMap<>();
+        int rangeNum = taskInfo.getRangeNum();
+        for (int rangeId = 0; rangeId < rangeNum; rangeId++) {
+            RealHttpCallbackImpl realHttpCallback = new RealHttpCallbackImpl(rangeId);
+            String tag = taskInfo.getResKey().concat("-").concat(String.valueOf(rangeId));
+            httpCallbackMap.put(tag, realHttpCallback);
+        }
     }
 
     HttpCallback getHttpCallback(String tag) {
@@ -54,20 +86,43 @@ class MultiHttpCallbackImpl extends AbstractHttpCallback {
     }
 
 
-    static class RealHttpCallbackImpl extends AbstractHttpCallback {
+    private class RealHttpCallbackImpl extends AbstractHttpCallback {
+
+
+        //重试的当前次数
+        private volatile int currentRetryTimes = 0;
+        //重试的最大次数
+        private static final int RETRY_MAX_TIMES = 3;
+        //每次重试的延时
+        private static final long RETRYDELAY = 1000 * 2;
+        //获取wifi重试的最大次数
+        private static final int SEARCH_WIFI_MAX_TIMES = 15;
+
+        private boolean isFailure;
 
         private HttpCall call;
 
-        private TaskInfo taskInfo;
+        private Timer timer;
 
-        private Callback downloadCallback;
+        private long startPosition;
 
-        private volatile int currentRetryTimes = 0;
+        private long endPosition;
+
+        private int rangeId;
 
         protected volatile boolean pause;
 
         protected volatile boolean delete;
+        private FileWrite mFileWrite;
 
+
+        RealHttpCallbackImpl(int rangeId) {
+            this.rangeId = rangeId;
+            long[] startPositions = taskInfo.getStartPositions();
+            long[] endPositions = taskInfo.getEndPositions();
+            startPosition = startPositions[rangeId];
+            endPosition = endPositions[rangeId];
+        }
 
         @Override
         public void onResponse(HttpCall httpCall, HttpResponse response) throws IOException {
@@ -97,40 +152,59 @@ class MultiHttpCallbackImpl extends AbstractHttpCallback {
         }
 
 
-        private void handleDownload(HttpResponse response, final TaskInfo taskInfo) {
-            final long currentSize = taskInfo.getCurrentSize();
+        private void handleDownload(HttpResponse response, final TaskInfo taskInfo) throws IOException {
+            String filePath = taskInfo.getFilePath();
+            String tempPath = filePath.concat("-").concat(String.valueOf(rangeId));
             final long totalSize = taskInfo.getTotalSize();
 
-            FileWrite fileWrite = new MultiFileWriteTask(taskInfo.getFilePath(), currentSize, totalSize);
-            fileWrite.write(response, new SingleFileWriteTask.FileWriteListener() {
 
-                long oldSize = currentSize;
+            File downLoadFile = Utils.getDownLoadFile(context, taskInfo.getResKey());
+            if (!downLoadFile.exists() || downLoadFile.length() < totalSize) {
+                RandomAccessFile raf = new RandomAccessFile(downLoadFile, "rw");
+                raf.setLength(totalSize);
+                raf.close();
+            }
 
-                int oldProgress = (int) ((oldSize * 100.0f / totalSize) + 0.5f);
+
+            mFileWrite = new MultiFileWriteTask(filePath, tempPath, startPosition, endPosition);
+            mFileWrite.write(response, new SingleFileWriteTask.FileWriteListener() {
 
                 @Override
-                public void onWriteFile(long currentSize) {
-                    if (oldSize == 0 && currentSize > 0) {
-                        if (downloadCallback != null) {
-                            downloadCallback.onFirstFileWrite(taskInfo);
+                public void onWriteFile(long writeLength) {
+                    if (taskInfo.getCurrentSize() == 0 && writeLength > 0) {
+                        downloadCallback.onFirstFileWrite(taskInfo);
+                    }
+
+                    startPosition += writeLength;
+
+                    int oldProgress = taskInfo.getProgress();
+                    long currentSize = taskInfo.getCurrentSize() + writeLength;
+                    taskInfo.setCurrentSize(currentSize);
+                    int progress = (int) ((currentSize * 100.0f / totalSize) + 0.5f);
+                    if (progress != oldProgress) {
+                        if (isFailure) {
+                            failureCount--;
                         }
-                        taskInfo.setCurrentSize(currentSize);
-                        int progress = (int) ((currentSize * 100.0f / totalSize) + 0.5f);
-                        if (progress != oldProgress) {
-                            currentRetryTimes = 0;
-                            taskInfo.setProgress(progress);
-                            if (!pause && !delete && downloadCallback != null) {
-                                downloadCallback.onDownloading(taskInfo);
-                            }
-                            oldProgress = progress;
+                        isFailure = false;
+                        currentRetryTimes = 0;
+                        taskInfo.setProgress(progress);
+                        if (!pause && !delete) {
+                            downloadCallback.onDownloading(taskInfo);
                         }
                     }
                 }
 
                 @Override
                 public void onWriteFinish() {
-                    if (downloadCallback != null) {
-                        downloadCallback.onSuccess(taskInfo);
+                    successCount++;
+                    if (!isCallbackSuccess && successCount < httpCallbackMap.size()) {
+                        return;
+                    }
+                    synchronized (MultiHttpCallbackImpl.this) {
+                        if (!isCallbackSuccess && (successCount == httpCallbackMap.size())) {
+                            isCallbackSuccess = true;
+                            downloadCallback.onSuccess(taskInfo);
+                        }
                     }
                 }
 
@@ -159,6 +233,7 @@ class MultiHttpCallbackImpl extends AbstractHttpCallback {
         @Override
         void pause() {
             this.pause = true;
+            mFileWrite.stop();
             if (this.call != null && !this.call.isCanceled()) {
                 this.call.cancel();
             }
@@ -167,13 +242,98 @@ class MultiHttpCallbackImpl extends AbstractHttpCallback {
         @Override
         void delete() {
             this.delete = true;
+            mFileWrite.stop();
             if (this.call != null && !this.call.isCanceled()) {
                 this.call.cancel();
             }
         }
 
-        private void retry() {
+        void retry() {
+            if (call != null && !call.isCanceled()) {
+                call.cancel();
+            }
 
+            if (pause || delete || isCallbackFailure) {
+                return;
+            }
+
+            if (!isFailure && currentRetryTimes >= RETRY_MAX_TIMES) {
+                isFailure = true;
+                failureCount++;
+            }
+
+            if (!isCallbackFailure && failureCount >= httpCallbackMap.size()) {
+                synchronized (MultiHttpCallbackImpl.this) {
+                    if (!isCallbackFailure && failureCount >= httpCallbackMap.size()) {
+                        isCallbackFailure = true;
+                        downloadCallback.onFailure(taskInfo);
+                        return;
+                    }
+                }
+            }
+
+            if (currentRetryTimes >= RETRY_MAX_TIMES) {
+                //TODO 处理请求失败
+                if (timer != null) {
+                    timer.cancel();
+                    timer = null;
+                }
+                return;
+            }
+
+
+            timer = new Timer("retry timer");
+            timer.schedule(new TimerTask() {
+                @Override
+                public void run() {
+                    if (isWifiOk(context)) {
+                        if (currentRetryTimes == 0 || currentRetryTimes == 1) {
+                            SystemClock.sleep(2 * 1000);
+                        }
+                        if (currentRetryTimes == 2) {
+                            SystemClock.sleep(4 * 1000);
+                        }
+                        if (pause || delete || isCallbackFailure) {
+                            timer.cancel();
+                            timer = null;
+                            return;
+                        }
+                        HttpCall call = client.newCall(taskInfo.getResKey().concat("-").concat(String.valueOf(rangeId)),
+                                taskInfo.getUrl(),
+                                startPosition,
+                                endPosition);
+                        call.enqueue(RealHttpCallbackImpl.this);
+                        timer.cancel();
+                        timer = null;
+                    }
+                    currentRetryTimes++;
+
+                    if (pause || delete || isCallbackFailure) {
+                        if (timer != null) {
+                            timer.cancel();
+                            timer = null;
+                        }
+                    }
+                }
+            }, RETRYDELAY);
+        }
+
+
+        private boolean isWifiOk(Context context) {
+            int count = 0;
+            while (true) {
+                if (pause || delete || isCallbackFailure) {
+                    return false;
+                }
+                if (Utils.isWifi(context)) {
+                    return true;
+                }
+                SystemClock.sleep(2000);
+                count++;
+                if (count == SEARCH_WIFI_MAX_TIMES) {
+                    return false;
+                }
+            }
         }
     }
 }

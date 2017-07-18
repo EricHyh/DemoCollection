@@ -12,6 +12,7 @@ import android.os.Process;
 import android.os.StatFs;
 import android.text.TextUtils;
 
+import com.eric.hyh.tools.download.api.FileRequest;
 import com.eric.hyh.tools.download.bean.State;
 import com.eric.hyh.tools.download.bean.TaskInfo;
 import com.eric.hyh.tools.download.internal.db.bean.TaskDBInfo;
@@ -24,6 +25,7 @@ import org.greenrobot.greendao.query.Query;
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
+import java.io.RandomAccessFile;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
@@ -43,7 +45,7 @@ import static com.eric.hyh.tools.download.bean.State.INSTALL;
 /**
  * Created by Eric_He on 2017/3/11.
  */
-
+@SuppressWarnings("all")
 public class Utils {
 
     /**
@@ -124,8 +126,7 @@ public class Utils {
             //如果文件夹不存在 创建文件夹
             dir.mkdirs();
         }
-        File file = new File(dir, string2MD5(resKey));
-        return file;
+        return new File(dir, string2MD5(resKey));
     }
 
     static boolean isWifi(Context context) {
@@ -263,7 +264,7 @@ public class Utils {
         return content;
     }
 
-    public static boolean deleteDownloadFile(Context context, String resKey) {
+    public static boolean deleteDownloadFile(Context context, String resKey, int rangeNum) {
         boolean delete = false;
         File file = getDownLoadFile(context, resKey);
         if (file != null) {
@@ -272,6 +273,19 @@ public class Utils {
                 delete = to.delete();
             } else {
                 delete = file.delete();
+            }
+        }
+        if (rangeNum > 1) {
+            for (int rangeId = 0; rangeId < rangeNum; rangeId++) {
+                File tempFile = getTempFile(context, resKey, rangeId);
+                if (tempFile != null) {
+                    final File to = new File(tempFile, String.valueOf(System.currentTimeMillis()));
+                    if (tempFile.renameTo(to)) {
+                        to.delete();
+                    } else {
+                        tempFile.delete();
+                    }
+                }
             }
         }
         return delete;
@@ -308,6 +322,107 @@ public class Utils {
 
     public static int computeMultiThreadNum(int maxSynchronousDownloadNum) {
         return 3;
+    }
+
+    public static Object[] getCurrentSizeAndMultiPositions(Context context, FileRequest request, File file, TaskDBInfo historyInfo) {
+        Object[] objects = new Object[3];
+        objects[0] = 0l;
+        objects[1] = null;
+        objects[2] = null;
+        if (request.byMultiThread()) {
+            if (historyInfo != null) {
+                Integer rangeNum = historyInfo.getRangeNum();
+                if (rangeNum == null || rangeNum == 1) {
+                    request.setByMultiThread(false);
+                    objects[0] = file.length();
+                    return objects;
+                } else {
+                    long currentSize = 0;
+                    long[] startPositions = new long[rangeNum];
+                    Long totalSize = historyInfo.getTotalSize();
+                    long[] endPositions = computeEndPositions(totalSize, rangeNum);
+
+                    RandomAccessFile fileRaf = null;
+                    try {
+                        fileRaf = new RandomAccessFile(file, "rw");
+
+                        long partSize = totalSize / rangeNum;
+
+                        for (int rangeId = 0; rangeId < rangeNum; rangeId++) {
+                            File tempFile = getTempFile(context, request.key(), rangeId);
+
+                            RandomAccessFile raf = new RandomAccessFile(tempFile, "rw");
+                            long l = raf.readLong();
+                            raf.close();
+                            long rangeSize = getRangeSize(fileRaf, l, endPositions[rangeId], 2);
+                            if (rangeId == 0) {
+                                currentSize += rangeSize;
+                            } else {
+                                currentSize += (rangeSize - (partSize * rangeId + 1));
+                            }
+                            startPositions[rangeId] = rangeSize;
+                        }
+                        objects[0] = currentSize;
+                        objects[1] = startPositions;
+                        objects[2] = endPositions;
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    } finally {
+                        close(fileRaf);
+                    }
+                    return objects;
+                }
+            } else {
+                Utils.deleteDownloadFile(context, request.key(), 1);
+            }
+        } else {
+            if (historyInfo != null) {
+                Integer rangeNum = historyInfo.getRangeNum();
+                if (rangeNum == null || rangeNum == 1) {
+                    objects[0] = file.length();
+                    return objects;
+                } else {
+                    request.setByMultiThread(true);
+                    return getCurrentSizeAndMultiPositions(context, request, file, historyInfo);
+                }
+            } else {
+                Utils.deleteDownloadFile(context, request.key(), 1);
+            }
+        }
+        return objects;
+    }
+
+
+    private static long[] computeEndPositions(long totalSize, int rangeNum) {
+        long[] endPositions = new long[rangeNum];
+        long rangeSize = totalSize / rangeNum;
+        for (int index = 0; index < rangeNum; index++) {
+            if (index < rangeNum - 1) {
+                endPositions[index] = rangeSize * (index + 1);
+            } else {
+                endPositions[index] = totalSize - 1;
+            }
+        }
+        return endPositions;
+    }
+
+    private static long getRangeSize(RandomAccessFile fileRaf, long l, long endPosition, int blink) throws IOException {
+        if (l == endPosition + 1) {
+            return l;
+        }
+        fileRaf.seek(l);
+        if (fileRaf.readByte() == 0) {
+            l -= blink;
+            blink *= 2;
+            return getRangeSize(fileRaf, l, endPosition, blink);
+        } else {
+            return l;
+        }
+    }
+
+    private static File getTempFile(Context context, String resKey, int rangeId) {
+        File downLoadFile = getDownLoadFile(context, resKey);
+        return new File(downLoadFile.getParent(), downLoadFile.getName().concat("-").concat(String.valueOf(rangeId)));
     }
 
 
@@ -455,9 +570,10 @@ public class Utils {
                     mDao.insertOrReplace(taskDBInfo);
                 } else if (taskDBInfo.getCurrentStatus() == State.SUCCESS
                         && Utils.isAppInstall(context, taskDBInfo.getPackageName())
-                        && ((taskDBInfo.getVersionCode() != null) && taskDBInfo.getVersionCode() == Utils.getVersionCode(context, taskDBInfo.getPackageName()))) {
+                        && ((taskDBInfo.getVersionCode() != null)
+                        && taskDBInfo.getVersionCode() == Utils.getVersionCode(context, taskDBInfo.getPackageName()))) {
                     taskDBInfo.setCurrentStatus(INSTALL);
-                    Utils.deleteDownloadFile(context, taskDBInfo.getResKey());
+                    Utils.deleteDownloadFile(context, taskDBInfo.getResKey(), taskDBInfo.getRangeNum());
                     mDao.insertOrReplace(taskDBInfo);
                 } else if (taskDBInfo.getCurrentStatus() == INSTALL && !Utils.isAppInstall(context, taskDBInfo.getPackageName())) {
                     mDao.delete(taskDBInfo);

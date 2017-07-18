@@ -5,13 +5,14 @@ import com.eric.hyh.tools.download.api.HttpCallback;
 
 import java.util.Collection;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * @author Administrator
  * @description
  * @data 2017/7/12
  */
-
+@SuppressWarnings("unchecked")
 class MultiHttpCall implements HttpCall {
 
     private Map<String, HttpCall> httpCallMap;
@@ -20,16 +21,18 @@ class MultiHttpCall implements HttpCall {
         this.httpCallMap = httpCallMap;
     }
 
-    @SuppressWarnings("unchecked")
+
     @Override
     public void enqueue(HttpCallback httpCallback) {
-        /*Set<Map.Entry<String, HttpCall>> entrySet = httpCallMap.entrySet();
+        MultiHttpCallbackImpl multiHttpCallbackImpl = (MultiHttpCallbackImpl) httpCallback;
+        Set<Map.Entry<String, HttpCall>> entrySet = httpCallMap.entrySet();
         for (Map.Entry<String, HttpCall> httpCallEntry : entrySet) {
             String tag = httpCallEntry.getKey();
             HttpCall httpCall = httpCallEntry.getValue();
             httpCall.enqueue(multiHttpCallbackImpl.getHttpCallback(tag));
-        }*/
+        }
     }
+
 
     @Override
     public void cancel() {

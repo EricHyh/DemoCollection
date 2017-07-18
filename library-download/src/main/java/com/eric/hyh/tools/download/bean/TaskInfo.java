@@ -34,6 +34,8 @@ public class TaskInfo<T> implements Parcelable {
 
     private long[] startPositions;
 
+    private long[] endPositions;
+
     private long totalSize;
 
     private int currentStatus;
@@ -81,6 +83,7 @@ public class TaskInfo<T> implements Parcelable {
         rangeNum = in.readInt();
         currentSize = in.readLong();
         startPositions = in.createLongArray();
+        endPositions = in.createLongArray();
         totalSize = in.readLong();
         currentStatus = in.readInt();
         wifiAutoRetry = in.readByte() != 0;
@@ -151,6 +154,7 @@ public class TaskInfo<T> implements Parcelable {
         dest.writeInt(rangeNum);
         dest.writeLong(currentSize);
         dest.writeLongArray(startPositions);
+        dest.writeLongArray(endPositions);
         dest.writeLong(totalSize);
         dest.writeInt(currentStatus);
         dest.writeByte((byte) (wifiAutoRetry ? 1 : 0));
@@ -222,6 +226,14 @@ public class TaskInfo<T> implements Parcelable {
 
     public void setStartPositions(long[] startPositions) {
         this.startPositions = startPositions;
+    }
+
+    public long[] getEndPositions() {
+        return endPositions;
+    }
+
+    public void setEndPositions(long[] endPositions) {
+        this.endPositions = endPositions;
     }
 
     public long getTotalSize() {

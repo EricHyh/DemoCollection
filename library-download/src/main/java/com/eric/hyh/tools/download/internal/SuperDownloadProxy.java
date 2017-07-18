@@ -8,13 +8,10 @@ import android.util.Log;
 import com.eric.hyh.tools.download.api.CallbackAdapter;
 import com.eric.hyh.tools.download.api.HttpCall;
 import com.eric.hyh.tools.download.api.HttpClient;
-import com.eric.hyh.tools.download.api.HttpResponse;
 import com.eric.hyh.tools.download.bean.Command;
 import com.eric.hyh.tools.download.bean.State;
 import com.eric.hyh.tools.download.bean.TaskInfo;
 
-import java.io.IOException;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -32,14 +29,17 @@ public abstract class SuperDownloadProxy implements IDownloadProxy {
 
     private HttpClient client;
 
+    private HttpCallFactory callFactory = new HttpCallFactory();
+
     private int maxSynchronousDownloadNum;
 
-    private int getTotalSizeRetryTimes;
+    private DownloadCallback downloadCallback;
 
     SuperDownloadProxy(Context context, int maxSynchronousDownloadNum) {
         this.context = context;
         this.client = getHttpClient();
         this.maxSynchronousDownloadNum = maxSynchronousDownloadNum;
+        this.downloadCallback = new DownloadCallback();
     }
 
     @Override
@@ -52,113 +52,13 @@ public abstract class SuperDownloadProxy implements IDownloadProxy {
     private List<TaskCache> waitingQueue = new CopyOnWriteArrayList<>();
 
 
-    private HttpCall getCall(TaskInfo taskInfo) {
-        String resKey = taskInfo.getResKey();
-        String url = taskInfo.getUrl();
-        int rangeNum = taskInfo.getRangeNum();
-        if (rangeNum <= 1) {
-            return client.newCall(resKey, url, taskInfo.getCurrentSize());
-        } else {
-            long totalSize = getTotalSize(taskInfo);
-            if (totalSize > 0) {
-                long[] startPositions = taskInfo.getStartPositions();
-                if (startPositions == null) {
-                    startPositions = getStartPositions(totalSize, rangeNum);
-                }
-                taskInfo.setStartPositions(startPositions);
-                long[] endPositions = getEndPositions(totalSize, rangeNum);
-                Map<String, HttpCall> httpCallMap = new HashMap<>();
-                for (int index = 0; index < rangeNum; index++) {
-                    long startPosition = startPositions[index];
-                    long endPosition = endPositions[index];
-                    if (startPosition < endPosition) {
-                        String tag = resKey.concat("-").concat(String.valueOf(index));
-                        httpCallMap.put(tag, client.newCall(tag, url, startPosition, endPosition));
-                    }
-                }
-                return new MultiHttpCall(httpCallMap);
-            }
-        }
-        return null;
-    }
-
-    private long getTotalSize(TaskInfo taskInfo) {
-        long totalSize = taskInfo.getTotalSize();
-        if (totalSize == 0) {
-            try {
-                HttpResponse httpResponse = client.getHttpResponse(taskInfo.getUrl());
-                if (httpResponse.code() == Constans.ResponseCode.OK) {
-                    totalSize = httpResponse.contentLength();
-                    if (totalSize > 0) {
-                        taskInfo.setTotalSize(totalSize);
-                    }
-                }
-                taskInfo.setCode(httpResponse.code());
-            } catch (IOException e) {
-                e.printStackTrace();
-                if (getTotalSizeRetryTimes++ < 3) {
-                    return getTotalSize(taskInfo);
-                }
-            }
-        }
-        return totalSize;
-    }
-
-    private long[] getStartPositions(long totalSize, int rangeNum) {
-        long[] startPositions = new long[rangeNum];
-        long rangeSize = rangeNum / totalSize;
-        for (int index = 0; index < rangeNum; index++) {
-            if (index == 0) {
-                startPositions[index] = 0;
-            } else {
-                startPositions[index] = rangeSize * index + 1;
-            }
-
-        }
-        return startPositions;
-    }
-
-    private long[] getEndPositions(long totalSize, int rangeNum) {
-        long[] endPositions = new long[rangeNum];
-        long rangeSize = rangeNum / totalSize;
-        for (int index = 0; index < rangeNum; index++) {
-            if (index < rangeNum - 1) {
-                endPositions[index] = rangeSize * (index + 1);
-            } else {
-                endPositions[index] = totalSize;
-            }
-        }
-        return endPositions;
-    }
-
-
     private AbstractHttpCallback getHttpCallbackImpl(TaskInfo taskInfo) {
-        return new AbstractHttpCallback() {
-            @Override
-            void pause() {
-
-            }
-
-            @Override
-            void delete() {
-
-            }
-
-            @Override
-            public void onFailure(HttpCall httpCall, IOException e) {
-
-            }
-
-            @Override
-            public void onResponse(HttpCall httpCall, HttpResponse httpResponse) throws IOException {
-
-            }
-
-            @Override
-            TaskInfo getTaskInfo() {
-                return null;
-            }
-        };
+        int rangeNum = taskInfo.getRangeNum();
+        if (rangeNum > 1) {
+            return new MultiHttpCallbackImpl(context, client, taskInfo, downloadCallback);
+        } else {
+            return new SingleHttpCallbackImpl(context, client, taskInfo, downloadCallback);
+        }
     }
 
     protected abstract HttpClient getHttpClient();
@@ -184,8 +84,7 @@ public abstract class SuperDownloadProxy implements IDownloadProxy {
                     return;
                 }
                 handlePrepare(taskInfo);
-
-                HttpCall call = getCall(taskInfo);
+                HttpCall call = callFactory.produce(client, taskInfo);
                 if (call == null) {
                     handleFailure(taskInfo);
                     return;
@@ -276,7 +175,7 @@ public abstract class SuperDownloadProxy implements IDownloadProxy {
     private void handleDelete(TaskInfo taskInfo) {
         taskInfo.setCurrentStatus(State.DELETE);
         handleCallbackAndDB(taskInfo);
-        Utils.deleteDownloadFile(context, taskInfo.getResKey());
+        Utils.deleteDownloadFile(context, taskInfo.getResKey(), taskInfo.getRangeNum());
         startNextTask();
     }
 
@@ -325,6 +224,11 @@ public abstract class SuperDownloadProxy implements IDownloadProxy {
         @Override
         public void onFirstFileWrite(TaskInfo taskInfo) {
             handleFirstFileWrite(taskInfo);
+        }
+
+        @Override
+        public void onDownloading(TaskInfo taskInfo) {
+            handleDownloading(taskInfo);
         }
 
         @Override
