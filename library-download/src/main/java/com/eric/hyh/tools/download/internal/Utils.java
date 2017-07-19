@@ -267,7 +267,7 @@ public class Utils {
     public static boolean deleteDownloadFile(Context context, String resKey, int rangeNum) {
         boolean delete = false;
         File file = getDownLoadFile(context, resKey);
-        if (file != null) {
+        if (file != null && file.exists()) {
             final File to = new File(file, String.valueOf(System.currentTimeMillis()));
             if (file.renameTo(to)) {
                 delete = to.delete();
@@ -278,7 +278,7 @@ public class Utils {
         if (rangeNum > 1) {
             for (int rangeId = 0; rangeId < rangeNum; rangeId++) {
                 File tempFile = getTempFile(context, resKey, rangeId);
-                if (tempFile != null) {
+                if (tempFile != null && tempFile.exists()) {
                     final File to = new File(tempFile, String.valueOf(System.currentTimeMillis()));
                     if (tempFile.renameTo(to)) {
                         to.delete();

@@ -210,7 +210,7 @@ class SingleHttpCallbackImpl extends AbstractHttpCallback {
 
     @Override
     void pause() {
-        this.delete = true;
+        this.pause = true;
         mFileWrite.stop();
         if (this.call != null && !this.call.isCanceled()) {
             this.call.cancel();

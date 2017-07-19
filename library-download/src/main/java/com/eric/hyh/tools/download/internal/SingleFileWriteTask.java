@@ -38,7 +38,7 @@ class SingleFileWriteTask implements FileWrite {
         boolean isException = false;
         try {
             BufferedInputStream bis = new BufferedInputStream(response.inputStream());
-            bos = new BufferedOutputStream(new FileOutputStream(filePath));
+            bos = new BufferedOutputStream(new FileOutputStream(filePath, true));
             byte[] buffer = new byte[8 * 1024];
             int len;
             while ((len = bis.read(buffer)) != -1) {

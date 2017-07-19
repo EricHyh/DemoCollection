@@ -6,6 +6,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.SystemClock;
 import android.text.TextUtils;
+import android.util.Log;
 
 import com.eric.hyh.tools.download.bean.Command;
 import com.eric.hyh.tools.download.bean.State;
@@ -127,6 +128,17 @@ public class FileDownloader implements DownloadProxyFactory {
     }
 
     public <T> void startTask(final FileRequest<T> fileRequest, final Callback<T> callback) {
+
+        int activeCount = mExecutor.getActiveCount();
+        int corePoolSize = mExecutor.getCorePoolSize();
+        long taskCount = mExecutor.getTaskCount();
+        int size = mExecutor.getQueue().size();
+
+        Log.d("FDL_HH", "startTask: activeCount="+activeCount);
+        Log.d("FDL_HH", "startTask: corePoolSize="+corePoolSize);
+        Log.d("FDL_HH", "startTask: taskCount="+taskCount);
+        Log.d("FDL_HH", "startTask: getQueue size="+size);
+
         mExecutor.execute(new Runnable() {
             @Override
             public void run() {
@@ -438,11 +450,17 @@ public class FileDownloader implements DownloadProxyFactory {
             return null;
         }
 
+        long startTime = System.currentTimeMillis();
+
         File file = Utils.getDownLoadFile(mContext, request.key());//获取已下载文件
         Object[] currentSizeAndMultiPositions = null;
         if (file.exists()) {
             currentSizeAndMultiPositions = Utils.getCurrentSizeAndMultiPositions(mContext, request, file, mHistoryTasks.get(resKey));
         }
+
+        long endTime = System.currentTimeMillis();
+
+        Log.d("FDL_HH", "newCall: getCurrentSizeAndMultiPositions time="+(endTime-startTime)/1000);
 
         TaskInfo<T> taskInfo = generateTaskInfo(request, file, currentSizeAndMultiPositions);
 

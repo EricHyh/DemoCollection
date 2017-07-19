@@ -1,0 +1,98 @@
+apply plugin: 'com.jfrog.bintray'
+apply plugin: 'com.github.dcendents.android-maven'
+
+def siteUrl = 'https://github.com/EricHyh/FileDownloader'
+def gitUrl = 'https://github.com/EricHyh/FileDownloader.git'
+
+group = 'com.hyh.filedownloader'
+version = '1.0.0.00001'
+
+install {
+    repositories.mavenInstaller {
+        pom {
+            project {
+                packaging 'aar'
+                name 'It is used for downloading files in android.'
+                url siteUrl
+
+                licenses {
+                    license {
+                        name 'The Apache Software License, Version 2.0'
+                        url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                    }
+                }
+
+                developers {
+                    developer {
+                        id 'hyh'
+                        name 'Yuanhui.He'
+                        email 'hyh123147@163.com'
+                    }
+                }
+
+                scm {
+                    connection gitUrl
+                    developerConnection gitUrl
+                    url siteUrl
+                }
+            }
+
+        }
+    }
+}
+
+task androidJavadocs(type: Javadoc) {
+    source = android.sourceSets.main.java.srcDirs
+    classpath += project.files(android.getBootClasspath().join(File.pathSeparator))
+}
+
+task androidJavadocsJar(type: Jar, dependsOn: androidJavadocs) {
+    classifier = 'javadoc'
+    from androidJavadocs.destinationDir
+}
+
+task androidSourcesJar(type: Jar) {
+    classifier = 'sources'
+    from android.sourceSets.main.java.srcDirs
+}
+
+
+artifacts {
+    archives androidSourcesJar
+    archives androidJavadocsJar
+}
+
+
+android {
+    lintOptions {
+        abortOnError false
+    }
+}
+
+
+tasks.withType(Javadoc) {
+    options.addStringOption('Xdoclint:none', '-quiet')
+    options.addStringOption('encoding', 'UTF-8')
+    options.addStringOption('charSet', 'UTF-8')
+}
+
+
+Properties properties = new Properties()
+properties.load(project.rootProject.file('local.properties').newDataInputStream())
+
+bintray {
+    user = properties.getProperty("bintray.user")
+    key = properties.getProperty("bintray.apikey")
+    configurations = ['archives']
+    pkg {
+        version {
+            name = '1.0.0.00001'
+            desc = 'Filedownloader test version 1.0.0.00001'
+        }
+        repo = 'android-libs'
+        name = 'com.hyh.filedownloader'
+        licenses = ['Apache-2.0']
+        vcsUrl = gitUrl
+        publish = true
+    }
+}
