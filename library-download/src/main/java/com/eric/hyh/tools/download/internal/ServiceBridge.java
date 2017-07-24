@@ -87,7 +87,7 @@ public class ServiceBridge implements IDownloadProxy.ILocalDownloadProxy {
             mConnection = getConnection();
         }
         Intent intent = new Intent(mContext, FDLService.class);
-        intent.putExtra(Constans.MAX_SYNCHRONOUS_DOWNLOAD_NUM, mMaxSynchronousDownloadNum);
+        intent.putExtra(Constants.MAX_SYNCHRONOUS_DOWNLOAD_NUM, mMaxSynchronousDownloadNum);
         mContext.bindService(intent, mConnection, Context.BIND_AUTO_CREATE);
         mContext.startService(intent);
     }

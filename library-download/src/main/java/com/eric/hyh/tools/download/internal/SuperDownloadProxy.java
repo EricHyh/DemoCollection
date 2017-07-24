@@ -135,14 +135,16 @@ public abstract class SuperDownloadProxy implements IDownloadProxy {
     }
 
     private void startNextTask() {
+        Log.d("FDL_HH", "startNextTask start");
         if (!waitingQueue.isEmpty()) {
             TaskCache remove = waitingQueue.remove(0);
+            Log.d("FDL_HH", "startNextTask resKey=" + remove.taskInfo.getResKey());
             enqueue(Command.START, remove.taskInfo);
         } else {
             if (httpCallbacks.isEmpty()) {
                 //TODO 没任务了
                 handleHaveNoTask();
-                Log.d("DownloadModule", "startNextTask: 没任务了");
+                Log.d("FDL_HH", "startNextTask: 没任务了");
             }
         }
     }

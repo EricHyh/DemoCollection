@@ -4,7 +4,7 @@ package com.eric.hyh.tools.download.internal;
  * Created by Eric_He on 2017/3/10.
  */
 
-public class Constans {
+public class Constants {
 
     public static final String COMMADN = "command";
 
@@ -13,6 +13,8 @@ public class Constans {
     public static final String MAX_SYNCHRONOUS_DOWNLOAD_NUM = "max_synchronous_download_num";
 
     static final int MEMORY_SIZE_ERROR = -1;
+
+    static final String USER_AGENT = Utils.getUserAgent();
 
     static class ResponseCode {
 

@@ -62,7 +62,7 @@ class HttpCallFactory {
         if (totalSize == 0) {
             try {
                 HttpResponse httpResponse = client.getHttpResponse(taskInfo.getUrl());
-                if (httpResponse.code() == Constans.ResponseCode.OK) {
+                if (httpResponse.code() == Constants.ResponseCode.OK) {
                     totalSize = httpResponse.contentLength();
                     if (totalSize > 0) {
                         taskInfo.setTotalSize(totalSize);

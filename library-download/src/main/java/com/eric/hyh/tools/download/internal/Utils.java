@@ -11,6 +11,7 @@ import android.os.Environment;
 import android.os.Process;
 import android.os.StatFs;
 import android.text.TextUtils;
+import android.util.Log;
 
 import com.eric.hyh.tools.download.api.FileRequest;
 import com.eric.hyh.tools.download.bean.State;
@@ -34,6 +35,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.RejectedExecutionHandler;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -76,7 +78,7 @@ public class Utils {
             }
             return availableBlocks * blockSize;
         } else {
-            return Constans.MEMORY_SIZE_ERROR;
+            return Constants.MEMORY_SIZE_ERROR;
         }
     }
 
@@ -168,6 +170,13 @@ public class Utils {
             }
         }
         return -1;
+    }
+
+    //Mozilla/5.0 (Linux; Android 4.4.4; HTC D820u Build/KTU84P) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/40.0.2214.89 Mobile Safari/537.36
+    //4.4.4; zh-; Bird L6 Build/KTU84P
+    //Dalvik/v3.3.117 Compatible (TVM xx; YunOS 3.0; Linux; U; Android 4.4.4 Compatible; Bird L6 Build/KTU84P)
+    static String getUserAgent() {
+        return System.getProperty("http.agent");
     }
 
 
@@ -315,6 +324,11 @@ public class Utils {
                 thread.setDaemon(true);
                 return thread;
             }
+        }, new RejectedExecutionHandler() {
+            @Override
+            public void rejectedExecution(Runnable r, ThreadPoolExecutor executor) {
+                Log.d("FDL_HH", "rejectedExecution: ");
+            }
         });
         executor.allowCoreThreadTimeOut(allowCoreThreadTimeOut);
         return executor;
@@ -354,7 +368,13 @@ public class Utils {
                             RandomAccessFile raf = new RandomAccessFile(tempFile, "rw");
                             long l = raf.readLong();
                             raf.close();
-                            long rangeSize = getRangeSize(fileRaf, l, endPositions[rangeId], 2);
+                            long originalStartPosition;
+                            if (rangeId == 0) {
+                                originalStartPosition = 0;
+                            } else {
+                                originalStartPosition = partSize * rangeId + 1;
+                            }
+                            long rangeSize = getRangeSize(fileRaf, l, originalStartPosition, endPositions[rangeId], 2);
                             if (rangeId == 0) {
                                 currentSize += rangeSize;
                             } else {
@@ -406,15 +426,18 @@ public class Utils {
         return endPositions;
     }
 
-    private static long getRangeSize(RandomAccessFile fileRaf, long l, long endPosition, int blink) throws IOException {
+    private static long getRangeSize(RandomAccessFile fileRaf, long l, long originalStartPosition, long endPosition, int blink) throws IOException {
         if (l == endPosition + 1) {
             return l;
+        }
+        if (l <= originalStartPosition) {
+            return originalStartPosition;
         }
         fileRaf.seek(l);
         if (fileRaf.readByte() == 0) {
             l -= blink;
             blink *= 2;
-            return getRangeSize(fileRaf, l, endPosition, blink);
+            return getRangeSize(fileRaf, l, originalStartPosition, endPosition, blink);
         } else {
             return l;
         }

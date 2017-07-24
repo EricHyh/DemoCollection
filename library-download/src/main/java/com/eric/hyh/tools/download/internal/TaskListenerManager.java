@@ -1,6 +1,7 @@
 package com.eric.hyh.tools.download.internal;
 
 import android.text.TextUtils;
+import android.util.Log;
 
 import com.eric.hyh.tools.download.api.Callback;
 import com.eric.hyh.tools.download.api.CallbackAdapter;
@@ -15,13 +16,13 @@ import java.util.concurrent.ConcurrentHashMap;
  * @data 2017/7/11
  */
 @SuppressWarnings("unchecked")
-public class SingleTaskListenerManager extends CallbackAdapter {
+public class TaskListenerManager extends CallbackAdapter {
 
 
     private Callback mAllTaskListener;
     private ConcurrentHashMap<String, ArrayList<Callback>> mCallbacksMap;
 
-    public SingleTaskListenerManager(Callback allTaskListener) {
+    public TaskListenerManager(Callback allTaskListener) {
         this.mAllTaskListener = allTaskListener;
     }
 
@@ -63,6 +64,7 @@ public class SingleTaskListenerManager extends CallbackAdapter {
 
     @Override
     public void onPrepare(TaskInfo taskInfo) {
+        Log.d("FDL_HH", "onPrepare notify " + taskInfo.getResKey());
         String resKey = taskInfo.getResKey();
         ArrayList<Callback> singleCallbacks = getSingleCallbacks(resKey);
         if (singleCallbacks != null) {
@@ -99,6 +101,7 @@ public class SingleTaskListenerManager extends CallbackAdapter {
 
     @Override
     public void onWaitingInQueue(TaskInfo taskInfo) {
+        Log.d("FDL_HH", "onWaitingInQueue notify " + taskInfo.getResKey());
         String resKey = taskInfo.getResKey();
         ArrayList<Callback> singleCallbacks = getSingleCallbacks(resKey);
         if (singleCallbacks != null) {
@@ -138,6 +141,7 @@ public class SingleTaskListenerManager extends CallbackAdapter {
 
     @Override
     public void onPause(TaskInfo taskInfo) {
+        Log.d("FDL_HH", "onWaitingInQueue onPause " + taskInfo.getResKey());
         String resKey = taskInfo.getResKey();
         ArrayList<Callback> singleCallbacks = getSingleCallbacks(resKey);
         if (singleCallbacks != null) {
@@ -153,6 +157,7 @@ public class SingleTaskListenerManager extends CallbackAdapter {
 
     @Override
     public void onSuccess(TaskInfo taskInfo) {
+        Log.d("FDL_HH", "onWaitingInQueue onSuccess " + taskInfo.getResKey());
         String resKey = taskInfo.getResKey();
         ArrayList<Callback> singleCallbacks = getSingleCallbacks(resKey);
         if (singleCallbacks != null) {

@@ -1,5 +1,7 @@
 package com.eric.hyh.tools.download.internal;
 
+import android.util.Log;
+
 import com.eric.hyh.tools.download.api.HttpResponse;
 
 import java.io.BufferedInputStream;
@@ -72,6 +74,7 @@ class MultiFileWriteTask implements FileWrite {
 
     @Override
     public void stop() {
+        Log.d("FDL_HH","MultiFileWriteTask stop");
         this.stop = true;
     }
 }

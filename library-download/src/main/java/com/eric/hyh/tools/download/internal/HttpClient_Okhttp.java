@@ -37,7 +37,11 @@ public class HttpClient_Okhttp implements HttpClient {
 
     @Override
     public HttpCall newCall(String tag, String url, long oldSize) {
-        Request.Builder builder = new Request.Builder().url(url).tag(tag);
+        Request.Builder builder = new Request
+                .Builder()
+                .url(url)
+                .tag(tag)
+                .addHeader("User-Agent", Constants.USER_AGENT);
         if (oldSize > 0) {
             builder.addHeader("RANGE", "bytes=" + oldSize + "-");//断点续传要用到的，指示下载的区间
         }
@@ -48,7 +52,7 @@ public class HttpClient_Okhttp implements HttpClient {
 
     @Override
     public HttpCall newCall(String tag, String url, long startPosition, long endPosition) {
-        Request.Builder builder = new Request.Builder().url(url).tag(tag);
+        Request.Builder builder = new Request.Builder().url(url).tag(tag).addHeader("User-Agent", Constants.USER_AGENT);;
         builder.addHeader("RANGE", "bytes=" + startPosition + "-" + endPosition);//断点续传要用到的，指示下载的区间
         Request okhttpRequest = builder.build();
         Call call = mClient.newCall(okhttpRequest);

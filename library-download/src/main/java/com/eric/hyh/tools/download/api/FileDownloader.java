@@ -3,7 +3,6 @@ package com.eric.hyh.tools.download.api;
 import android.annotation.SuppressLint;
 import android.app.PendingIntent;
 import android.content.Context;
-import android.content.Intent;
 import android.os.SystemClock;
 import android.text.TextUtils;
 import android.util.Log;
@@ -11,13 +10,11 @@ import android.util.Log;
 import com.eric.hyh.tools.download.bean.Command;
 import com.eric.hyh.tools.download.bean.State;
 import com.eric.hyh.tools.download.bean.TaskInfo;
-import com.eric.hyh.tools.download.internal.Constans;
 import com.eric.hyh.tools.download.internal.DownloadProxyFactory;
-import com.eric.hyh.tools.download.internal.FDLService;
 import com.eric.hyh.tools.download.internal.IDownloadProxy;
 import com.eric.hyh.tools.download.internal.OkhttpLocalProxy;
 import com.eric.hyh.tools.download.internal.ServiceBridge;
-import com.eric.hyh.tools.download.internal.SingleTaskListenerManager;
+import com.eric.hyh.tools.download.internal.TaskListenerManager;
 import com.eric.hyh.tools.download.internal.Utils;
 import com.eric.hyh.tools.download.internal.db.bean.TaskDBInfo;
 import com.google.gson.Gson;
@@ -71,7 +68,7 @@ public class FileDownloader implements DownloadProxyFactory {
 
     private Map<String, TaskDBInfo> mHistoryTasks = new ConcurrentHashMap<>();//数据库中所有任务的列表
 
-    private final SingleTaskListenerManager mListenerManager;
+    private final TaskListenerManager mListenerManager;
 
     public static void initFileDownloader(Context context) {
         initFileDownloader(context, true, 2);
@@ -100,7 +97,7 @@ public class FileDownloader implements DownloadProxyFactory {
         this.mContext = builder.context;
         this.multiThreadNum = Utils.computeMultiThreadNum(builder.maxSynchronousDownloadNum);
         this.mDBUtil = Utils.DBUtil.getInstance(this.mContext);
-        this.mListenerManager = new SingleTaskListenerManager(new DownloadListener());
+        this.mListenerManager = new TaskListenerManager(new DownloadListener());
         this.mDownloadProxy = produce(builder.byService, builder.maxSynchronousDownloadNum);
 
         mDownloadProxy.setAllTaskCallback(mListenerManager);
@@ -128,17 +125,6 @@ public class FileDownloader implements DownloadProxyFactory {
     }
 
     public <T> void startTask(final FileRequest<T> fileRequest, final Callback<T> callback) {
-
-        int activeCount = mExecutor.getActiveCount();
-        int corePoolSize = mExecutor.getCorePoolSize();
-        long taskCount = mExecutor.getTaskCount();
-        int size = mExecutor.getQueue().size();
-
-        Log.d("FDL_HH", "startTask: activeCount="+activeCount);
-        Log.d("FDL_HH", "startTask: corePoolSize="+corePoolSize);
-        Log.d("FDL_HH", "startTask: taskCount="+taskCount);
-        Log.d("FDL_HH", "startTask: getQueue size="+size);
-
         mExecutor.execute(new Runnable() {
             @Override
             public void run() {
@@ -193,44 +179,7 @@ public class FileDownloader implements DownloadProxyFactory {
     }
 
     public <T> PendingIntent buildPendingIntent(FileRequest<T> fileRequest, Callback<T> callback) {
-        String resKey = fileRequest.key();
-        int command = fileRequest.command();
-        FileCall fileCall = mFileCalls.get(resKey);
-        if (fileCall != null) {
-            if (command == Command.PAUSE || command == Command.DELETE) {
-                mListenerManager.addSingleTaskCallback(resKey, callback);
-                Intent intent = new Intent(mContext, FDLService.class);
-                intent.putExtra(Constans.COMMADN, fileRequest.command());
-                intent.putExtra(Constans.REQUEST_INFO, fileCall.taskInfo());
-                return PendingIntent.getService(mContext, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
-            }
-        } else {
-            if (command == Command.UPDATE || command == Command.START) {
-                fileCall = newCall(fileRequest, callback);
-                mListenerManager.addSingleTaskCallback(resKey, callback);
-                if (fileCall != null) {
-                    Intent intent = new Intent(mContext, FDLService.class);
-                    intent.putExtra(Constans.COMMADN, fileRequest.command());
-                    intent.putExtra(Constans.REQUEST_INFO, fileCall.taskInfo());
-                    return PendingIntent.getService(mContext, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
-                }
-            } else {
-                mListenerManager.addSingleTaskCallback(resKey, callback);
-                Intent intent = new Intent(mContext, FDLService.class);
-                intent.putExtra(Constans.COMMADN, fileRequest.command());
 
-                File file = Utils.getDownLoadFile(mContext, fileRequest.key());//获取已下载文件
-                Object[] currentSizeAndMultiPositions = null;
-                if (file.exists()) {
-                    currentSizeAndMultiPositions = Utils.getCurrentSizeAndMultiPositions(mContext, fileRequest, file, mHistoryTasks.get(resKey));
-                }
-                TaskInfo<T> taskInfo = generateTaskInfo(fileRequest, file, currentSizeAndMultiPositions);
-
-
-                intent.putExtra(Constans.REQUEST_INFO, taskInfo);
-                return PendingIntent.getService(mContext, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
-            }
-        }
         return null;
     }
 
@@ -460,7 +409,7 @@ public class FileDownloader implements DownloadProxyFactory {
 
         long endTime = System.currentTimeMillis();
 
-        Log.d("FDL_HH", "newCall: getCurrentSizeAndMultiPositions time="+(endTime-startTime)/1000);
+        Log.d("FDL_HH", "newCall: getCurrentSizeAndMultiPositions time=" + (endTime - startTime) / 1000);
 
         TaskInfo<T> taskInfo = generateTaskInfo(request, file, currentSizeAndMultiPositions);
 

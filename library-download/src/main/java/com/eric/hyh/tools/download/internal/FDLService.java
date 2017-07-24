@@ -111,7 +111,7 @@ public class FDLService extends Service {
     public IBinder onBind(Intent intent) {
         Log.d("FDL_HH==", "bind service");
         if (intent != null) {
-            maxSynchronousDownloadNum = intent.getIntExtra(Constans.MAX_SYNCHRONOUS_DOWNLOAD_NUM, 2);
+            maxSynchronousDownloadNum = intent.getIntExtra(Constants.MAX_SYNCHRONOUS_DOWNLOAD_NUM, 2);
             if (mServiceProxy != null) {
                 mServiceProxy.setMaxSynchronousDownloadNum(maxSynchronousDownloadNum);
             }
@@ -135,8 +135,8 @@ public class FDLService extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         if (intent != null) {
-            final int command = intent.getIntExtra(Constans.COMMADN, Command.UNKNOW);
-            final TaskInfo request = intent.getParcelableExtra(Constans.REQUEST_INFO);
+            final int command = intent.getIntExtra(Constants.COMMADN, Command.UNKNOW);
+            final TaskInfo request = intent.getParcelableExtra(Constants.REQUEST_INFO);
             if (command >= 0 && request != null) {
                 if (mCommandExecutor == null) {
                     mCommandExecutor = Utils.buildExecutor(1, 1, 120, "FDLService Command Thread", true);

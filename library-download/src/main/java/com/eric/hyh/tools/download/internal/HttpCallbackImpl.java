@@ -70,13 +70,13 @@ class HttpCallbackImpl implements HttpCallback {
         }
         int code = response.code();
         taskInfo.setCode(code);
-        if (code == Constans.ResponseCode.OK || code == Constans.ResponseCode.PARTIAL_CONTENT) {//请求数据成功
+        if (code == Constants.ResponseCode.OK || code == Constants.ResponseCode.PARTIAL_CONTENT) {//请求数据成功
             long totalSize = taskInfo.getTotalSize();
             if (totalSize == 0) {
                 taskInfo.setTotalSize(response.contentLength() + taskInfo.getCurrentSize());
             }
             handleDownload(response, taskInfo);
-        } else if (code == Constans.ResponseCode.NOT_FOUND) {
+        } else if (code == Constants.ResponseCode.NOT_FOUND) {
             // TODO: 2017/5/16 未找到文件
             if (downloadCallback != null) {
                 downloadCallback.onFailure(taskInfo);

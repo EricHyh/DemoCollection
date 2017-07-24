@@ -2,6 +2,7 @@ package com.eric.hyh.tools.download.internal;
 
 import android.content.Context;
 import android.os.SystemClock;
+import android.util.Log;
 
 import com.eric.hyh.tools.download.api.Callback;
 import com.eric.hyh.tools.download.api.HttpCall;
@@ -72,15 +73,19 @@ class MultiHttpCallbackImpl extends AbstractHttpCallback {
     @Override
     protected void pause() {
         Collection<RealHttpCallbackImpl> httpCallbacks = httpCallbackMap.values();
+        Log.d("FDL_HH", "MultiHttpCallbackImpl pause httpCallbacks'size = " + httpCallbacks.size());
         for (RealHttpCallbackImpl httpCallback : httpCallbacks) {
+            Log.d("FDL_HH", "RealHttpCallbackImpl pause");
             httpCallback.pause();
         }
     }
 
     @Override
     protected void delete() {
+        Log.d("FDL_HH", "MultiHttpCallbackImpl delete");
         Collection<RealHttpCallbackImpl> httpCallbacks = httpCallbackMap.values();
         for (RealHttpCallbackImpl httpCallback : httpCallbacks) {
+            Log.d("FDL_HH", "RealHttpCallbackImpl delete");
             httpCallback.delete();
         }
     }
@@ -135,13 +140,9 @@ class MultiHttpCallbackImpl extends AbstractHttpCallback {
             }
             int code = response.code();
             taskInfo.setCode(code);
-            if (code == Constans.ResponseCode.OK || code == Constans.ResponseCode.PARTIAL_CONTENT) {//请求数据成功
-                long totalSize = taskInfo.getTotalSize();
-                if (totalSize == 0) {
-                    taskInfo.setTotalSize(response.contentLength() + taskInfo.getCurrentSize());
-                }
+            if (code == Constants.ResponseCode.OK || code == Constants.ResponseCode.PARTIAL_CONTENT) {//请求数据成功
                 handleDownload(response, taskInfo);
-            } else if (code == Constans.ResponseCode.NOT_FOUND) {
+            } else if (code == Constants.ResponseCode.NOT_FOUND) {
                 // TODO: 2017/5/16 未找到文件
                 if (downloadCallback != null) {
                     downloadCallback.onFailure(taskInfo);
@@ -233,18 +234,22 @@ class MultiHttpCallbackImpl extends AbstractHttpCallback {
         @Override
         void pause() {
             this.pause = true;
-            mFileWrite.stop();
             if (this.call != null && !this.call.isCanceled()) {
                 this.call.cancel();
+            }
+            if (mFileWrite != null) {
+                mFileWrite.stop();
             }
         }
 
         @Override
         void delete() {
             this.delete = true;
-            mFileWrite.stop();
             if (this.call != null && !this.call.isCanceled()) {
                 this.call.cancel();
+            }
+            if (mFileWrite != null) {
+                mFileWrite.stop();
             }
         }
 
