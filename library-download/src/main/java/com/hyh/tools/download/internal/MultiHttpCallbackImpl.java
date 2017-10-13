@@ -19,6 +19,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * @author Administrator
@@ -38,13 +39,17 @@ class MultiHttpCallbackImpl extends AbstractHttpCallback {
 
     private Callback downloadCallback;
 
-    private boolean isAllSuccess;
+    private volatile boolean isAllSuccess;
 
-    private boolean isAllFailure;
+    private volatile boolean isAllFailure;
 
-    private int successCount;
+    private AtomicInteger successCount = new AtomicInteger();
 
-    private int failureCount;
+    private AtomicInteger failureCount = new AtomicInteger();
+
+    private volatile boolean pause;
+
+    private volatile boolean delete;
 
 
     MultiHttpCallbackImpl(Context context, HttpClient client, TaskInfo taskInfo, Callback downloadCallback) {
@@ -72,6 +77,7 @@ class MultiHttpCallbackImpl extends AbstractHttpCallback {
 
     @Override
     protected void pause() {
+        this.pause = true;
         Collection<RealHttpCallbackImpl> httpCallbacks = httpCallbackMap.values();
         Log.d("FDL_HH", "MultiHttpCallbackImpl pause httpCallbacks'size = " + httpCallbacks.size());
         for (RealHttpCallbackImpl httpCallback : httpCallbacks) {
@@ -82,6 +88,7 @@ class MultiHttpCallbackImpl extends AbstractHttpCallback {
 
     @Override
     protected void delete() {
+        this.delete = true;
         Log.d("FDL_HH", "MultiHttpCallbackImpl delete");
         Collection<RealHttpCallbackImpl> httpCallbacks = httpCallbackMap.values();
         for (RealHttpCallbackImpl httpCallback : httpCallbacks) {
@@ -114,10 +121,6 @@ class MultiHttpCallbackImpl extends AbstractHttpCallback {
         private long endPosition;
 
         private int rangeId;
-
-        protected volatile boolean pause;
-
-        protected volatile boolean delete;
 
         private FileWrite mFileWrite;
 
@@ -185,7 +188,7 @@ class MultiHttpCallbackImpl extends AbstractHttpCallback {
                     int progress = (int) ((currentSize * 100.0f / totalSize) + 0.5f);
                     if (progress != oldProgress) {
                         if (isFailure) {
-                            failureCount--;
+                            failureCount.decrementAndGet();
                         }
                         isFailure = false;
                         currentRetryTimes = 0;
@@ -198,12 +201,13 @@ class MultiHttpCallbackImpl extends AbstractHttpCallback {
 
                 @Override
                 public void onWriteFinish() {
-                    successCount++;
-                    if (!isAllSuccess && successCount < httpCallbackMap.size()) {
+                    successCount.incrementAndGet();
+                    if (!isAllSuccess && successCount.get() < httpCallbackMap.size()) {
                         return;
                     }
+
                     synchronized (MultiHttpCallbackImpl.this) {
-                        if (!isAllSuccess && (successCount == httpCallbackMap.size())) {
+                        if (!isAllSuccess && (successCount.get() == httpCallbackMap.size())) {
                             isAllSuccess = true;
                             downloadCallback.onSuccess(taskInfo);
                         }
@@ -234,7 +238,6 @@ class MultiHttpCallbackImpl extends AbstractHttpCallback {
 
         @Override
         void pause() {
-            this.pause = true;
             if (this.call != null && !this.call.isCanceled()) {
                 this.call.cancel();
             }
@@ -245,7 +248,6 @@ class MultiHttpCallbackImpl extends AbstractHttpCallback {
 
         @Override
         void delete() {
-            this.delete = true;
             if (this.call != null && !this.call.isCanceled()) {
                 this.call.cancel();
             }
@@ -265,12 +267,12 @@ class MultiHttpCallbackImpl extends AbstractHttpCallback {
 
             if (!isFailure && currentRetryTimes >= RETRY_MAX_TIMES) {
                 isFailure = true;
-                failureCount++;
+                failureCount.incrementAndGet();
             }
 
-            if (!isAllFailure && failureCount >= httpCallbackMap.size()) {
+            if (!isAllFailure && failureCount.get() >= httpCallbackMap.size()) {
                 synchronized (MultiHttpCallbackImpl.this) {
-                    if (!isAllFailure && failureCount >= httpCallbackMap.size()) {
+                    if (!isAllFailure && failureCount.get() >= httpCallbackMap.size()) {
                         isAllFailure = true;
                         downloadCallback.onFailure(taskInfo);
                         return;
