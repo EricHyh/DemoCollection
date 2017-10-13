@@ -7,11 +7,13 @@ import android.content.pm.PackageManager;
 import android.database.sqlite.SQLiteDatabase;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
+import android.os.Build;
 import android.os.Environment;
 import android.os.Process;
 import android.os.StatFs;
 import android.text.TextUtils;
 import android.util.Log;
+import android.webkit.WebSettings;
 
 import com.hyh.tools.download.api.FileRequest;
 import com.hyh.tools.download.bean.State;
@@ -177,6 +179,33 @@ public class Utils {
         return System.getProperty("http.agent");
     }
 
+    static String getUserAgent(Context context) {
+        String userAgent;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
+            try {
+                userAgent = WebSettings.getDefaultUserAgent(context);
+            } catch (Exception e) {
+                userAgent = System.getProperty("http.agent");
+            }
+        } else {
+            userAgent = System.getProperty("http.agent");
+        }
+        StringBuilder sb = new StringBuilder();
+        try {
+            for (int i = 0, length = userAgent.length(); i < length; i++) {
+                char c = userAgent.charAt(i);
+                if (c <= '\u001f' || c >= '\u007f') {
+                    sb.append(String.format("\\u%04x", (int) c));
+                } else {
+                    sb.append(c);
+                }
+            }
+            userAgent = sb.toString();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return userAgent;
+    }
 
     /**
      * @return 手机中所有已安装的非系统应用程序的包名列表

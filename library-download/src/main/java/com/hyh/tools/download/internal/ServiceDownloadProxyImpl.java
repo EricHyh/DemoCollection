@@ -3,7 +3,7 @@ package com.hyh.tools.download.internal;
 import android.content.Context;
 import android.os.RemoteException;
 
-import com.eric.hyh.tools.download.IClient;
+import com.hyh.tools.download.IClient;
 import com.hyh.tools.download.bean.TaskInfo;
 import com.hyh.tools.download.internal.db.bean.TaskDBInfo;
 

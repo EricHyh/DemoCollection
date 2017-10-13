@@ -81,7 +81,7 @@ public class TaskListenerManager extends CallbackAdapter {
         ArrayList<Callback> singleCallbacks = getSingleCallbacks(resKey);
         if (singleCallbacks != null) {
             for (Callback callback : singleCallbacks) {
-                callback.onNoEnoughSpace(taskInfo);
+                callback.onFirstFileWrite(taskInfo);
             }
         }
         mAllTaskListener.onFirstFileWrite(taskInfo);

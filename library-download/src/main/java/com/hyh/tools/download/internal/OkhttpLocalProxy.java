@@ -18,7 +18,7 @@ public class OkhttpLocalProxy extends LocalDownloadProxyImpl {
     }
 
     @Override
-    protected HttpClient getHttpClient() {
-        return new HttpClient_Okhttp();
+    protected HttpClient getHttpClient(Context context) {
+        return new HttpClient_Okhttp(context);
     }
 }

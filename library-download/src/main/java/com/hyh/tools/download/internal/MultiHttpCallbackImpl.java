@@ -38,9 +38,9 @@ class MultiHttpCallbackImpl extends AbstractHttpCallback {
 
     private Callback downloadCallback;
 
-    private boolean isCallbackSuccess;
+    private boolean isAllSuccess;
 
-    private boolean isCallbackFailure;
+    private boolean isAllFailure;
 
     private int successCount;
 
@@ -118,6 +118,7 @@ class MultiHttpCallbackImpl extends AbstractHttpCallback {
         protected volatile boolean pause;
 
         protected volatile boolean delete;
+
         private FileWrite mFileWrite;
 
 
@@ -198,12 +199,12 @@ class MultiHttpCallbackImpl extends AbstractHttpCallback {
                 @Override
                 public void onWriteFinish() {
                     successCount++;
-                    if (!isCallbackSuccess && successCount < httpCallbackMap.size()) {
+                    if (!isAllSuccess && successCount < httpCallbackMap.size()) {
                         return;
                     }
                     synchronized (MultiHttpCallbackImpl.this) {
-                        if (!isCallbackSuccess && (successCount == httpCallbackMap.size())) {
-                            isCallbackSuccess = true;
+                        if (!isAllSuccess && (successCount == httpCallbackMap.size())) {
+                            isAllSuccess = true;
                             downloadCallback.onSuccess(taskInfo);
                         }
                     }
@@ -258,7 +259,7 @@ class MultiHttpCallbackImpl extends AbstractHttpCallback {
                 call.cancel();
             }
 
-            if (pause || delete || isCallbackFailure) {
+            if (pause || delete || isAllFailure) {
                 return;
             }
 
@@ -267,24 +268,24 @@ class MultiHttpCallbackImpl extends AbstractHttpCallback {
                 failureCount++;
             }
 
-            if (!isCallbackFailure && failureCount >= httpCallbackMap.size()) {
+            if (!isAllFailure && failureCount >= httpCallbackMap.size()) {
                 synchronized (MultiHttpCallbackImpl.this) {
-                    if (!isCallbackFailure && failureCount >= httpCallbackMap.size()) {
-                        isCallbackFailure = true;
+                    if (!isAllFailure && failureCount >= httpCallbackMap.size()) {
+                        isAllFailure = true;
                         downloadCallback.onFailure(taskInfo);
                         return;
                     }
                 }
             }
 
-            if (currentRetryTimes >= RETRY_MAX_TIMES) {
+/*            if (currentRetryTimes >= RETRY_MAX_TIMES) {
                 //TODO 处理请求失败
                 if (timer != null) {
                     timer.cancel();
                     timer = null;
                 }
                 return;
-            }
+            }*/
 
 
             timer = new Timer("retry timer");
@@ -298,7 +299,7 @@ class MultiHttpCallbackImpl extends AbstractHttpCallback {
                         if (currentRetryTimes == 2) {
                             SystemClock.sleep(4 * 1000);
                         }
-                        if (pause || delete || isCallbackFailure) {
+                        if (pause || delete || isAllFailure) {
                             timer.cancel();
                             timer = null;
                             return;
@@ -313,7 +314,7 @@ class MultiHttpCallbackImpl extends AbstractHttpCallback {
                     }
                     currentRetryTimes++;
 
-                    if (pause || delete || isCallbackFailure) {
+                    if (pause || delete || isAllFailure) {
                         if (timer != null) {
                             timer.cancel();
                             timer = null;
@@ -327,7 +328,7 @@ class MultiHttpCallbackImpl extends AbstractHttpCallback {
         private boolean isWifiOk(Context context) {
             int count = 0;
             while (true) {
-                if (pause || delete || isCallbackFailure) {
+                if (pause || delete || isAllFailure) {
                     return false;
                 }
                 if (Utils.isWifi(context)) {

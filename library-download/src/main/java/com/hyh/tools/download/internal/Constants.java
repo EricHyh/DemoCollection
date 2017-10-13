@@ -14,8 +14,6 @@ public class Constants {
 
     static final int MEMORY_SIZE_ERROR = -1;
 
-    static final String USER_AGENT = Utils.getUserAgent();
-
     static class ResponseCode {
 
         /**

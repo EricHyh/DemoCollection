@@ -2,7 +2,7 @@ package com.hyh.tools.download.internal;
 
 import android.content.Context;
 
-import com.eric.hyh.tools.download.IClient;
+import com.hyh.tools.download.IClient;
 import com.hyh.tools.download.api.HttpClient;
 import com.hyh.tools.download.internal.db.bean.TaskDBInfo;
 
@@ -23,7 +23,7 @@ public class OkhttpServiceProxy extends ServiceDownloadProxyImpl {
     }
 
     @Override
-    protected HttpClient getHttpClient() {
-        return new HttpClient_Okhttp();
+    protected HttpClient getHttpClient(Context context) {
+        return new HttpClient_Okhttp(context);
     }
 }

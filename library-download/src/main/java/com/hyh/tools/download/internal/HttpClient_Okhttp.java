@@ -1,6 +1,8 @@
 package com.hyh.tools.download.internal;
 
 
+import android.content.Context;
+
 import com.hyh.tools.download.api.HttpCall;
 import com.hyh.tools.download.api.HttpCallback;
 import com.hyh.tools.download.api.HttpClient;
@@ -25,14 +27,16 @@ public class HttpClient_Okhttp implements HttpClient {
 
 
     private final OkHttpClient mClient;
+    private String mUserAgent;
 
-    public HttpClient_Okhttp() {
+    public HttpClient_Okhttp(Context context) {
+        this.mUserAgent = Utils.getUserAgent(context);
         OkHttpClient.Builder builder = new OkHttpClient
                 .Builder()
                 .connectTimeout(15, TimeUnit.SECONDS)
                 .readTimeout(10, TimeUnit.SECONDS)
                 .writeTimeout(10, TimeUnit.SECONDS);
-        mClient = builder.build();
+        this.mClient = builder.build();
     }
 
     @Override
@@ -41,7 +45,7 @@ public class HttpClient_Okhttp implements HttpClient {
                 .Builder()
                 .url(url)
                 .tag(tag)
-                .addHeader("User-Agent", Constants.USER_AGENT);
+                .addHeader("User-Agent", mUserAgent);
         if (oldSize > 0) {
             builder.addHeader("RANGE", "bytes=" + oldSize + "-");//断点续传要用到的，指示下载的区间
         }
@@ -52,7 +56,8 @@ public class HttpClient_Okhttp implements HttpClient {
 
     @Override
     public HttpCall newCall(String tag, String url, long startPosition, long endPosition) {
-        Request.Builder builder = new Request.Builder().url(url).tag(tag).addHeader("User-Agent", Constants.USER_AGENT);;
+        Request.Builder builder = new Request.Builder().url(url).tag(tag).addHeader("User-Agent", mUserAgent);
+
         builder.addHeader("RANGE", "bytes=" + startPosition + "-" + endPosition);//断点续传要用到的，指示下载的区间
         Request okhttpRequest = builder.build();
         Call call = mClient.newCall(okhttpRequest);

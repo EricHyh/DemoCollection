@@ -8,7 +8,8 @@ import android.os.IBinder;
 import android.os.Process;
 import android.os.RemoteException;
 
-
+import com.hyh.tools.download.IClient;
+import com.hyh.tools.download.IRequest;
 import com.hyh.tools.download.api.Callback;
 import com.hyh.tools.download.api.FileDownloader;
 import com.hyh.tools.download.bean.Command;

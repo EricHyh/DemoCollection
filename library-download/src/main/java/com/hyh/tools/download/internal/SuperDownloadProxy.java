@@ -37,7 +37,7 @@ public abstract class SuperDownloadProxy implements IDownloadProxy {
 
     SuperDownloadProxy(Context context, int maxSynchronousDownloadNum) {
         this.context = context;
-        this.client = getHttpClient();
+        this.client = getHttpClient(context);
         this.maxSynchronousDownloadNum = maxSynchronousDownloadNum;
         this.downloadCallback = new DownloadCallback();
     }
@@ -61,7 +61,7 @@ public abstract class SuperDownloadProxy implements IDownloadProxy {
         }
     }
 
-    protected abstract HttpClient getHttpClient();
+    protected abstract HttpClient getHttpClient(Context context);
 
     @SuppressWarnings("unchecked")
     @Override
