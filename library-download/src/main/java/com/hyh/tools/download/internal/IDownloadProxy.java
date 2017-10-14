@@ -28,7 +28,7 @@ public interface IDownloadProxy {
 
         void setAllTaskCallback(Callback callback);
 
-        boolean isFileDownloading(String resKey);
+        boolean isOtherProcessDownloading(String resKey);
 
         void operateDatebase(TaskInfo taskInfo);
 

@@ -18,14 +18,14 @@ import java.util.concurrent.ThreadPoolExecutor;
  * @data 2017/5/17
  */
 
-public abstract class LocalDownloadProxyImpl extends SuperDownloadProxy implements IDownloadProxy.ILocalDownloadProxy {
+public class LocalDownloadProxyImpl extends SuperDownloadProxy implements IDownloadProxy.ILocalDownloadProxy {
 
     private Callback mCallback;
     private final Utils.DBUtil mDBUtil;
     private ConcurrentHashMap<String, TaskDBInfo> mTaskDBInfoContainer;
     private ThreadPoolExecutor mDatabaseExecutor;
 
-    LocalDownloadProxyImpl(Context context, int maxSynchronousDownloadNum) {
+    public LocalDownloadProxyImpl(Context context, int maxSynchronousDownloadNum) {
         super(context, maxSynchronousDownloadNum);
         mDBUtil = Utils.DBUtil.getInstance(context);
         mTaskDBInfoContainer = new ConcurrentHashMap<>();
@@ -49,7 +49,7 @@ public abstract class LocalDownloadProxyImpl extends SuperDownloadProxy implemen
     }
 
     @Override
-    public boolean isFileDownloading(String resKey) {
+    public boolean isOtherProcessDownloading(String resKey) {
         return false;
     }
 

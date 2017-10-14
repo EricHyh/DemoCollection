@@ -5,7 +5,6 @@ import com.hyh.tools.download.api.HttpClient;
 import com.hyh.tools.download.api.HttpResponse;
 import com.hyh.tools.download.bean.TaskInfo;
 
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -53,8 +52,14 @@ class HttpCallFactory {
                 }
                 return new MultiHttpCall(httpCallMap);
             }
+            int code = taskInfo.getCode();
+            if (code == Constants.ResponseCode.OK) {//无法获取到文件长度，不能进行多线程下载
+                taskInfo.setRangeNum(1);//设置为单线程下载
+                return client.newCall(resKey, url, taskInfo.getCurrentSize());
+            } else {
+                return null;
+            }
         }
-        return null;
     }
 
     private long getTotalSize(HttpClient client, TaskInfo taskInfo) {
@@ -69,7 +74,7 @@ class HttpCallFactory {
                     }
                 }
                 taskInfo.setCode(httpResponse.code());
-            } catch (IOException e) {
+            } catch (Exception e) {
                 e.printStackTrace();
                 String resKey = taskInfo.getResKey();
                 Integer retryTimes = mGetTotalSizeRetryTimesMap.get(resKey);

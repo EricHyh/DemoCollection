@@ -18,7 +18,7 @@ import java.util.concurrent.Executor;
  * @data 2017/5/17
  */
 
-public abstract class ServiceDownloadProxyImpl extends SuperDownloadProxy implements IDownloadProxy.IServiceDownloadProxy {
+public class ServiceDownloadProxyImpl extends SuperDownloadProxy implements IDownloadProxy.IServiceDownloadProxy {
 
     private Map<Integer, IClient> mClients;
     private Executor mExecutor;

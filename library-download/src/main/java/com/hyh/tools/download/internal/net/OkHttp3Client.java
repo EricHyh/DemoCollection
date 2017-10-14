@@ -1,4 +1,4 @@
-package com.hyh.tools.download.internal;
+package com.hyh.tools.download.internal.net;
 
 
 import android.content.Context;
@@ -7,6 +7,7 @@ import com.hyh.tools.download.api.HttpCall;
 import com.hyh.tools.download.api.HttpCallback;
 import com.hyh.tools.download.api.HttpClient;
 import com.hyh.tools.download.api.HttpResponse;
+import com.hyh.tools.download.internal.Utils;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -23,13 +24,13 @@ import okhttp3.Response;
  * @data 2017/5/17
  */
 
-public class HttpClient_Okhttp implements HttpClient {
+public class OkHttp3Client implements HttpClient {
 
 
     private final OkHttpClient mClient;
     private String mUserAgent;
 
-    public HttpClient_Okhttp(Context context) {
+    public OkHttp3Client(Context context) {
         this.mUserAgent = Utils.getUserAgent(context);
         OkHttpClient.Builder builder = new OkHttpClient
                 .Builder()

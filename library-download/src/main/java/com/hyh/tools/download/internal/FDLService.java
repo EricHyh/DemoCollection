@@ -6,8 +6,8 @@ import android.os.IBinder;
 import android.os.RemoteException;
 import android.util.Log;
 
-import com.eric.hyh.tools.download.IClient;
-import com.eric.hyh.tools.download.IRequest;
+import com.hyh.tools.download.IClient;
+import com.hyh.tools.download.IRequest;
 import com.hyh.tools.download.bean.Command;
 import com.hyh.tools.download.bean.TaskInfo;
 import com.hyh.tools.download.internal.db.bean.TaskDBInfo;
@@ -93,13 +93,13 @@ public class FDLService extends Service {
         @Override
         public boolean isFileDownloading(int pid, String resKey) throws RemoteException {
             Set<Integer> pids = mClients.keySet();
-            pids.remove(pid);
-            if (!pids.isEmpty()) {
-                for (Integer otherPid : pids) {
-                    IClient iClient = mClients.get(otherPid);
-                    if (iClient.isFileDownloading(resKey)) {
-                        return true;
-                    }
+            for (Integer otherPid : pids) {
+                if (pid == otherPid) {
+                    continue;
+                }
+                IClient iClient = mClients.get(otherPid);
+                if (iClient.isFileDownloading(resKey)) {
+                    return true;
                 }
             }
             return false;
@@ -124,7 +124,7 @@ public class FDLService extends Service {
     public void onCreate() {
         super.onCreate();
         mDatabaseExecutor = Utils.buildExecutor(1, 1, 120, "FDLService Database Thread", true);
-        mServiceProxy = new OkhttpServiceProxy(
+        mServiceProxy = new ServiceDownloadProxyImpl(
                 this.getApplicationContext(),
                 mClients,
                 mDatabaseExecutor,
@@ -183,5 +183,11 @@ public class FDLService extends Service {
         if (mCommandExecutor != null && !mCommandExecutor.isShutdown()) {
             mCommandExecutor.shutdown();
         }
+    }
+
+    public static class MainProcessService extends FDLService {
+    }
+
+    public static class IndependentProcessService extends FDLService {
     }
 }

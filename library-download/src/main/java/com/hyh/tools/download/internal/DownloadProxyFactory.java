@@ -8,6 +8,6 @@ package com.hyh.tools.download.internal;
 
 public interface DownloadProxyFactory {
 
-    IDownloadProxy.ILocalDownloadProxy produce(boolean byService, int maxSynchronousDownloadNum);
+    IDownloadProxy.ILocalDownloadProxy produce(boolean byService, boolean isIndependentProcess, int maxSynchronousDownloadNum);
 
 }

@@ -28,6 +28,7 @@ dependencies {
     testCompile 'junit:junit:4.12'
     compile 'com.squareup.okhttp3:okhttp:3.3.1'
     compile 'com.google.code.gson:gson:2.8.0'
+    compile 'com.alibaba:fastjson:1.1.64.android'
     compile 'org.greenrobot:greendao:3.1.0'
 }
 //apply from: './jcenter-push.gradle'

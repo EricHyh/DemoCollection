@@ -60,6 +60,8 @@ class SingleFileWriteTask implements FileWrite {
         }
         if (startPosition == endPosition) {
             listener.onWriteFinish();
+        } else if (endPosition == -1 && !isException && !stop) {
+            listener.onWriteFinish();
         } else if (isException) {
             listener.onWriteFailure();
         }
@@ -67,7 +69,7 @@ class SingleFileWriteTask implements FileWrite {
 
     @Override
     public void stop() {
-        Log.d("FDL_HH","SingleFileWrite stop");
+        Log.d("FDL_HH", "SingleFileWrite stop");
         stop = true;
     }
 }

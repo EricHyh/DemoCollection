@@ -5,7 +5,7 @@ import android.os.Parcelable;
 import android.text.TextUtils;
 
 import com.hyh.tools.download.internal.db.bean.TaskDBInfo;
-import com.google.gson.Gson;
+import com.hyh.tools.download.internal.paser.JsonParser;
 
 import java.lang.reflect.Type;
 
@@ -300,7 +300,7 @@ public class TaskInfo<T> implements Parcelable {
         this.versionCode = versionCode;
     }
 
-    public static <T> TaskInfo<T> taskDBInfo2TaskInfo(TaskDBInfo taskDBInfo, Type type, Gson gson) {
+    public static <T> TaskInfo<T> taskDBInfo2TaskInfo(TaskDBInfo taskDBInfo, Type type, JsonParser jsonParser) {
         TaskInfo<T> taskInfo = new TaskInfo<>();
         taskInfo.setResKey(taskDBInfo.getResKey());
         taskInfo.setUrl(taskDBInfo.getUrl());
@@ -321,7 +321,7 @@ public class TaskInfo<T> implements Parcelable {
         taskInfo.setTagType(type);
         if (!TextUtils.isEmpty(tagJson)) {
             try {
-                T tag = gson.fromJson(tagJson, type);
+                T tag = jsonParser.fromJson(tagJson, type);
                 taskInfo.setTag(tag);
             } catch (Exception e) {
                 e.printStackTrace();
@@ -330,7 +330,7 @@ public class TaskInfo<T> implements Parcelable {
         return taskInfo;
     }
 
-    public static TaskInfo taskDBInfo2TaskInfo(TaskDBInfo taskDBInfo, Gson gson) {
+    public static TaskInfo taskDBInfo2TaskInfo(TaskDBInfo taskDBInfo, JsonParser jsonParser) {
         TaskInfo<Object> taskInfo = new TaskInfo<>();
         taskInfo.setResKey(taskDBInfo.getResKey());
         taskInfo.setUrl(taskDBInfo.getUrl());
@@ -353,7 +353,7 @@ public class TaskInfo<T> implements Parcelable {
             try {
                 Class<?> clazz = Class.forName(tagClassName);
                 taskInfo.setTagType(clazz);
-                Object fromJson = gson.fromJson(tagJson, clazz);
+                Object fromJson = jsonParser.fromJson(tagJson, clazz);
                 taskInfo.setTag(fromJson);
             } catch (Exception e) {
                 e.printStackTrace();

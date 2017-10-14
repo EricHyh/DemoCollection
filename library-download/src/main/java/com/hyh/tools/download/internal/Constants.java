@@ -6,11 +6,11 @@ package com.hyh.tools.download.internal;
 
 public class Constants {
 
-    public static final String COMMADN = "command";
+    static final String COMMADN = "command";
 
-    public static final String REQUEST_INFO = "request_info";
+    static final String REQUEST_INFO = "request_info";
 
-    public static final String MAX_SYNCHRONOUS_DOWNLOAD_NUM = "max_synchronous_download_num";
+    static final String MAX_SYNCHRONOUS_DOWNLOAD_NUM = "max_synchronous_download_num";
 
     static final int MEMORY_SIZE_ERROR = -1;
 
@@ -31,4 +31,9 @@ public class Constants {
 
     }
 
+    public static class ThirdLibraryClassName {
+        public static final String GSON_CLASS_NAME = "com.google.gson.Gson";
+        public static final String FASTJSON_CLASS_NAME = "com.alibaba.fastjson.JSON";
+        public static final String OKHTTP_CLASS_NAME = "okhttp3.OkHttpClient";
+    }
 }

@@ -11,6 +11,7 @@ import com.hyh.tools.download.api.HttpClient;
 import com.hyh.tools.download.bean.Command;
 import com.hyh.tools.download.bean.State;
 import com.hyh.tools.download.bean.TaskInfo;
+import com.hyh.tools.download.internal.net.HttpClientFactory;
 
 import java.util.List;
 import java.util.Map;
@@ -37,7 +38,7 @@ public abstract class SuperDownloadProxy implements IDownloadProxy {
 
     SuperDownloadProxy(Context context, int maxSynchronousDownloadNum) {
         this.context = context;
-        this.client = getHttpClient(context);
+        this.client = HttpClientFactory.produce(context);
         this.maxSynchronousDownloadNum = maxSynchronousDownloadNum;
         this.downloadCallback = new DownloadCallback();
     }
@@ -60,8 +61,6 @@ public abstract class SuperDownloadProxy implements IDownloadProxy {
             return new SingleHttpCallbackImpl(context, client, taskInfo, downloadCallback);
         }
     }
-
-    protected abstract HttpClient getHttpClient(Context context);
 
     @SuppressWarnings("unchecked")
     @Override
@@ -97,6 +96,7 @@ public abstract class SuperDownloadProxy implements IDownloadProxy {
                 AbstractHttpCallback remove = httpCallbacks.remove(resKey);
                 if (remove != null) {
                     remove.pause();
+
                     handlePause(taskInfo);
                 } else {
                     TaskCache taskCache = null;

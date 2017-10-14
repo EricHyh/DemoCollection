@@ -76,8 +76,11 @@ class SingleHttpCallbackImpl extends AbstractHttpCallback {
                 taskInfo.setTotalSize(response.contentLength() + taskInfo.getCurrentSize());
             }
             handleDownload(response, taskInfo);
-        } else if (code == Constants.ResponseCode.NOT_FOUND
-                || (contentLength <= 0 && (code == Constants.ResponseCode.OK || code == Constants.ResponseCode.PARTIAL_CONTENT))) {
+        } else if (contentLength <= 0 && (code == Constants.ResponseCode.OK || code == Constants.ResponseCode.PARTIAL_CONTENT)) {
+            //无法获取到文件长度的下载情况，简直坑爹
+            taskInfo.setTotalSize(-1L);
+            handleDownload(response, taskInfo);
+        } else if (code == Constants.ResponseCode.NOT_FOUND) {
             // TODO: 2017/5/16 未找到文件
             downloadCallback.onFailure(taskInfo);
         } else {
@@ -106,31 +109,38 @@ class SingleHttpCallbackImpl extends AbstractHttpCallback {
 
             long oldSize = currentSize;
 
-            int oldProgress = (int) ((oldSize * 100.0f / totalSize) + 0.5f);
+            int oldProgress = (totalSize == -1) ? 0 : (int) ((oldSize * 100.0f / totalSize) + 0.5f);
 
             @Override
             public void onWriteFile(long writeLength) {
                 if (oldSize == 0 && writeLength > 0) {
                     downloadCallback.onFirstFileWrite(taskInfo);
                 }
-
                 oldSize += writeLength;
-
                 taskInfo.setCurrentSize(oldSize);
 
-                int progress = (int) ((oldSize * 100.0f / totalSize) + 0.5f);
-                if (progress != oldProgress) {
-                    currentRetryTimes = 0;
-                    taskInfo.setProgress(progress);
-                    if (!pause && !delete) {
+                if (totalSize == -1) {
+                    if (oldProgress != -1) {
+                        taskInfo.setProgress(-1);
                         downloadCallback.onDownloading(taskInfo);
                     }
-                    oldProgress = progress;
+                    oldProgress = -1;
+                } else {
+                    int progress = (int) ((oldSize * 100.0f / totalSize) + 0.5f);
+                    if (progress != oldProgress) {
+                        currentRetryTimes = 0;
+                        taskInfo.setProgress(progress);
+                        if (!pause && !delete) {
+                            downloadCallback.onDownloading(taskInfo);
+                        }
+                        oldProgress = progress;
+                    }
                 }
             }
 
             @Override
             public void onWriteFinish() {
+                taskInfo.setProgress(100);
                 downloadCallback.onSuccess(taskInfo);
             }
 

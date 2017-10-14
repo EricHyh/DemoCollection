@@ -12,12 +12,13 @@ import com.hyh.tools.download.bean.State;
 import com.hyh.tools.download.bean.TaskInfo;
 import com.hyh.tools.download.internal.DownloadProxyFactory;
 import com.hyh.tools.download.internal.IDownloadProxy;
-import com.hyh.tools.download.internal.OkhttpLocalProxy;
+import com.hyh.tools.download.internal.LocalDownloadProxyImpl;
 import com.hyh.tools.download.internal.ServiceBridge;
 import com.hyh.tools.download.internal.TaskListenerManager;
 import com.hyh.tools.download.internal.Utils;
 import com.hyh.tools.download.internal.db.bean.TaskDBInfo;
-import com.google.gson.Gson;
+import com.hyh.tools.download.internal.paser.JsonParser;
+import com.hyh.tools.download.internal.paser.JsonParserFactory;
 
 import java.io.File;
 import java.lang.reflect.Type;
@@ -46,7 +47,7 @@ public class FileDownloader implements DownloadProxyFactory {
 
     private ThreadPoolExecutor mExecutor = Utils.buildExecutor(4, 4, 60, "FileDownload Thread", true);
 
-    private Gson mGson = new Gson();
+    private JsonParser mJsonParser;
 
     private final LockConfig mLockConfig = new LockConfig();
 
@@ -70,18 +71,19 @@ public class FileDownloader implements DownloadProxyFactory {
 
     private final TaskListenerManager mListenerManager;
 
-    public static void initFileDownloader(Context context) {
-        initFileDownloader(context, true, 2);
+
+    public static FileDownloaderBuilder startInit(Context context) {
+        return new FileDownloaderBuilder(context);
     }
 
-    public static void initFileDownloader(Context context, boolean byService, int maxSynchronousDownloadNum) {
+    private static void initFileDownloader(FileDownloaderBuilder fileDownloaderBuilder) {
         if (sFileDownloader != null) {
             return;
         }
         synchronized (FileDownloader.class) {
             if (sFileDownloader == null) {
                 sFileDownloader =
-                        new FileDownloader(new FileDownloaderBuilder(context.getApplicationContext(), byService, maxSynchronousDownloadNum));
+                        new FileDownloader(fileDownloaderBuilder);
             }
         }
     }
@@ -98,7 +100,8 @@ public class FileDownloader implements DownloadProxyFactory {
         this.multiThreadNum = Utils.computeMultiThreadNum(builder.maxSynchronousDownloadNum);
         this.mDBUtil = Utils.DBUtil.getInstance(this.mContext);
         this.mListenerManager = new TaskListenerManager(new DownloadListener());
-        this.mDownloadProxy = produce(builder.byService, builder.maxSynchronousDownloadNum);
+        this.mDownloadProxy = produce(builder.byService, builder.isIndependentProcess, builder.maxSynchronousDownloadNum);
+        this.mJsonParser = JsonParserFactory.produce(builder.jsonParser);
 
         mDownloadProxy.setAllTaskCallback(mListenerManager);
         mDownloadProxy.initProxy(mLockConfig);
@@ -194,7 +197,7 @@ public class FileDownloader implements DownloadProxyFactory {
                 public void run() {
                     TaskDBInfo taskDBInfo = mDBUtil.getTaskDBInfoByResKey(resKey);
                     if (taskDBInfo != null) {
-                        mListenerManager.onDelete(TaskInfo.taskDBInfo2TaskInfo(taskDBInfo, mGson));
+                        mListenerManager.onDelete(TaskInfo.taskDBInfo2TaskInfo(taskDBInfo, mJsonParser));
                         Utils.deleteDownloadFile(mContext, resKey, taskDBInfo.getRangeNum() == null ? 0 : taskDBInfo.getRangeNum());
                     }
                 }
@@ -252,7 +255,7 @@ public class FileDownloader implements DownloadProxyFactory {
         ArrayList<TaskInfo<T>> taskInfos = new ArrayList<>();
         List<TaskDBInfo> list = mDBUtil.getWaitingForWifiTasks();
         for (TaskDBInfo taskDBInfo : list) {
-            TaskInfo<T> taskInfo = TaskInfo.taskDBInfo2TaskInfo(taskDBInfo, mGson);
+            TaskInfo<T> taskInfo = TaskInfo.taskDBInfo2TaskInfo(taskDBInfo, mJsonParser);
             taskInfos.add(taskInfo);
         }
         return taskInfos;
@@ -272,7 +275,7 @@ public class FileDownloader implements DownloadProxyFactory {
         ArrayList<TaskInfo<T>> taskInfos = new ArrayList<>();
         List<TaskDBInfo> list = mDBUtil.getWaitingForWifiTasks();
         for (TaskDBInfo taskDBInfo : list) {
-            TaskInfo<T> taskInfo = TaskInfo.taskDBInfo2TaskInfo(taskDBInfo, tagType, mGson);
+            TaskInfo<T> taskInfo = TaskInfo.taskDBInfo2TaskInfo(taskDBInfo, tagType, mJsonParser);
             taskInfos.add(taskInfo);
         }
         return taskInfos;
@@ -282,7 +285,7 @@ public class FileDownloader implements DownloadProxyFactory {
         ArrayList<TaskInfo<T>> taskInfos = new ArrayList<>();
         List<TaskDBInfo> list = mDBUtil.getSuccessTasks();
         for (TaskDBInfo taskDBInfo : list) {
-            TaskInfo<T> taskInfo = TaskInfo.taskDBInfo2TaskInfo(taskDBInfo, tagType, mGson);
+            TaskInfo<T> taskInfo = TaskInfo.taskDBInfo2TaskInfo(taskDBInfo, tagType, mJsonParser);
             taskInfos.add(taskInfo);
         }
         return taskInfos;
@@ -292,7 +295,7 @@ public class FileDownloader implements DownloadProxyFactory {
         ArrayList<TaskInfo<T>> taskInfos = new ArrayList<>();
         List<TaskDBInfo> list = mDBUtil.getInstalledTasks();
         for (TaskDBInfo taskDBInfo : list) {
-            TaskInfo<T> taskInfo = TaskInfo.taskDBInfo2TaskInfo(taskDBInfo, tagType, mGson);
+            TaskInfo<T> taskInfo = TaskInfo.taskDBInfo2TaskInfo(taskDBInfo, tagType, mJsonParser);
             taskInfos.add(taskInfo);
         }
         return taskInfos;
@@ -303,7 +306,7 @@ public class FileDownloader implements DownloadProxyFactory {
         List<TaskDBInfo> list = mDBUtil.getAllTaskList();
         List<TaskInfo<T>> taskInfos = new ArrayList<>();
         for (TaskDBInfo taskDBInfo : list) {
-            TaskInfo<T> taskInfo = TaskInfo.taskDBInfo2TaskInfo(taskDBInfo, tagType, mGson);
+            TaskInfo<T> taskInfo = TaskInfo.taskDBInfo2TaskInfo(taskDBInfo, tagType, mJsonParser);
             taskInfos.add(taskInfo);
         }
         return taskInfos;
@@ -394,7 +397,7 @@ public class FileDownloader implements DownloadProxyFactory {
 
 
         // TODO: 2017/6/23 问下其他进程的兄弟有没有在下载这个任务
-        boolean isFileDownloading = mDownloadProxy.isFileDownloading(resKey);
+        boolean isFileDownloading = mDownloadProxy.isOtherProcessDownloading(resKey);
         if (isFileDownloading) {
             return null;
         }
@@ -467,7 +470,7 @@ public class FileDownloader implements DownloadProxyFactory {
                 mListenerManager.onInstall(taskInfo);
                 mDownloadProxy.operateDatebase(taskInfo);
             } else {
-                taskInfo = TaskInfo.taskDBInfo2TaskInfo(taskDBInfo, mGson);
+                taskInfo = TaskInfo.taskDBInfo2TaskInfo(taskDBInfo, mJsonParser);
                 taskInfo.setCurrentStatus(State.INSTALL);
                 if (callback != null) {
                     callback.onInstall(taskInfo);
@@ -484,7 +487,7 @@ public class FileDownloader implements DownloadProxyFactory {
         if (taskDBInfo != null) {
             if (taskDBInfo.getCurrentStatus() != null && taskDBInfo.getCurrentStatus() == State.SUCCESS) {
                 //TODO 下载成功
-                taskInfo = TaskInfo.taskDBInfo2TaskInfo(taskDBInfo, mGson);
+                taskInfo = TaskInfo.taskDBInfo2TaskInfo(taskDBInfo, mJsonParser);
                 if (callback != null) {
                     callback.onSuccess(taskInfo);
                     if (!TextUtils.isEmpty(taskDBInfo.getPackageName())) {
@@ -510,7 +513,7 @@ public class FileDownloader implements DownloadProxyFactory {
                 taskDBInfo.setTotalSize(fileSize);
                 taskDBInfo.setCurrentSize(currentSize);
                 taskDBInfo.setProgress(100);
-                taskInfo = TaskInfo.taskDBInfo2TaskInfo(taskDBInfo, mGson);
+                taskInfo = TaskInfo.taskDBInfo2TaskInfo(taskDBInfo, mJsonParser);
             }
             taskInfo.setCurrentStatus(State.SUCCESS);
             if (callback != null) {
@@ -634,7 +637,7 @@ public class FileDownloader implements DownloadProxyFactory {
         }
         taskInfo.setTagClassName(tagClassName);
         if (type != null && tag != null) {
-            taskInfo.setTagJson(mGson.toJson(tag, type));
+            taskInfo.setTagJson(mJsonParser.toJson(tag));
         }
         taskInfo.setTag(tag);
         taskInfo.setTagType(type);
@@ -799,7 +802,7 @@ public class FileDownloader implements DownloadProxyFactory {
     }
 
     public void onInstall(TaskDBInfo taskDBInfo) {
-        TaskInfo taskInfo = TaskInfo.taskDBInfo2TaskInfo(taskDBInfo, mGson);
+        TaskInfo taskInfo = TaskInfo.taskDBInfo2TaskInfo(taskDBInfo, mJsonParser);
         taskInfo.setCurrentStatus(State.INSTALL);
         mListenerManager.onInstall(taskInfo);
         if (mFileCalls.isEmpty()) {
@@ -809,7 +812,7 @@ public class FileDownloader implements DownloadProxyFactory {
     }
 
     public void onUnInstall(TaskDBInfo taskDBInfo) {
-        TaskInfo taskInfo = TaskInfo.taskDBInfo2TaskInfo(taskDBInfo, mGson);
+        TaskInfo taskInfo = TaskInfo.taskDBInfo2TaskInfo(taskDBInfo, mJsonParser);
         taskInfo.setCurrentStatus(State.UNINSTALL);
         mListenerManager.onUnInstall(taskInfo);
         if (mFileCalls.isEmpty()) {
@@ -822,22 +825,53 @@ public class FileDownloader implements DownloadProxyFactory {
 
         Context context;
 
-        boolean byService;
+        boolean byService = false;
 
-        int maxSynchronousDownloadNum;
+        boolean isIndependentProcess = false;
 
-        FileDownloaderBuilder(Context context, boolean byService, int maxSynchronousDownloadNum) {
+        int maxSynchronousDownloadNum = 2;
+
+        JsonParser jsonParser;
+
+
+        private FileDownloaderBuilder(Context context) {
+            this.context = context;
+        }
+
+
+        FileDownloaderBuilder(Context context, boolean byService, int maxSynchronousDownloadNum, JsonParser jsonParser) {
             this.context = context;
             this.byService = byService;
             this.maxSynchronousDownloadNum = maxSynchronousDownloadNum;
+            this.jsonParser = jsonParser;
+        }
+
+        public void byService(boolean byService) {
+            this.byService = byService;
+        }
+
+        public void isIndependentProcess(boolean isIndependentProcess) {
+            this.isIndependentProcess = isIndependentProcess;
+        }
+
+        public void maxSynchronousDownloadNum(int maxSynchronousDownloadNum) {
+            this.maxSynchronousDownloadNum = maxSynchronousDownloadNum;
+        }
+
+        public void jsonParser(JsonParser jsonParser) {
+            this.jsonParser = jsonParser;
+        }
+
+        public void init() {
+            FileDownloader.initFileDownloader(this);
         }
     }
 
     public static class LockConfig {
 
-        boolean isInitProxyFinish;
+        volatile boolean isInitProxyFinish;
 
-        boolean isInitHistoryFinish;
+        volatile boolean isInitHistoryFinish;
 
         public void setInitProxyFinish(boolean initProxyFinish) {
             isInitProxyFinish = initProxyFinish;
@@ -849,12 +883,12 @@ public class FileDownloader implements DownloadProxyFactory {
     }
 
     @Override
-    public IDownloadProxy.ILocalDownloadProxy produce(boolean byService, int maxSynchronousDownloadNum) {
+    public IDownloadProxy.ILocalDownloadProxy produce(boolean byService, boolean isIndependentProcess, int maxSynchronousDownloadNum) {
         IDownloadProxy.ILocalDownloadProxy proxy;
         if (byService) {
-            proxy = new ServiceBridge(mContext, mExecutor, maxSynchronousDownloadNum);
+            proxy = new ServiceBridge(mContext, isIndependentProcess, mExecutor, maxSynchronousDownloadNum);
         } else {
-            proxy = new OkhttpLocalProxy(mContext, maxSynchronousDownloadNum);
+            proxy = new LocalDownloadProxyImpl(mContext, maxSynchronousDownloadNum);
         }
         return proxy;
     }

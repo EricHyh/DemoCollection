@@ -74,7 +74,7 @@ class MultiFileWriteTask implements FileWrite {
 
     @Override
     public void stop() {
-        Log.d("FDL_HH","MultiFileWriteTask stop");
+        Log.d("FDL_HH", "MultiFileWriteTask stop");
         this.stop = true;
     }
 }

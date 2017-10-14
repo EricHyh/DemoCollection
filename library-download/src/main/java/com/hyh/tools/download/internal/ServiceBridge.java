@@ -44,13 +44,15 @@ public class ServiceBridge implements IDownloadProxy.ILocalDownloadProxy {
     private Map<String, TaskInfo> mCacheDBTasks = new LinkedHashMap<>();
     private Map<String, Object> mTags = new HashMap<>();
 
-    private boolean mHasOtherProcess = true;
+    private boolean mHasOtherProcess = false;
     private Executor mExecutor;
     private int mMaxSynchronousDownloadNum;
     private final int mPid;
+    private Class mServiceClass;
 
-    public ServiceBridge(Context context, Executor executor, int maxSynchronousDownloadNum) {
+    public ServiceBridge(Context context, boolean isIndependentProcess, Executor executor, int maxSynchronousDownloadNum) {
         this.mContext = context.getApplicationContext();
+        this.mServiceClass = isIndependentProcess ? FDLService.IndependentProcessService.class : FDLService.MainProcessService.class;
         this.mExecutor = executor;
         this.mMaxSynchronousDownloadNum = maxSynchronousDownloadNum;
         this.mPid = Process.myPid();
@@ -58,7 +60,7 @@ public class ServiceBridge implements IDownloadProxy.ILocalDownloadProxy {
 
     @Override
     public void initProxy(final FileDownloader.LockConfig lockConfig) {
-        if (!Utils.isServiceRunning(mContext, FDLService.class.getName())) {
+        if (!Utils.isServiceRunning(mContext, mServiceClass.getName())) {
             mExecutor.execute(new Runnable() {
                 @Override
                 public void run() {
@@ -86,7 +88,7 @@ public class ServiceBridge implements IDownloadProxy.ILocalDownloadProxy {
         if (mConnection == null) {
             mConnection = getConnection();
         }
-        Intent intent = new Intent(mContext, FDLService.class);
+        Intent intent = new Intent(mContext, mServiceClass);
         intent.putExtra(Constants.MAX_SYNCHRONOUS_DOWNLOAD_NUM, mMaxSynchronousDownloadNum);
         mContext.bindService(intent, mConnection, Context.BIND_AUTO_CREATE);
         mContext.startService(intent);
@@ -260,33 +262,38 @@ public class ServiceBridge implements IDownloadProxy.ILocalDownloadProxy {
     }
 
     @Override
-    public boolean isFileDownloading(String resKey) {
-        if (mHasOtherProcess) {
-            try {
-                if (mIsConnected) {
+    public boolean isOtherProcessDownloading(String resKey) {
+        if (mIsConnected) {
+            if (mHasOtherProcess) {
+                try {
                     return mServiceAgent.isFileDownloading(mPid, resKey);
-                } else {
-                    mExecutor.execute(new Runnable() {
-                        @Override
-                        public void run() {
-                            bindService();
-                        }
-                    });
-                    synchronized (ServiceBridge.class) {
-                        while (true) {
-                            ServiceBridge.class.wait();
-                            if (mIsConnected) {
-                                break;
-                            }
-                        }
-                        return mServiceAgent.isFileDownloading(mPid, resKey);
+                } catch (RemoteException e) {//这里很少报错，测试还没出现过
+                    e.printStackTrace();
+                }
+            }
+            return false;
+        } else {
+            //先连接服务
+            mExecutor.execute(new Runnable() {
+                @Override
+                public void run() {
+                    bindService();
+                }
+            });
+            synchronized (ServiceBridge.class) {
+                while (true) {
+                    try {
+                        ServiceBridge.class.wait();
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                    if (mIsConnected) {
+                        break;
                     }
                 }
-            } catch (Exception e) {
-                e.printStackTrace();
+                return isOtherProcessDownloading(resKey);
             }
         }
-        return false;
     }
 
     @Override

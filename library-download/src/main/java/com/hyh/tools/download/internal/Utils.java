@@ -160,6 +160,17 @@ public class Utils {
     }
 
 
+    public static boolean isClassFound(String className) {
+        Class<?> targetClass = null;
+        try {
+            targetClass = Class.forName(className);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return targetClass != null;
+    }
+
+
     public static int getVersionCode(Context context, String packageName) {
         PackageManager packageManager = context.getPackageManager();
         List<PackageInfo> packages = packageManager.getInstalledPackages(0);
@@ -179,7 +190,7 @@ public class Utils {
         return System.getProperty("http.agent");
     }
 
-    static String getUserAgent(Context context) {
+    public static String getUserAgent(Context context) {
         String userAgent;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
             try {
