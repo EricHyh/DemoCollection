@@ -15,7 +15,6 @@ public interface JsonParser {
 
     <T> T fromJson(String json, Class<T> classOfT);
 
-
     <T> T fromJson(String json, Type typeOfT);
 
 }

@@ -7,7 +7,7 @@ import com.hyh.tools.download.api.HttpCall;
 import com.hyh.tools.download.api.HttpCallback;
 import com.hyh.tools.download.api.HttpClient;
 import com.hyh.tools.download.api.HttpResponse;
-import com.hyh.tools.download.internal.Utils;
+import com.hyh.tools.download.utils.PackageUtil;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -31,7 +31,7 @@ public class OkHttp3Client implements HttpClient {
     private String mUserAgent;
 
     public OkHttp3Client(Context context) {
-        this.mUserAgent = Utils.getUserAgent(context);
+        this.mUserAgent = PackageUtil.getUserAgent(context);
         OkHttpClient.Builder builder = new OkHttpClient
                 .Builder()
                 .connectTimeout(15, TimeUnit.SECONDS)

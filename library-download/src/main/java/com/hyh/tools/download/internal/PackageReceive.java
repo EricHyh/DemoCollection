@@ -8,6 +8,9 @@ import android.text.TextUtils;
 import com.hyh.tools.download.api.FileDownloader;
 import com.hyh.tools.download.bean.State;
 import com.hyh.tools.download.internal.db.bean.TaskDBInfo;
+import com.hyh.tools.download.utils.DBUtil;
+import com.hyh.tools.download.utils.DownloadFileUtil;
+import com.hyh.tools.download.utils.PackageUtil;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -36,7 +39,7 @@ public class PackageReceive extends BroadcastReceiver {
         }
         String packageName = intent.getData().getSchemeSpecificPart();
         if (!TextUtils.isEmpty(packageName)) {
-            Utils.DBUtil dbUtil = Utils.DBUtil.getInstance(context);
+            DBUtil dbUtil = DBUtil.getInstance(context);
             TaskDBInfo taskDBInfo = dbUtil.getTaskDBInfoByPackageName(packageName);
             if (taskDBInfo == null) {
                 if (TextUtils.equals(intent.getAction(), Intent.ACTION_PACKAGE_REPLACED) && removeTasks != null && !removeTasks.isEmpty()) {
@@ -55,20 +58,21 @@ public class PackageReceive extends BroadcastReceiver {
             }
             if (TextUtils.equals(intent.getAction(), Intent.ACTION_PACKAGE_ADDED)) {//安装成功
                 taskDBInfo.setCurrentStatus(State.INSTALL);
-                taskDBInfo.setVersionCode(Utils.getVersionCode(context, packageName));
+                taskDBInfo.setVersionCode(PackageUtil.getVersionCode(context, packageName));
                 dbUtil.insertOrReplace(taskDBInfo);
-                Utils.deleteDownloadFile(context, taskDBInfo.getResKey(), taskDBInfo.getRangeNum() == null ? 0 : taskDBInfo.getRangeNum());
+                DownloadFileUtil.deleteDownloadFile(context, taskDBInfo.getResKey(), taskDBInfo.getRangeNum() ==
+                        null ? 0 : taskDBInfo.getRangeNum());
                 fileDownloader.onInstall(taskDBInfo);
             } else if (TextUtils.equals(intent.getAction(), Intent.ACTION_PACKAGE_REPLACED)) {//替换成功
                 taskDBInfo.setCurrentStatus(State.INSTALL);
-                taskDBInfo.setVersionCode(Utils.getVersionCode(context, packageName));
+                taskDBInfo.setVersionCode(PackageUtil.getVersionCode(context, packageName));
                 dbUtil.insertOrReplace(taskDBInfo);
-                Utils.deleteDownloadFile(context, taskDBInfo.getResKey(), taskDBInfo.getRangeNum() == null ? 0 : taskDBInfo.getRangeNum());
+                DownloadFileUtil.deleteDownloadFile(context, taskDBInfo.getResKey(), taskDBInfo.getRangeNum() == null ? 0 : taskDBInfo.getRangeNum());
                 fileDownloader.onInstall(taskDBInfo);
             } else if (TextUtils.equals(intent.getAction(), Intent.ACTION_PACKAGE_REMOVED)) {//卸载成功
                 taskDBInfo.setCurrentStatus(State.UNINSTALL);
                 dbUtil.delete(taskDBInfo);
-                Utils.deleteDownloadFile(context, taskDBInfo.getResKey(), taskDBInfo.getRangeNum() == null ? 0 : taskDBInfo.getRangeNum());
+                DownloadFileUtil.deleteDownloadFile(context, taskDBInfo.getResKey(), taskDBInfo.getRangeNum() == null ? 0 : taskDBInfo.getRangeNum());
                 fileDownloader.onUnInstall(taskDBInfo);
                 if (removeTasks == null) {
                     removeTasks = new ArrayList<>();

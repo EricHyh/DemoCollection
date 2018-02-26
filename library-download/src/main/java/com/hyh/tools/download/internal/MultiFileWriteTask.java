@@ -3,6 +3,7 @@ package com.hyh.tools.download.internal;
 import android.util.Log;
 
 import com.hyh.tools.download.api.HttpResponse;
+import com.hyh.tools.download.utils.StreamUtil;
 
 import java.io.BufferedInputStream;
 import java.io.IOException;
@@ -61,9 +62,7 @@ class MultiFileWriteTask implements FileWrite {
             e.printStackTrace();
             isException = true;
         } finally {
-            Utils.close(fileRaf);
-            Utils.close(tempRaf);
-            Utils.close(response);
+            StreamUtil.close(fileRaf, tempRaf, response);
         }
         if (startPosition == endPosition + 1) {
             listener.onWriteFinish();

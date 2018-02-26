@@ -5,12 +5,10 @@ import android.os.RemoteException;
 
 import com.hyh.tools.download.IClient;
 import com.hyh.tools.download.bean.TaskInfo;
-import com.hyh.tools.download.internal.db.bean.TaskDBInfo;
+import com.hyh.tools.download.utils.DBUtil;
 
 import java.util.Collection;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executor;
 
 /**
  * @author Administrator
@@ -21,19 +19,11 @@ import java.util.concurrent.Executor;
 public class ServiceDownloadProxyImpl extends SuperDownloadProxy implements IDownloadProxy.IServiceDownloadProxy {
 
     private Map<Integer, IClient> mClients;
-    private Executor mExecutor;
-    private Map<String, TaskDBInfo> mTaskDBInfoContainer;
 
-    ServiceDownloadProxyImpl(Context context, Map<Integer, IClient> clients, Executor executor, Map<String, TaskDBInfo> taskDBInfoContainer,
+    ServiceDownloadProxyImpl(Context context, Map<Integer, IClient> clients,
                              int maxSynchronousDownloadNum) {
         super(context, maxSynchronousDownloadNum);
         this.mClients = clients;
-        this.mExecutor = executor;
-        if (taskDBInfoContainer != null) {
-            this.mTaskDBInfoContainer = taskDBInfoContainer;
-        } else {
-            this.mTaskDBInfoContainer = new ConcurrentHashMap<>();
-        }
     }
 
     @Override
@@ -62,12 +52,6 @@ public class ServiceDownloadProxyImpl extends SuperDownloadProxy implements IDow
     }
 
     private void handleDB(TaskInfo taskInfo) {
-        String resKey = taskInfo.getResKey();
-        TaskDBInfo taskDBInfo = mTaskDBInfoContainer.get(resKey);
-        if (taskDBInfo == null) {
-            taskDBInfo = new TaskDBInfo();
-            mTaskDBInfoContainer.put(resKey, taskDBInfo);
-        }
-        Utils.DBUtil.getInstance(context).operate(taskInfo, taskDBInfo, mExecutor);
+        DBUtil.getInstance(context).operate(taskInfo);
     }
 }

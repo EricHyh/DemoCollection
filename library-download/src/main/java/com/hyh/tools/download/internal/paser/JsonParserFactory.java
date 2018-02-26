@@ -1,6 +1,6 @@
 package com.hyh.tools.download.internal.paser;
 
-import com.hyh.tools.download.internal.Utils;
+import com.hyh.tools.download.utils.Utils;
 
 /**
  * @author Administrator

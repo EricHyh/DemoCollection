@@ -1,4 +1,4 @@
-package com.hyh.tools.download.internal;
+package com.hyh.tools.download.bean;
 
 /**
  * Created by Eric_He on 2017/3/10.
@@ -6,28 +6,30 @@ package com.hyh.tools.download.internal;
 
 public class Constants {
 
-    static final String COMMADN = "command";
+    public static final String TAG = "FileDownloader";
 
-    static final String REQUEST_INFO = "request_info";
+    public static final String COMMADN = "command";
 
-    static final String MAX_SYNCHRONOUS_DOWNLOAD_NUM = "max_synchronous_download_num";
+    public static final String REQUEST_INFO = "request_info";
 
-    static final int MEMORY_SIZE_ERROR = -1;
+    public static final String MAX_SYNCHRONOUS_DOWNLOAD_NUM = "max_synchronous_download_num";
 
-    static class ResponseCode {
+    public static final int MEMORY_SIZE_ERROR = -1;
+
+    public static class ResponseCode {
 
         /**
          * 200——>请求成功。
          */
-        static final int OK = 200;
+        public static final int OK = 200;
         /**
          * 206——>请求部分数据成功。
          */
-        static final int PARTIAL_CONTENT = 206;
+        public static final int PARTIAL_CONTENT = 206;
         /**
          * 206——>请求部分数据成功。
          */
-        static final int NOT_FOUND = 404;
+        public static final int NOT_FOUND = 404;
 
     }
 

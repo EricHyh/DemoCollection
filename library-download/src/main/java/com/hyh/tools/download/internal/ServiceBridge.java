@@ -13,8 +13,11 @@ import com.hyh.tools.download.IRequest;
 import com.hyh.tools.download.api.Callback;
 import com.hyh.tools.download.api.FileDownloader;
 import com.hyh.tools.download.bean.Command;
+import com.hyh.tools.download.bean.Constants;
 import com.hyh.tools.download.bean.State;
 import com.hyh.tools.download.bean.TaskInfo;
+import com.hyh.tools.download.utils.DBUtil;
+import com.hyh.tools.download.utils.PackageUtil;
 
 import java.lang.reflect.Type;
 import java.util.Collection;
@@ -60,11 +63,11 @@ public class ServiceBridge implements IDownloadProxy.ILocalDownloadProxy {
 
     @Override
     public void initProxy(final FileDownloader.LockConfig lockConfig) {
-        if (!Utils.isServiceRunning(mContext, mServiceClass.getName())) {
+        if (!PackageUtil.isServiceRunning(mContext, mServiceClass.getName())) {
             mExecutor.execute(new Runnable() {
                 @Override
                 public void run() {
-                    Utils.DBUtil.getInstance(mContext).correctDBErroStatus(mContext);
+                    DBUtil.getInstance(mContext).reviseDateBaseErroStatus(mContext);
                     synchronized (lockConfig) {
                         lockConfig.setInitProxyFinish(true);
                         lockConfig.notifyAll();

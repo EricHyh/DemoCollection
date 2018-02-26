@@ -3,6 +3,7 @@ package com.hyh.tools.download.internal;
 import android.util.Log;
 
 import com.hyh.tools.download.api.HttpResponse;
+import com.hyh.tools.download.utils.StreamUtil;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -55,8 +56,7 @@ class SingleFileWriteTask implements FileWrite {
             e.printStackTrace();
             isException = true;
         } finally {
-            Utils.close(bos);
-            Utils.close(response);
+            StreamUtil.close(bos, response);
         }
         if (startPosition == endPosition) {
             listener.onWriteFinish();

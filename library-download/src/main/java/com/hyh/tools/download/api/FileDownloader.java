@@ -15,10 +15,14 @@ import com.hyh.tools.download.internal.IDownloadProxy;
 import com.hyh.tools.download.internal.LocalDownloadProxyImpl;
 import com.hyh.tools.download.internal.ServiceBridge;
 import com.hyh.tools.download.internal.TaskListenerManager;
-import com.hyh.tools.download.internal.Utils;
+import com.hyh.tools.download.utils.Utils;
 import com.hyh.tools.download.internal.db.bean.TaskDBInfo;
 import com.hyh.tools.download.internal.paser.JsonParser;
 import com.hyh.tools.download.internal.paser.JsonParserFactory;
+import com.hyh.tools.download.utils.DBUtil;
+import com.hyh.tools.download.utils.DownloadFileUtil;
+import com.hyh.tools.download.utils.MultiUtil;
+import com.hyh.tools.download.utils.PackageUtil;
 
 import java.io.File;
 import java.lang.reflect.Type;
@@ -57,7 +61,7 @@ public class FileDownloader implements DownloadProxyFactory {
 
     private ConcurrentHashMap<String, FileCall> mFileCalls = new ConcurrentHashMap<>();//存储当前正在进行的任务
 
-    private Utils.DBUtil mDBUtil;//数据库操作工具类
+    private DBUtil mDBUtil;//数据库操作工具类
 
     private volatile boolean haveNoTask = true;//是否有下载任务正在进行
 
@@ -97,13 +101,14 @@ public class FileDownloader implements DownloadProxyFactory {
             throw new NullPointerException("Context is null, please init FileDownloader!!");
         }
         this.mContext = builder.context;
-        this.multiThreadNum = Utils.computeMultiThreadNum(builder.maxSynchronousDownloadNum);
-        this.mDBUtil = Utils.DBUtil.getInstance(this.mContext);
+        this.multiThreadNum = MultiUtil.computeMultiThreadNum(builder.maxSynchronousDownloadNum);
+        this.mDBUtil = DBUtil.getInstance(this.mContext);
         this.mListenerManager = new TaskListenerManager(new DownloadListener());
         this.mDownloadProxy = produce(builder.byService, builder.isIndependentProcess, builder.maxSynchronousDownloadNum);
         this.mJsonParser = JsonParserFactory.produce(builder.jsonParser);
 
         mDownloadProxy.setAllTaskCallback(mListenerManager);
+
         mDownloadProxy.initProxy(mLockConfig);
 
         initHistoryTasks();
@@ -198,7 +203,8 @@ public class FileDownloader implements DownloadProxyFactory {
                     TaskDBInfo taskDBInfo = mDBUtil.getTaskDBInfoByResKey(resKey);
                     if (taskDBInfo != null) {
                         mListenerManager.onDelete(TaskInfo.taskDBInfo2TaskInfo(taskDBInfo, mJsonParser));
-                        Utils.deleteDownloadFile(mContext, resKey, taskDBInfo.getRangeNum() == null ? 0 : taskDBInfo.getRangeNum());
+                        DownloadFileUtil.deleteDownloadFile(mContext, resKey, taskDBInfo.getRangeNum() == null ?
+                                0 : taskDBInfo.getRangeNum());
                     }
                 }
             });
@@ -404,10 +410,11 @@ public class FileDownloader implements DownloadProxyFactory {
 
         long startTime = System.currentTimeMillis();
 
-        File file = Utils.getDownLoadFile(mContext, request.key());//获取已下载文件
+        File file = DownloadFileUtil.getDownLoadFile(mContext, request.key());//获取已下载文件
         Object[] currentSizeAndMultiPositions = null;
         if (file.exists()) {
-            currentSizeAndMultiPositions = Utils.getCurrentSizeAndMultiPositions(mContext, request, file, mHistoryTasks.get(resKey));
+            currentSizeAndMultiPositions = MultiUtil.getCurrentSizeAndMultiPositions(mContext, request,
+                    file, mHistoryTasks.get(resKey));
         }
 
         long endTime = System.currentTimeMillis();
@@ -434,7 +441,7 @@ public class FileDownloader implements DownloadProxyFactory {
             boolean hasPackageName = !TextUtils.isEmpty(packageName);
             int oldVersionCode = -1;
             if (hasPackageName) {
-                oldVersionCode = Utils.getVersionCode(mContext, request.packageName());
+                oldVersionCode = PackageUtil.getVersionCode(mContext, request.packageName());
                 if (oldVersionCode > 0) {
                     isAppInstall = true;
                 }
@@ -563,7 +570,7 @@ public class FileDownloader implements DownloadProxyFactory {
 
         if ((request.versionCode() > 0 && (request.versionCode() != saveVersionCode))
                 || (request.fileSize() > 0 && (request.fileSize() != saveFileTotalSize))) {
-            boolean delete = Utils.deleteDownloadFile(mContext, resKey, taskInfo.getRangeNum());
+            boolean delete = DownloadFileUtil.deleteDownloadFile(mContext, resKey, taskInfo.getRangeNum());
             if (delete) {
                 taskInfo.setProgress(0);
                 taskInfo.setCurrentSize(0);
@@ -576,13 +583,13 @@ public class FileDownloader implements DownloadProxyFactory {
         for (FileCall value : values) {
             fileSize += value.fileRequest().fileSize();
         }
-        if (Utils.externalMemoryAvailable()) {
-            long availableSize = Utils.getAvailableExternalMemorySize();
+        if (DownloadFileUtil.externalMemoryAvailable()) {
+            long availableSize = DownloadFileUtil.getAvailableExternalMemorySize();
             if (availableSize > fileSize) {
                 return true;
             }
         } else {
-            long availableSize = Utils.getAvailableInternalMemorySize();
+            long availableSize = DownloadFileUtil.getAvailableInternalMemorySize();
             if (availableSize > fileSize) {
                 return true;
             }
@@ -787,7 +794,7 @@ public class FileDownloader implements DownloadProxyFactory {
         mExecutor.execute(new Runnable() {
             @Override
             public void run() {
-                if (Utils.isAppExit(mContext)) {
+                if (PackageUtil.isAppExit(mContext)) {
                     SystemClock.sleep(KEEP_ALIVE_TIME_OUTAPP);
                 } else {
                     SystemClock.sleep(KEEP_ALIVE_TIME_INAPP);
@@ -888,7 +895,7 @@ public class FileDownloader implements DownloadProxyFactory {
         if (byService) {
             proxy = new ServiceBridge(mContext, isIndependentProcess, mExecutor, maxSynchronousDownloadNum);
         } else {
-            proxy = new LocalDownloadProxyImpl(mContext, maxSynchronousDownloadNum);
+            proxy = new LocalDownloadProxyImpl(mContext, mExecutor, maxSynchronousDownloadNum);
         }
         return proxy;
     }

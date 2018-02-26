@@ -7,6 +7,7 @@ import com.hyh.tools.download.api.HttpClient;
 import com.hyh.tools.download.api.HttpResponse;
 
 import java.io.IOException;
+import java.util.concurrent.ThreadPoolExecutor;
 
 /**
  * @author Administrator
@@ -17,6 +18,8 @@ import java.io.IOException;
 public class NativeHttpClient implements HttpClient {
 
     private Context mContext;
+
+    private ThreadPoolExecutor mExecutor;
 
     public NativeHttpClient(Context context) {
         mContext = context;

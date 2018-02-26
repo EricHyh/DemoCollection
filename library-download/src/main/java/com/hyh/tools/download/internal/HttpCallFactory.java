@@ -3,6 +3,7 @@ package com.hyh.tools.download.internal;
 import com.hyh.tools.download.api.HttpCall;
 import com.hyh.tools.download.api.HttpClient;
 import com.hyh.tools.download.api.HttpResponse;
+import com.hyh.tools.download.bean.Constants;
 import com.hyh.tools.download.bean.TaskInfo;
 
 import java.util.HashMap;

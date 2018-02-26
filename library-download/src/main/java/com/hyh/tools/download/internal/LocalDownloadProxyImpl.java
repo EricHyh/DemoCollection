@@ -6,9 +6,9 @@ import com.hyh.tools.download.api.Callback;
 import com.hyh.tools.download.api.FileDownloader;
 import com.hyh.tools.download.bean.State;
 import com.hyh.tools.download.bean.TaskInfo;
-import com.hyh.tools.download.internal.db.bean.TaskDBInfo;
+import com.hyh.tools.download.utils.DBUtil;
 
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executor;
 import java.util.concurrent.ThreadPoolExecutor;
 
 
@@ -21,25 +21,22 @@ import java.util.concurrent.ThreadPoolExecutor;
 public class LocalDownloadProxyImpl extends SuperDownloadProxy implements IDownloadProxy.ILocalDownloadProxy {
 
     private Callback mCallback;
-    private final Utils.DBUtil mDBUtil;
-    private ConcurrentHashMap<String, TaskDBInfo> mTaskDBInfoContainer;
-    private ThreadPoolExecutor mDatabaseExecutor;
+    private final DBUtil mDBUtil;
+    private Executor mExecutor;
 
-    public LocalDownloadProxyImpl(Context context, int maxSynchronousDownloadNum) {
+    public LocalDownloadProxyImpl(Context context, ThreadPoolExecutor executor, int maxSynchronousDownloadNum) {
         super(context, maxSynchronousDownloadNum);
-        mDBUtil = Utils.DBUtil.getInstance(context);
-        mTaskDBInfoContainer = new ConcurrentHashMap<>();
-        mDatabaseExecutor = Utils.buildExecutor(1, 1, 120, "FDLService Database Thread", true);
-
+        mDBUtil = DBUtil.getInstance(context);
+        mExecutor = executor;
     }
 
 
     @Override
     public void initProxy(final FileDownloader.LockConfig lockConfig) {
-        mDatabaseExecutor.execute(new Runnable() {
+        mExecutor.execute(new Runnable() {
             @Override
             public void run() {
-                mDBUtil.correctDBErroStatus(context);
+                mDBUtil.reviseDateBaseErroStatus(context);
                 synchronized (lockConfig) {
                     lockConfig.setInitProxyFinish(true);
                     lockConfig.notifyAll();
@@ -109,13 +106,7 @@ public class LocalDownloadProxyImpl extends SuperDownloadProxy implements IDownl
     }
 
     private void handleDB(TaskInfo taskInfo) {
-        String resKey = taskInfo.getResKey();
-        TaskDBInfo taskDBInfo = mTaskDBInfoContainer.get(resKey);
-        if (taskDBInfo == null) {
-            taskDBInfo = new TaskDBInfo();
-            mTaskDBInfoContainer.put(resKey, taskDBInfo);
-        }
-        mDBUtil.operate(taskInfo, taskDBInfo, mDatabaseExecutor);
+        mDBUtil.operate(taskInfo);
     }
 
 

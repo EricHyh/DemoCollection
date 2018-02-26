@@ -12,6 +12,7 @@ import com.hyh.tools.download.bean.Command;
 import com.hyh.tools.download.bean.State;
 import com.hyh.tools.download.bean.TaskInfo;
 import com.hyh.tools.download.internal.net.HttpClientFactory;
+import com.hyh.tools.download.utils.DownloadFileUtil;
 
 import java.util.List;
 import java.util.Map;
@@ -177,7 +178,7 @@ public abstract class SuperDownloadProxy implements IDownloadProxy {
     private void handleDelete(TaskInfo taskInfo) {
         taskInfo.setCurrentStatus(State.DELETE);
         handleCallbackAndDB(taskInfo);
-        Utils.deleteDownloadFile(context, taskInfo.getResKey(), taskInfo.getRangeNum());
+        DownloadFileUtil.deleteDownloadFile(context, taskInfo.getResKey(), taskInfo.getRangeNum());
         startNextTask();
     }
 

@@ -8,7 +8,9 @@ import com.hyh.tools.download.api.Callback;
 import com.hyh.tools.download.api.HttpCall;
 import com.hyh.tools.download.api.HttpClient;
 import com.hyh.tools.download.api.HttpResponse;
+import com.hyh.tools.download.bean.Constants;
 import com.hyh.tools.download.bean.TaskInfo;
+import com.hyh.tools.download.utils.NetUtil;
 
 import java.io.IOException;
 import java.util.Timer;
@@ -105,56 +107,67 @@ class SingleHttpCallbackImpl extends AbstractHttpCallback {
         final long totalSize = taskInfo.getTotalSize();
 
         mFileWrite = new SingleFileWriteTask(taskInfo.getFilePath(), currentSize, totalSize);
-        mFileWrite.write(response, new SingleFileWriteTask.FileWriteListener() {
-
-            long oldSize = currentSize;
-
-            int oldProgress = (totalSize == -1) ? 0 : (int) ((oldSize * 100.0f / totalSize) + 0.5f);
-
-            @Override
-            public void onWriteFile(long writeLength) {
-                if (oldSize == 0 && writeLength > 0) {
-                    downloadCallback.onFirstFileWrite(taskInfo);
-                }
-                oldSize += writeLength;
-                taskInfo.setCurrentSize(oldSize);
-
-                if (totalSize == -1) {
-                    if (oldProgress != -1) {
-                        taskInfo.setProgress(-1);
-                        downloadCallback.onDownloading(taskInfo);
-                    }
-                    oldProgress = -1;
-                } else {
-                    int progress = (int) ((oldSize * 100.0f / totalSize) + 0.5f);
-                    if (progress != oldProgress) {
-                        currentRetryTimes = 0;
-                        taskInfo.setProgress(progress);
-                        if (!pause && !delete) {
-                            downloadCallback.onDownloading(taskInfo);
-                        }
-                        oldProgress = progress;
-                    }
-                }
-            }
-
-            @Override
-            public void onWriteFinish() {
-                taskInfo.setProgress(100);
-                downloadCallback.onSuccess(taskInfo);
-            }
-
-            @Override
-            public void onWriteFailure() {
-                if (!pause && !delete) {
-                    retry();
-                }
-            }
-        });
+        mFileWrite.write(response, new SingleFileWriteListener(totalSize, currentSize));
     }
 
 
-    void retry() {
+    private class SingleFileWriteListener implements FileWrite.FileWriteListener {
+
+        long totalSize;
+
+        long oldSize;
+
+        int oldProgress;
+
+        public SingleFileWriteListener(long totalSize, long currentSize) {
+            this.totalSize = totalSize;
+            this.oldSize = currentSize;
+            this.oldProgress = (totalSize == -1) ? 0 : (int) ((oldSize * 100.0f / totalSize) + 0.5f);
+        }
+
+        @Override
+        public void onWriteFile(long writeLength) {
+            if (oldSize == 0 && writeLength > 0) {
+                downloadCallback.onFirstFileWrite(taskInfo);
+            }
+            oldSize += writeLength;
+            taskInfo.setCurrentSize(oldSize);
+
+            if (totalSize == -1) {
+                if (oldProgress != -1) {
+                    taskInfo.setProgress(-1);
+                    downloadCallback.onDownloading(taskInfo);
+                }
+                oldProgress = -1;
+            } else {
+                int progress = (int) ((oldSize * 100.0f / totalSize) + 0.5f);
+                if (progress != oldProgress) {
+                    currentRetryTimes = 0;
+                    taskInfo.setProgress(progress);
+                    if (!pause && !delete) {
+                        downloadCallback.onDownloading(taskInfo);
+                    }
+                    oldProgress = progress;
+                }
+            }
+        }
+
+        @Override
+        public void onWriteFinish() {
+            taskInfo.setProgress(100);
+            downloadCallback.onSuccess(taskInfo);
+        }
+
+        @Override
+        public void onWriteFailure() {
+            if (!pause && !delete) {
+                retry();
+            }
+        }
+    }
+
+
+    private void retry() {
         if (call != null && !call.isCanceled()) {
             call.cancel();
         }
@@ -201,7 +214,6 @@ class SingleHttpCallbackImpl extends AbstractHttpCallback {
                 }
             }
         }, RETRYDELAY);
-        return;
     }
 
 
@@ -211,7 +223,7 @@ class SingleHttpCallbackImpl extends AbstractHttpCallback {
             if (pause || delete) {
                 return false;
             }
-            if (Utils.isWifi(context)) {
+            if (NetUtil.isWifi(context)) {
                 return true;
             }
             SystemClock.sleep(2000);
@@ -226,11 +238,11 @@ class SingleHttpCallbackImpl extends AbstractHttpCallback {
     void pause() {
         Log.d("FDL_HH", "SingleHttpCallbackImpl pause");
         this.pause = true;
-        if (this.call != null && !this.call.isCanceled()) {
-            this.call.cancel();
-        }
         if (mFileWrite != null) {
             mFileWrite.stop();
+        }
+        if (this.call != null && !this.call.isCanceled()) {
+            this.call.cancel();
         }
     }
 
@@ -238,7 +250,9 @@ class SingleHttpCallbackImpl extends AbstractHttpCallback {
     void delete() {
         Log.d("FDL_HH", "SingleHttpCallbackImpl delete");
         this.delete = true;
-        mFileWrite.stop();
+        if (mFileWrite != null) {
+            mFileWrite.stop();
+        }
         if (this.call != null && !this.call.isCanceled()) {
             this.call.cancel();
         }

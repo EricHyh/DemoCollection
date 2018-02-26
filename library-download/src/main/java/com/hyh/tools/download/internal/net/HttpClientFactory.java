@@ -3,8 +3,8 @@ package com.hyh.tools.download.internal.net;
 import android.content.Context;
 
 import com.hyh.tools.download.api.HttpClient;
-import com.hyh.tools.download.internal.Constants;
-import com.hyh.tools.download.internal.Utils;
+import com.hyh.tools.download.bean.Constants;
+import com.hyh.tools.download.utils.Utils;
 import com.hyh.tools.download.internal.net.impl.NativeHttpClient;
 
 /**

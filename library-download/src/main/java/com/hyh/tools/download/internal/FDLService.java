@@ -9,8 +9,11 @@ import android.util.Log;
 import com.hyh.tools.download.IClient;
 import com.hyh.tools.download.IRequest;
 import com.hyh.tools.download.bean.Command;
+import com.hyh.tools.download.bean.Constants;
 import com.hyh.tools.download.bean.TaskInfo;
 import com.hyh.tools.download.internal.db.bean.TaskDBInfo;
+import com.hyh.tools.download.utils.DBUtil;
+import com.hyh.tools.download.utils.Utils;
 
 import java.util.Collection;
 import java.util.Set;
@@ -24,15 +27,11 @@ import java.util.concurrent.ThreadPoolExecutor;
 public class FDLService extends Service {
 
 
-    private ThreadPoolExecutor mDatabaseExecutor;
-
     private ThreadPoolExecutor mCommandExecutor;
 
     private final ConcurrentHashMap<Integer, IClient> mClients = new ConcurrentHashMap<>();
 
     private int maxSynchronousDownloadNum = 2;
-
-    private final ConcurrentHashMap<String, TaskDBInfo> mTaskDBInfoContainer = new ConcurrentHashMap<>();
 
     private IDownloadProxy.IServiceDownloadProxy mServiceProxy;
 
@@ -47,7 +46,6 @@ public class FDLService extends Service {
 
         @Override
         public void onCall(int pid, TaskInfo taskInfo) throws RemoteException {
-            String resKey = taskInfo.getResKey();
             Set<Integer> pids = mClients.keySet();
             pids.remove(pid);
             if (!pids.isEmpty()) {
@@ -56,12 +54,7 @@ public class FDLService extends Service {
                     iClient.onCall(taskInfo);
                 }
             }
-            TaskDBInfo taskDBInfo = mTaskDBInfoContainer.get(resKey);
-            if (taskDBInfo == null) {
-                taskDBInfo = new TaskDBInfo();
-                mTaskDBInfoContainer.put(resKey, taskDBInfo);
-            }
-            Utils.DBUtil.getInstance(getApplicationContext()).operate(taskInfo, taskDBInfo, mDatabaseExecutor);
+            DBUtil.getInstance(getApplicationContext()).operate(taskInfo);
         }
 
 
@@ -123,12 +116,9 @@ public class FDLService extends Service {
     @Override
     public void onCreate() {
         super.onCreate();
-        mDatabaseExecutor = Utils.buildExecutor(1, 1, 120, "FDLService Database Thread", true);
         mServiceProxy = new ServiceDownloadProxyImpl(
                 this.getApplicationContext(),
                 mClients,
-                mDatabaseExecutor,
-                mTaskDBInfoContainer,
                 maxSynchronousDownloadNum);
     }
 
@@ -177,9 +167,6 @@ public class FDLService extends Service {
     @Override
     public void onDestroy() {
         super.onDestroy();
-        if (mDatabaseExecutor != null && !mDatabaseExecutor.isShutdown()) {
-            mDatabaseExecutor.shutdown();
-        }
         if (mCommandExecutor != null && !mCommandExecutor.isShutdown()) {
             mCommandExecutor.shutdown();
         }

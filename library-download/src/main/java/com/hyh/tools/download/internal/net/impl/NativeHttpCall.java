@@ -1,6 +1,7 @@
 package com.hyh.tools.download.internal.net.impl;
 
 import android.os.Build;
+import android.text.TextUtils;
 
 import com.hyh.tools.download.api.HttpCall;
 import com.hyh.tools.download.api.HttpCallback;
@@ -9,6 +10,7 @@ import com.hyh.tools.download.api.HttpResponse;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
+import java.util.concurrent.ThreadPoolExecutor;
 
 /**
  * @author Administrator
@@ -16,7 +18,7 @@ import java.net.HttpURLConnection;
  * @data 2017/10/14
  */
 
-public class NativeHttpCall implements HttpCall {
+public class NativeHttpCall implements HttpCall, Runnable {
 
 
     private final static int MAX_REDIRECT_TIMES = 10;
@@ -31,56 +33,62 @@ public class NativeHttpCall implements HttpCall {
      */
     private final static int HTTP_PERMANENT_REDIRECT = 308;
 
+    private ThreadPoolExecutor mExecutor;
     private HttpURLConnection mConnection;
     private InputStream mInputStream;
-    private boolean mIsExecuted;
-    private boolean mIsCanceled;
-
+    private HttpCallback mHttpCallback;
+    private volatile boolean isExecuted;
+    private volatile boolean isCanceled;
+    private volatile boolean isRunning;
 
     @Override
-    public void enqueue(HttpCallback httpCallback) {
-        mIsExecuted = true;
-        try {
-            mInputStream = mConnection.getInputStream();
-            int responseCode = mConnection.getResponseCode();
-            long contentLength;
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                contentLength = mConnection.getContentLengthLong();
+    public void enqueue(final HttpCallback httpCallback) {
+        isExecuted = true;
+        this.mHttpCallback = httpCallback;
+        mExecutor.execute(this);
+    }
+
+    private long getContentLength(HttpURLConnection connection) {
+        long contentLength;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            contentLength = mConnection.getContentLengthLong();
+        } else {
+            String contentLengthStr = connection.getHeaderField("content-length");
+            if (!TextUtils.isEmpty(contentLengthStr) && TextUtils.isDigitsOnly(contentLengthStr)) {
+                contentLength = Long.parseLong(contentLengthStr);
             } else {
-                contentLength = mConnection.getContentLength();
+                contentLength = connection.getContentLength();
             }
-            HttpResponse httpResponse = new NativeHttpResponse(mInputStream, contentLength, responseCode);
-            httpCallback.onResponse(this, httpResponse);
-        } catch (IOException e) {
-            e.printStackTrace();
-            httpCallback.onFailure(this, e);
         }
+        return contentLength;
     }
 
     @Override
     public void cancel() {
-        mIsCanceled = true;
-        try {
-            if (mInputStream == null) {
-                mInputStream = mConnection.getInputStream();
-                mInputStream.close();
-                mConnection.disconnect();
+        isCanceled = true;
+        if (isExecuted) {
+            if (isRunning) {
+                try {
+                    mInputStream.close();
+                    mConnection.disconnect();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            } else {
+                mExecutor.remove(this);
             }
-        } catch (Exception e) {
-            e.printStackTrace();
         }
     }
 
     @Override
     public boolean isExecuted() {
-        return mIsExecuted;
+        return isExecuted;
     }
 
     @Override
     public boolean isCanceled() {
-        return mIsCanceled;
+        return isCanceled;
     }
-
 
 
     private static boolean isRedirect(int code) {
@@ -90,5 +98,19 @@ public class NativeHttpCall implements HttpCall {
                 || code == HttpURLConnection.HTTP_MULT_CHOICE
                 || code == HTTP_TEMPORARY_REDIRECT
                 || code == HTTP_PERMANENT_REDIRECT;
+    }
+
+    @Override
+    public void run() {
+        isRunning = true;
+        try {
+            mInputStream = mConnection.getInputStream();
+            int responseCode = mConnection.getResponseCode();
+            HttpResponse httpResponse = new NativeHttpResponse(mInputStream, getContentLength(mConnection), responseCode);
+            mHttpCallback.onResponse(NativeHttpCall.this, httpResponse);
+        } catch (IOException e) {
+            e.printStackTrace();
+            mHttpCallback.onFailure(NativeHttpCall.this, e);
+        }
     }
 }

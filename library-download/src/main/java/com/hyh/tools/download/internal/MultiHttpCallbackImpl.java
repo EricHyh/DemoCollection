@@ -9,7 +9,10 @@ import com.hyh.tools.download.api.HttpCall;
 import com.hyh.tools.download.api.HttpCallback;
 import com.hyh.tools.download.api.HttpClient;
 import com.hyh.tools.download.api.HttpResponse;
+import com.hyh.tools.download.bean.Constants;
 import com.hyh.tools.download.bean.TaskInfo;
+import com.hyh.tools.download.utils.DownloadFileUtil;
+import com.hyh.tools.download.utils.NetUtil;
 
 import java.io.File;
 import java.io.IOException;
@@ -160,10 +163,10 @@ class MultiHttpCallbackImpl extends AbstractHttpCallback {
         private void handleDownload(HttpResponse response, final TaskInfo taskInfo) throws IOException {
             String filePath = taskInfo.getFilePath();
             String tempPath = filePath.concat("-").concat(String.valueOf(rangeId));
-            final long totalSize = taskInfo.getTotalSize();
+            long totalSize = taskInfo.getTotalSize();
 
 
-            File downLoadFile = Utils.getDownLoadFile(context, taskInfo.getResKey());
+            File downLoadFile = DownloadFileUtil.getDownLoadFile(context, taskInfo.getResKey());
             if (!downLoadFile.exists() || downLoadFile.length() < totalSize) {
                 RandomAccessFile raf = new RandomAccessFile(downLoadFile, "rw");
                 raf.setLength(totalSize);
@@ -172,55 +175,64 @@ class MultiHttpCallbackImpl extends AbstractHttpCallback {
 
 
             mFileWrite = new MultiFileWriteTask(filePath, tempPath, startPosition, endPosition);
-            mFileWrite.write(response, new SingleFileWriteTask.FileWriteListener() {
+            mFileWrite.write(response, new MultiFileWriteListener(totalSize));
+        }
 
-                @Override
-                public void onWriteFile(long writeLength) {
-                    if (taskInfo.getCurrentSize() == 0 && writeLength > 0) {
-                        downloadCallback.onFirstFileWrite(taskInfo);
-                    }
 
-                    startPosition += writeLength;
+        private class MultiFileWriteListener implements FileWrite.FileWriteListener {
 
-                    int oldProgress = taskInfo.getProgress();
-                    long currentSize = taskInfo.getCurrentSize() + writeLength;
-                    taskInfo.setCurrentSize(currentSize);
-                    int progress = (int) ((currentSize * 100.0f / totalSize) + 0.5f);
-                    if (progress != oldProgress) {
-                        if (isFailure) {
-                            failureCount.decrementAndGet();
-                        }
-                        isFailure = false;
-                        currentRetryTimes = 0;
-                        taskInfo.setProgress(progress);
-                        if (!pause && !delete) {
-                            downloadCallback.onDownloading(taskInfo);
-                        }
-                    }
+            long totalSize;
+
+            MultiFileWriteListener(long totalSize) {
+                this.totalSize = totalSize;
+            }
+
+            @Override
+            public void onWriteFile(long writeLength) {
+                if (taskInfo.getCurrentSize() == 0 && writeLength > 0) {
+                    downloadCallback.onFirstFileWrite(taskInfo);
                 }
 
-                @Override
-                public void onWriteFinish() {
-                    successCount.incrementAndGet();
-                    if (!isAllSuccess && successCount.get() < httpCallbackMap.size()) {
-                        return;
-                    }
+                startPosition += writeLength;
 
-                    synchronized (MultiHttpCallbackImpl.this) {
-                        if (!isAllSuccess && (successCount.get() == httpCallbackMap.size())) {
-                            isAllSuccess = true;
-                            downloadCallback.onSuccess(taskInfo);
-                        }
+                int oldProgress = taskInfo.getProgress();
+                long currentSize = taskInfo.getCurrentSize() + writeLength;
+                taskInfo.setCurrentSize(currentSize);
+                int progress = (int) ((currentSize * 100.0f / totalSize) + 0.5f);
+                if (progress != oldProgress) {
+                    if (isFailure) {
+                        failureCount.decrementAndGet();
                     }
-                }
-
-                @Override
-                public void onWriteFailure() {
+                    isFailure = false;
+                    currentRetryTimes = 0;
+                    taskInfo.setProgress(progress);
                     if (!pause && !delete) {
-                        retry();
+                        downloadCallback.onDownloading(taskInfo);
                     }
                 }
-            });
+            }
+
+            @Override
+            public void onWriteFinish() {
+                successCount.incrementAndGet();
+                if (!isAllSuccess && successCount.get() < httpCallbackMap.size()) {
+                    return;
+                }
+
+                synchronized (MultiHttpCallbackImpl.this) {
+                    if (!isAllSuccess && (successCount.get() == httpCallbackMap.size())) {
+                        isAllSuccess = true;
+                        downloadCallback.onSuccess(taskInfo);
+                    }
+                }
+            }
+
+            @Override
+            public void onWriteFailure() {
+                if (!pause && !delete) {
+                    retry();
+                }
+            }
         }
 
 
@@ -279,17 +291,6 @@ class MultiHttpCallbackImpl extends AbstractHttpCallback {
                     }
                 }
             }
-
-/*            if (currentRetryTimes >= RETRY_MAX_TIMES) {
-                //TODO 处理请求失败
-                if (timer != null) {
-                    timer.cancel();
-                    timer = null;
-                }
-                return;
-            }*/
-
-
             timer = new Timer("retry timer");
             timer.schedule(new TimerTask() {
                 @Override
@@ -333,7 +334,7 @@ class MultiHttpCallbackImpl extends AbstractHttpCallback {
                 if (pause || delete || isAllFailure) {
                     return false;
                 }
-                if (Utils.isWifi(context)) {
+                if (NetUtil.isWifi(context)) {
                     return true;
                 }
                 SystemClock.sleep(2000);
