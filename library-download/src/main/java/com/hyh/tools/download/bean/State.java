@@ -30,7 +30,6 @@ public class State {
 
     public static final int UNINSTALL = 11;//应用被卸载
 
-
     public static boolean canDownload(int currentStatus) {
         if (currentStatus == PREPARE
                 || currentStatus == START_WRITE

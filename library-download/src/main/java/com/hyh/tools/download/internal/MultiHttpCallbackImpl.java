@@ -5,14 +5,14 @@ import android.os.SystemClock;
 import android.util.Log;
 
 import com.hyh.tools.download.api.Callback;
-import com.hyh.tools.download.api.HttpCall;
-import com.hyh.tools.download.api.HttpCallback;
-import com.hyh.tools.download.api.HttpClient;
-import com.hyh.tools.download.api.HttpResponse;
+import com.hyh.tools.download.net.HttpCall;
+import com.hyh.tools.download.net.HttpCallback;
+import com.hyh.tools.download.net.HttpClient;
+import com.hyh.tools.download.net.HttpResponse;
 import com.hyh.tools.download.bean.Constants;
 import com.hyh.tools.download.bean.TaskInfo;
-import com.hyh.tools.download.utils.DownloadFileUtil;
-import com.hyh.tools.download.utils.NetUtil;
+import com.hyh.tools.download.utils.FD_FileUtil;
+import com.hyh.tools.download.utils.FD_NetUtil;
 
 import java.io.File;
 import java.io.IOException;
@@ -146,7 +146,7 @@ class MultiHttpCallbackImpl extends AbstractHttpCallback {
                 return;
             }
             int code = response.code();
-            taskInfo.setCode(code);
+            taskInfo.setResponseCode(code);
             if (code == Constants.ResponseCode.OK || code == Constants.ResponseCode.PARTIAL_CONTENT) {//请求数据成功
                 handleDownload(response, taskInfo);
             } else if (code == Constants.ResponseCode.NOT_FOUND) {
@@ -166,7 +166,7 @@ class MultiHttpCallbackImpl extends AbstractHttpCallback {
             long totalSize = taskInfo.getTotalSize();
 
 
-            File downLoadFile = DownloadFileUtil.getDownLoadFile(context, taskInfo.getResKey());
+            File downLoadFile = FD_FileUtil.getDownLoadFile(context, taskInfo.getResKey());
             if (!downLoadFile.exists() || downLoadFile.length() < totalSize) {
                 RandomAccessFile raf = new RandomAccessFile(downLoadFile, "rw");
                 raf.setLength(totalSize);
@@ -237,7 +237,7 @@ class MultiHttpCallbackImpl extends AbstractHttpCallback {
 
 
         @Override
-        public void onFailure(HttpCall httpCall, IOException e) {
+        public void onFailure(HttpCall httpCall, Exception e) {
             this.call = httpCall;
             retry();
         }
@@ -334,7 +334,7 @@ class MultiHttpCallbackImpl extends AbstractHttpCallback {
                 if (pause || delete || isAllFailure) {
                     return false;
                 }
-                if (NetUtil.isWifi(context)) {
+                if (FD_NetUtil.isWifi(context)) {
                     return true;
                 }
                 SystemClock.sleep(2000);

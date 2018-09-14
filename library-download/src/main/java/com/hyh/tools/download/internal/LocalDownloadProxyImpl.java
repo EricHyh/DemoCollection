@@ -6,7 +6,7 @@ import com.hyh.tools.download.api.Callback;
 import com.hyh.tools.download.api.FileDownloader;
 import com.hyh.tools.download.bean.State;
 import com.hyh.tools.download.bean.TaskInfo;
-import com.hyh.tools.download.utils.DBUtil;
+import com.hyh.tools.download.utils.FD_DBUtil;
 
 import java.util.concurrent.Executor;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -21,12 +21,12 @@ import java.util.concurrent.ThreadPoolExecutor;
 public class LocalDownloadProxyImpl extends SuperDownloadProxy implements IDownloadProxy.ILocalDownloadProxy {
 
     private Callback mCallback;
-    private final DBUtil mDBUtil;
+    private final FD_DBUtil mFD_DBUtil;
     private Executor mExecutor;
 
     public LocalDownloadProxyImpl(Context context, ThreadPoolExecutor executor, int maxSynchronousDownloadNum) {
         super(context, maxSynchronousDownloadNum);
-        mDBUtil = DBUtil.getInstance(context);
+        mFD_DBUtil = FD_DBUtil.getInstance(context);
         mExecutor = executor;
     }
 
@@ -36,7 +36,7 @@ public class LocalDownloadProxyImpl extends SuperDownloadProxy implements IDownl
         mExecutor.execute(new Runnable() {
             @Override
             public void run() {
-                mDBUtil.reviseDateBaseErroStatus(context);
+                mFD_DBUtil.reviseDateBaseErroStatus(context);
                 synchronized (lockConfig) {
                     lockConfig.setInitProxyFinish(true);
                     lockConfig.notifyAll();
@@ -106,7 +106,7 @@ public class LocalDownloadProxyImpl extends SuperDownloadProxy implements IDownl
     }
 
     private void handleDB(TaskInfo taskInfo) {
-        mDBUtil.operate(taskInfo);
+        mFD_DBUtil.operate(taskInfo);
     }
 
 

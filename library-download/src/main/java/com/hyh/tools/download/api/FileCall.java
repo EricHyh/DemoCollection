@@ -8,20 +8,20 @@ import com.hyh.tools.download.internal.IDownloadProxy;
  * Created by Administrator on 2017/3/9.
  */
 
-public class FileCall<T> {
+public class FileCall {
 
-    private FileRequest<T> request;
+    private FileRequest request;
     private TaskInfo taskInfo;
     private IDownloadProxy.ILocalDownloadProxy mDownloadProxy;
 
-    FileCall(FileRequest<T> request, IDownloadProxy.ILocalDownloadProxy downloadProxy, TaskInfo<T> taskInfo) {
+    FileCall(FileRequest request, IDownloadProxy.ILocalDownloadProxy downloadProxy, TaskInfo taskInfo) {
         this.request = request;
         this.mDownloadProxy = downloadProxy;
         this.taskInfo = taskInfo;
     }
 
 
-    FileRequest<T> fileRequest() {
+    FileRequest fileRequest() {
         return this.request;
     }
 

@@ -7,7 +7,7 @@ import com.hyh.tools.download.bean.TaskInfo;
  * Created by Administrator on 2017/3/9.
  */
 
-public interface Callback<T> {
+public interface Callback {
 
 
     /**
@@ -15,28 +15,28 @@ public interface Callback<T> {
      *
      * @param taskInfo 下载任务信息
      */
-    void onNoEnoughSpace(TaskInfo<T> taskInfo);
+    void onNoEnoughSpace(TaskInfo taskInfo);
 
     /**
      * 准备下载阶段
      *
      * @param taskInfo 下载任务信息
      */
-    void onPrepare(TaskInfo<T> taskInfo);
+    void onPrepare(TaskInfo taskInfo);
 
     /**
      * 从网络中获取到输入流并开始往文件中写数据
      *
      * @param taskInfo 下载任务信息
      */
-    void onFirstFileWrite(TaskInfo<T> taskInfo);
+    void onFirstFileWrite(TaskInfo taskInfo);
 
     /**
      * 下载过程
      *
      * @param taskInfo 下载任务信息
      */
-    void onDownloading(TaskInfo<T> taskInfo);
+    void onDownloading(TaskInfo taskInfo);
 
 
     /**
@@ -44,7 +44,7 @@ public interface Callback<T> {
      *
      * @param taskInfo 下载任务信息
      */
-    void onWaitingInQueue(TaskInfo<T> taskInfo);
+    void onWaitingInQueue(TaskInfo taskInfo);
 
 
     /**
@@ -52,7 +52,7 @@ public interface Callback<T> {
      *
      * @param taskInfo 下载任务信息
      */
-    void onWaitingForWifi(TaskInfo<T> taskInfo);
+    void onWaitingForWifi(TaskInfo taskInfo);
 
 
     /**
@@ -60,28 +60,28 @@ public interface Callback<T> {
      *
      * @param taskInfo 下载任务信息
      */
-    void onDelete(TaskInfo<T> taskInfo);
+    void onDelete(TaskInfo taskInfo);
 
     /**
      * 下载任务被暂停
      *
      * @param taskInfo 下载任务信息
      */
-    void onPause(TaskInfo<T> taskInfo);
+    void onPause(TaskInfo taskInfo);
 
     /**
      * 下载成功
      *
      * @param taskInfo 下载任务信息
      */
-    void onSuccess(TaskInfo<T> taskInfo);
+    void onSuccess(TaskInfo taskInfo);
 
     /**
      * 安装成功
      *
      * @param taskInfo 下载任务信息
      */
-    void onInstall(TaskInfo<T> taskInfo);
+    void onInstall(TaskInfo taskInfo);
 
 
     /**
@@ -89,14 +89,14 @@ public interface Callback<T> {
      *
      * @param taskInfo 下载任务信息
      */
-    void onUnInstall(TaskInfo<T> taskInfo);
+    void onUnInstall(TaskInfo taskInfo);
 
     /**
      * 下载失败
      *
      * @param taskInfo 下载任务信息
      */
-    void onFailure(TaskInfo<T> taskInfo);
+    void onFailure(TaskInfo taskInfo);
 
     /**
      * 任务结束

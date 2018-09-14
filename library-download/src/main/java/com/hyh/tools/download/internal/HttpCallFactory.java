@@ -1,8 +1,8 @@
 package com.hyh.tools.download.internal;
 
-import com.hyh.tools.download.api.HttpCall;
-import com.hyh.tools.download.api.HttpClient;
-import com.hyh.tools.download.api.HttpResponse;
+import com.hyh.tools.download.net.HttpCall;
+import com.hyh.tools.download.net.HttpClient;
+import com.hyh.tools.download.net.HttpResponse;
 import com.hyh.tools.download.bean.Constants;
 import com.hyh.tools.download.bean.TaskInfo;
 
@@ -17,9 +17,7 @@ import java.util.Map;
 
 class HttpCallFactory {
 
-
     private Map<String, Integer> mGetTotalSizeRetryTimesMap = new HashMap<>();
-
 
     HttpCall produce(HttpClient client, TaskInfo taskInfo) {
         String resKey = taskInfo.getResKey();
@@ -53,7 +51,7 @@ class HttpCallFactory {
                 }
                 return new MultiHttpCall(httpCallMap);
             }
-            int code = taskInfo.getCode();
+            int code = taskInfo.getResponseCode();
             if (code == Constants.ResponseCode.OK) {//无法获取到文件长度，不能进行多线程下载
                 taskInfo.setRangeNum(1);//设置为单线程下载
                 return client.newCall(resKey, url, taskInfo.getCurrentSize());
@@ -74,7 +72,7 @@ class HttpCallFactory {
                         taskInfo.setTotalSize(totalSize);
                     }
                 }
-                taskInfo.setCode(httpResponse.code());
+                taskInfo.setResponseCode(httpResponse.code());
             } catch (Exception e) {
                 e.printStackTrace();
                 String resKey = taskInfo.getResKey();

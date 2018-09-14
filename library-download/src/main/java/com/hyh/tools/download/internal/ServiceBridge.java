@@ -15,11 +15,11 @@ import com.hyh.tools.download.api.FileDownloader;
 import com.hyh.tools.download.bean.Command;
 import com.hyh.tools.download.bean.Constants;
 import com.hyh.tools.download.bean.State;
+import com.hyh.tools.download.bean.TagInfo;
 import com.hyh.tools.download.bean.TaskInfo;
-import com.hyh.tools.download.utils.DBUtil;
-import com.hyh.tools.download.utils.PackageUtil;
+import com.hyh.tools.download.utils.FD_DBUtil;
+import com.hyh.tools.download.utils.FD_PackageUtil;
 
-import java.lang.reflect.Type;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -42,7 +42,6 @@ public class ServiceBridge implements IDownloadProxy.ILocalDownloadProxy {
     private Context mContext;
     private IRequest mServiceAgent;
     private Callback mCallback;
-    private Map<String, Type> mTypes = new HashMap<>();
     private Map<String, TaskCache> mCacheTasks = new LinkedHashMap<>();
     private Map<String, TaskInfo> mCacheDBTasks = new LinkedHashMap<>();
     private Map<String, Object> mTags = new HashMap<>();
@@ -63,11 +62,11 @@ public class ServiceBridge implements IDownloadProxy.ILocalDownloadProxy {
 
     @Override
     public void initProxy(final FileDownloader.LockConfig lockConfig) {
-        if (!PackageUtil.isServiceRunning(mContext, mServiceClass.getName())) {
+        if (!FD_PackageUtil.isServiceRunning(mContext, mServiceClass.getName())) {
             mExecutor.execute(new Runnable() {
                 @Override
                 public void run() {
-                    DBUtil.getInstance(mContext).reviseDateBaseErroStatus(mContext);
+                    FD_DBUtil.getInstance(mContext).reviseDateBaseErroStatus(mContext);
                     synchronized (lockConfig) {
                         lockConfig.setInitProxyFinish(true);
                         lockConfig.notifyAll();
@@ -209,15 +208,14 @@ public class ServiceBridge implements IDownloadProxy.ILocalDownloadProxy {
         }
     };
 
-    @SuppressWarnings("unchecked")
     private void supplementTaskInfo(TaskInfo taskInfo) {
         String resKey = taskInfo.getResKey();
-        Type type = mTypes.get(resKey);
         Object tag = mTags.get(resKey);
-        taskInfo.setTagType(type);
-        taskInfo.setTag(tag);
+        TagInfo tagInfo = taskInfo.getTagInfo();
+        if (tagInfo != null) {
+            tagInfo.setTag(tag);
+        }
     }
-
 
     private ServiceConnection getConnection() {
         return mConnection = new ServiceConnection() {
@@ -323,8 +321,7 @@ public class ServiceBridge implements IDownloadProxy.ILocalDownloadProxy {
         mCacheTasks.put(resKey, taskCache);
         if (mIsConnected) {
             try {
-                mTypes.put(resKey, taskInfo.getTagType());
-                mTags.put(resKey, taskInfo.getTag());
+                mTags.put(resKey, taskInfo.getTagInfo().getTag());
                 int pid = Process.myPid();
                 mServiceAgent.register(pid, mClient);
                 mServiceAgent.request(pid, command, taskInfo);

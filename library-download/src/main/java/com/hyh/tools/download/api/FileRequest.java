@@ -3,13 +3,11 @@ package com.hyh.tools.download.api;
 
 import com.hyh.tools.download.bean.Command;
 
-import java.lang.reflect.Type;
-
 /**
  * Created by Administrator on 2017/3/9.
  */
 
-public class FileRequest<T> {
+public class FileRequest {
 
     private String resKey;
 
@@ -27,9 +25,9 @@ public class FileRequest<T> {
 
     private int command;
 
-    private T tag;
+    private Object tag;
 
-    private Type type;
+    private String tagClassName;
 
     private FileRequest() {
     }
@@ -38,7 +36,7 @@ public class FileRequest<T> {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        FileRequest<?> that = (FileRequest<?>) o;
+        FileRequest that = (FileRequest) o;
         return resKey.equals(that.resKey);
     }
 
@@ -51,10 +49,9 @@ public class FileRequest<T> {
         return url;
     }
 
-    public T tag() {
+    public Object tag() {
         return tag;
     }
-
 
     public boolean byMultiThread() {
         return byMultiThread;
@@ -72,20 +69,17 @@ public class FileRequest<T> {
         return command;
     }
 
-    public Type type() {
-        return type;
+    public String tagClassName() {
+        return tagClassName;
     }
-
 
     public long fileSize() {
         return fileSize;
     }
 
-
     public int versionCode() {
         return versionCode;
     }
-
 
     void changeCommand(int command) {
         this.command = command;
@@ -96,7 +90,7 @@ public class FileRequest<T> {
     }
 
 
-    public static class Builder<T> {
+    public static class Builder {
 
         private String resKey;
 
@@ -114,16 +108,13 @@ public class FileRequest<T> {
 
         private int versionCode = -1;
 
-        private T tag;
-
-        private Type type;
-
+        private Object tag;
 
         public Builder() {
         }
 
         public FileRequest build() {
-            FileRequest<T> fileRequest = new FileRequest<>();
+            FileRequest fileRequest = new FileRequest();
             fileRequest.resKey = this.resKey;
             fileRequest.url = this.url;
             fileRequest.byMultiThread = this.byMultiThread;
@@ -131,7 +122,9 @@ public class FileRequest<T> {
             fileRequest.packageName = this.packageName;
             fileRequest.command = this.command;
             fileRequest.tag = this.tag;
-            fileRequest.type = this.type;
+            if (tag != null) {
+                fileRequest.tagClassName = tag.getClass().getName();
+            }
             fileRequest.fileSize = this.fileSize;
             fileRequest.versionCode = this.versionCode;
             return fileRequest;
@@ -152,17 +145,10 @@ public class FileRequest<T> {
             return this;
         }
 
-        public Builder tag(T tag) {
+        public Builder tag(Object tag) {
             this.tag = tag;
-            this.type = tag.getClass();
             return this;
         }
-
-        Builder type(Type tagType) {
-            this.type = tagType;
-            return this;
-        }
-
 
         public Builder byMultiThread(boolean byMultiThread) {
             this.byMultiThread = byMultiThread;
@@ -173,7 +159,6 @@ public class FileRequest<T> {
             this.wifiAutoRetry = wifiAutoRetry;
             return this;
         }
-
 
         public Builder command(int command) {
             this.command = command;

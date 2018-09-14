@@ -37,5 +37,6 @@ public class Constants {
         public static final String GSON_CLASS_NAME = "com.google.gson.Gson";
         public static final String FASTJSON_CLASS_NAME = "com.alibaba.fastjson.JSON";
         public static final String OKHTTP_CLASS_NAME = "okhttp3.OkHttpClient";
+        public static final String GREENDAO_CLASS_NAME = "org.greenrobot.greendao.AbstractDao";
     }
 }

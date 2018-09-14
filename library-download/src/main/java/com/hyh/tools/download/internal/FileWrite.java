@@ -1,6 +1,6 @@
 package com.hyh.tools.download.internal;
 
-import com.hyh.tools.download.api.HttpResponse;
+import com.hyh.tools.download.net.HttpResponse;
 
 /**
  * @author Administrator

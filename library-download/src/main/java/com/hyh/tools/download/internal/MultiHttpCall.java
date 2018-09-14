@@ -1,7 +1,7 @@
 package com.hyh.tools.download.internal;
 
-import com.hyh.tools.download.api.HttpCall;
-import com.hyh.tools.download.api.HttpCallback;
+import com.hyh.tools.download.net.HttpCall;
+import com.hyh.tools.download.net.HttpCallback;
 
 import java.util.Collection;
 import java.util.Map;

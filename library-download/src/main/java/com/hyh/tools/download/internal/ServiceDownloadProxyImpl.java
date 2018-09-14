@@ -5,7 +5,7 @@ import android.os.RemoteException;
 
 import com.hyh.tools.download.IClient;
 import com.hyh.tools.download.bean.TaskInfo;
-import com.hyh.tools.download.utils.DBUtil;
+import com.hyh.tools.download.utils.FD_DBUtil;
 
 import java.util.Collection;
 import java.util.Map;
@@ -52,6 +52,6 @@ public class ServiceDownloadProxyImpl extends SuperDownloadProxy implements IDow
     }
 
     private void handleDB(TaskInfo taskInfo) {
-        DBUtil.getInstance(context).operate(taskInfo);
+        FD_DBUtil.getInstance(context).operate(taskInfo);
     }
 }

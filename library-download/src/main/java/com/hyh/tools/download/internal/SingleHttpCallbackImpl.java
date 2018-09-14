@@ -5,12 +5,12 @@ import android.os.SystemClock;
 import android.util.Log;
 
 import com.hyh.tools.download.api.Callback;
-import com.hyh.tools.download.api.HttpCall;
-import com.hyh.tools.download.api.HttpClient;
-import com.hyh.tools.download.api.HttpResponse;
+import com.hyh.tools.download.net.HttpCall;
+import com.hyh.tools.download.net.HttpClient;
+import com.hyh.tools.download.net.HttpResponse;
 import com.hyh.tools.download.bean.Constants;
 import com.hyh.tools.download.bean.TaskInfo;
-import com.hyh.tools.download.utils.NetUtil;
+import com.hyh.tools.download.utils.FD_NetUtil;
 
 import java.io.IOException;
 import java.util.Timer;
@@ -69,7 +69,7 @@ class SingleHttpCallbackImpl extends AbstractHttpCallback {
             return;
         }
         int code = response.code();
-        taskInfo.setCode(code);
+        taskInfo.setResponseCode(code);
         long contentLength = response.contentLength();
         if (contentLength > 0
                 && (code == Constants.ResponseCode.OK || code == Constants.ResponseCode.PARTIAL_CONTENT)) {//请求数据成功
@@ -97,7 +97,7 @@ class SingleHttpCallbackImpl extends AbstractHttpCallback {
 
 
     @Override
-    public void onFailure(HttpCall call, IOException e) {
+    public void onFailure(HttpCall call, Exception e) {
         this.call = call;
         retry();
     }
@@ -223,7 +223,7 @@ class SingleHttpCallbackImpl extends AbstractHttpCallback {
             if (pause || delete) {
                 return false;
             }
-            if (NetUtil.isWifi(context)) {
+            if (FD_NetUtil.isWifi(context)) {
                 return true;
             }
             SystemClock.sleep(2000);

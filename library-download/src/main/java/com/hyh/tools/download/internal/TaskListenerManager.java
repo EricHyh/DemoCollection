@@ -8,7 +8,9 @@ import com.hyh.tools.download.api.CallbackAdapter;
 import com.hyh.tools.download.bean.TaskInfo;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * @author Administrator
@@ -18,19 +20,19 @@ import java.util.concurrent.ConcurrentHashMap;
 @SuppressWarnings("unchecked")
 public class TaskListenerManager extends CallbackAdapter {
 
-
     private Callback mAllTaskListener;
-    private ConcurrentHashMap<String, ArrayList<Callback>> mCallbacksMap;
+
+    private ConcurrentHashMap<String, List<Callback>> mCallbacksMap;
 
     public TaskListenerManager(Callback allTaskListener) {
         this.mAllTaskListener = allTaskListener;
     }
 
     public void addSingleTaskCallback(String key, Callback callback) {
-        ArrayList<Callback> callbackList;
+        List<Callback> callbackList;
         if (mCallbacksMap == null) {
             mCallbacksMap = new ConcurrentHashMap<>();
-            callbackList = new ArrayList<>();
+            callbackList = new CopyOnWriteArrayList<>();
             callbackList.add(callback);
         } else {
             callbackList = mCallbacksMap.get(key);
@@ -42,8 +44,8 @@ public class TaskListenerManager extends CallbackAdapter {
         mCallbacksMap.put(key, callbackList);
     }
 
-    private ArrayList<Callback> getSingleCallbacks(String key) {
-        ArrayList<Callback> callbacks = null;
+    private List<Callback> getSingleCallbacks(String key) {
+        List<Callback> callbacks = null;
         if (mCallbacksMap != null) {
             callbacks = mCallbacksMap.get(key);
         }
@@ -53,7 +55,7 @@ public class TaskListenerManager extends CallbackAdapter {
     @Override
     public void onNoEnoughSpace(TaskInfo taskInfo) {
         String resKey = taskInfo.getResKey();
-        ArrayList<Callback> singleCallbacks = getSingleCallbacks(resKey);
+        List<Callback> singleCallbacks = getSingleCallbacks(resKey);
         if (singleCallbacks != null) {
             for (Callback callback : singleCallbacks) {
                 callback.onNoEnoughSpace(taskInfo);
@@ -66,7 +68,7 @@ public class TaskListenerManager extends CallbackAdapter {
     public void onPrepare(TaskInfo taskInfo) {
         Log.d("FDL_HH", "onPrepare notify " + taskInfo.getResKey());
         String resKey = taskInfo.getResKey();
-        ArrayList<Callback> singleCallbacks = getSingleCallbacks(resKey);
+        List<Callback> singleCallbacks = getSingleCallbacks(resKey);
         if (singleCallbacks != null) {
             for (Callback callback : singleCallbacks) {
                 callback.onPrepare(taskInfo);
@@ -78,7 +80,7 @@ public class TaskListenerManager extends CallbackAdapter {
     @Override
     public void onFirstFileWrite(TaskInfo taskInfo) {
         String resKey = taskInfo.getResKey();
-        ArrayList<Callback> singleCallbacks = getSingleCallbacks(resKey);
+        List<Callback> singleCallbacks = getSingleCallbacks(resKey);
         if (singleCallbacks != null) {
             for (Callback callback : singleCallbacks) {
                 callback.onFirstFileWrite(taskInfo);
@@ -90,7 +92,7 @@ public class TaskListenerManager extends CallbackAdapter {
     @Override
     public void onDownloading(TaskInfo taskInfo) {
         String resKey = taskInfo.getResKey();
-        ArrayList<Callback> singleCallbacks = getSingleCallbacks(resKey);
+        List<Callback> singleCallbacks = getSingleCallbacks(resKey);
         if (singleCallbacks != null) {
             for (Callback callback : singleCallbacks) {
                 callback.onDownloading(taskInfo);
@@ -103,7 +105,7 @@ public class TaskListenerManager extends CallbackAdapter {
     public void onWaitingInQueue(TaskInfo taskInfo) {
         Log.d("FDL_HH", "onWaitingInQueue notify " + taskInfo.getResKey());
         String resKey = taskInfo.getResKey();
-        ArrayList<Callback> singleCallbacks = getSingleCallbacks(resKey);
+        List<Callback> singleCallbacks = getSingleCallbacks(resKey);
         if (singleCallbacks != null) {
             for (Callback callback : singleCallbacks) {
                 callback.onWaitingInQueue(taskInfo);
@@ -115,7 +117,7 @@ public class TaskListenerManager extends CallbackAdapter {
     @Override
     public void onWaitingForWifi(TaskInfo taskInfo) {
         String resKey = taskInfo.getResKey();
-        ArrayList<Callback> singleCallbacks = getSingleCallbacks(resKey);
+        List<Callback> singleCallbacks = getSingleCallbacks(resKey);
         if (singleCallbacks != null) {
             for (Callback callback : singleCallbacks) {
                 callback.onWaitingForWifi(taskInfo);
@@ -127,7 +129,7 @@ public class TaskListenerManager extends CallbackAdapter {
     @Override
     public void onDelete(TaskInfo taskInfo) {
         String resKey = taskInfo.getResKey();
-        ArrayList<Callback> singleCallbacks = getSingleCallbacks(resKey);
+        List<Callback> singleCallbacks = getSingleCallbacks(resKey);
         if (singleCallbacks != null) {
             for (Callback callback : singleCallbacks) {
                 callback.onDelete(taskInfo);
@@ -143,7 +145,7 @@ public class TaskListenerManager extends CallbackAdapter {
     public void onPause(TaskInfo taskInfo) {
         Log.d("FDL_HH", "onWaitingInQueue onPause " + taskInfo.getResKey());
         String resKey = taskInfo.getResKey();
-        ArrayList<Callback> singleCallbacks = getSingleCallbacks(resKey);
+        List<Callback> singleCallbacks = getSingleCallbacks(resKey);
         if (singleCallbacks != null) {
             for (Callback callback : singleCallbacks) {
                 callback.onPause(taskInfo);
@@ -159,7 +161,7 @@ public class TaskListenerManager extends CallbackAdapter {
     public void onSuccess(TaskInfo taskInfo) {
         Log.d("FDL_HH", "onWaitingInQueue onSuccess " + taskInfo.getResKey());
         String resKey = taskInfo.getResKey();
-        ArrayList<Callback> singleCallbacks = getSingleCallbacks(resKey);
+        List<Callback> singleCallbacks = getSingleCallbacks(resKey);
         if (singleCallbacks != null) {
             for (Callback callback : singleCallbacks) {
                 callback.onSuccess(taskInfo);
@@ -174,7 +176,7 @@ public class TaskListenerManager extends CallbackAdapter {
     @Override
     public void onInstall(TaskInfo taskInfo) {
         String resKey = taskInfo.getResKey();
-        ArrayList<Callback> singleCallbacks = getSingleCallbacks(resKey);
+        List<Callback> singleCallbacks = getSingleCallbacks(resKey);
         if (singleCallbacks != null) {
             for (Callback callback : singleCallbacks) {
                 callback.onInstall(taskInfo);
@@ -186,7 +188,7 @@ public class TaskListenerManager extends CallbackAdapter {
     @Override
     public void onUnInstall(TaskInfo taskInfo) {
         String resKey = taskInfo.getResKey();
-        ArrayList<Callback> singleCallbacks = getSingleCallbacks(resKey);
+        List<Callback> singleCallbacks = getSingleCallbacks(resKey);
         if (singleCallbacks != null) {
             for (Callback callback : singleCallbacks) {
                 callback.onUnInstall(taskInfo);
@@ -201,7 +203,7 @@ public class TaskListenerManager extends CallbackAdapter {
     @Override
     public void onFailure(TaskInfo taskInfo) {
         String resKey = taskInfo.getResKey();
-        ArrayList<Callback> singleCallbacks = getSingleCallbacks(resKey);
+        List<Callback> singleCallbacks = getSingleCallbacks(resKey);
         if (singleCallbacks != null) {
             for (Callback callback : singleCallbacks) {
                 callback.onFailure(taskInfo);

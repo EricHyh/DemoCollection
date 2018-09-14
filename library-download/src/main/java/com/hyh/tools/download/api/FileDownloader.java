@@ -9,23 +9,23 @@ import android.util.Log;
 
 import com.hyh.tools.download.bean.Command;
 import com.hyh.tools.download.bean.State;
+import com.hyh.tools.download.bean.TagInfo;
 import com.hyh.tools.download.bean.TaskInfo;
+import com.hyh.tools.download.db.bean.TaskDBInfo;
 import com.hyh.tools.download.internal.DownloadProxyFactory;
 import com.hyh.tools.download.internal.IDownloadProxy;
 import com.hyh.tools.download.internal.LocalDownloadProxyImpl;
 import com.hyh.tools.download.internal.ServiceBridge;
 import com.hyh.tools.download.internal.TaskListenerManager;
-import com.hyh.tools.download.utils.Utils;
-import com.hyh.tools.download.internal.db.bean.TaskDBInfo;
-import com.hyh.tools.download.internal.paser.JsonParser;
-import com.hyh.tools.download.internal.paser.JsonParserFactory;
-import com.hyh.tools.download.utils.DBUtil;
-import com.hyh.tools.download.utils.DownloadFileUtil;
-import com.hyh.tools.download.utils.MultiUtil;
-import com.hyh.tools.download.utils.PackageUtil;
+import com.hyh.tools.download.paser.TagParser;
+import com.hyh.tools.download.paser.TagParserFactory;
+import com.hyh.tools.download.utils.FD_DBUtil;
+import com.hyh.tools.download.utils.FD_FileUtil;
+import com.hyh.tools.download.utils.FD_MultiUtil;
+import com.hyh.tools.download.utils.FD_PackageUtil;
+import com.hyh.tools.download.utils.FD_Utils;
 
 import java.io.File;
-import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -49,9 +49,9 @@ public class FileDownloader implements DownloadProxyFactory {
 
     private final int multiThreadNum;
 
-    private ThreadPoolExecutor mExecutor = Utils.buildExecutor(4, 4, 60, "FileDownload Thread", true);
+    private ThreadPoolExecutor mExecutor = FD_Utils.buildExecutor(4, 4, 60, "FileDownload Thread", true);
 
-    private JsonParser mJsonParser;
+    private TagParser mTagParser;
 
     private final LockConfig mLockConfig = new LockConfig();
 
@@ -61,7 +61,7 @@ public class FileDownloader implements DownloadProxyFactory {
 
     private ConcurrentHashMap<String, FileCall> mFileCalls = new ConcurrentHashMap<>();//存储当前正在进行的任务
 
-    private DBUtil mDBUtil;//数据库操作工具类
+    private FD_DBUtil mFD_DBUtil;//数据库操作工具类
 
     private volatile boolean haveNoTask = true;//是否有下载任务正在进行
 
@@ -80,14 +80,13 @@ public class FileDownloader implements DownloadProxyFactory {
         return new FileDownloaderBuilder(context);
     }
 
-    private static void initFileDownloader(FileDownloaderBuilder fileDownloaderBuilder) {
+    private static void initFileDownloader(FileDownloaderBuilder builder) {
         if (sFileDownloader != null) {
             return;
         }
         synchronized (FileDownloader.class) {
             if (sFileDownloader == null) {
-                sFileDownloader =
-                        new FileDownloader(fileDownloaderBuilder);
+                sFileDownloader = new FileDownloader(builder);
             }
         }
     }
@@ -101,11 +100,11 @@ public class FileDownloader implements DownloadProxyFactory {
             throw new NullPointerException("Context is null, please init FileDownloader!!");
         }
         this.mContext = builder.context;
-        this.multiThreadNum = MultiUtil.computeMultiThreadNum(builder.maxSynchronousDownloadNum);
-        this.mDBUtil = DBUtil.getInstance(this.mContext);
+        this.multiThreadNum = FD_MultiUtil.computeMultiThreadNum(builder.maxSynchronousDownloadNum);
+        this.mFD_DBUtil = FD_DBUtil.getInstance(this.mContext);
         this.mListenerManager = new TaskListenerManager(new DownloadListener());
         this.mDownloadProxy = produce(builder.byService, builder.isIndependentProcess, builder.maxSynchronousDownloadNum);
-        this.mJsonParser = JsonParserFactory.produce(builder.jsonParser);
+        this.mTagParser = TagParserFactory.produce(builder.mTagParser);
 
         mDownloadProxy.setAllTaskCallback(mListenerManager);
 
@@ -119,7 +118,7 @@ public class FileDownloader implements DownloadProxyFactory {
             @Override
             public void run() {
                 waitInitProxyFinish();
-                mHistoryTasks = mDBUtil.getAllTaskMap();
+                mHistoryTasks = mFD_DBUtil.getAllTaskMap();
                 synchronized (mLockConfig) {
                     mLockConfig.setInitHistoryFinish(true);
                     mLockConfig.notifyAll();
@@ -128,15 +127,15 @@ public class FileDownloader implements DownloadProxyFactory {
         });
     }
 
-    public <T> void startTask(FileRequest<T> fileRequest) {
+    public void startTask(FileRequest fileRequest) {
         startTask(fileRequest, null);
     }
 
-    public <T> void startTask(final FileRequest<T> fileRequest, final Callback<T> callback) {
+    public void startTask(final FileRequest fileRequest, final Callback callback) {
         mExecutor.execute(new Runnable() {
             @Override
             public void run() {
-                FileCall<T> fileCall = newCall(fileRequest, callback);
+                FileCall fileCall = newCall(fileRequest, callback);
                 if (fileCall != null) {
                     fileCall.fileRequest().changeCommand(Command.START);
                     if (callback != null) {
@@ -153,16 +152,14 @@ public class FileDownloader implements DownloadProxyFactory {
         });
     }
 
-    public <T> void startWaitingForWifiTasks() {
-        getSaveInDBWaitingForWifiTasksAsynch(new SearchListener<List<TaskInfo<T>>>() {
+    public void startWaitingForWifiTasks() {
+        getSaveInDBWaitingForWifiTasksAsynch(new SearchListener<List<TaskInfo>>() {
             @Override
-            public void onResult(List<TaskInfo<T>> result) {
+            public void onResult(List<TaskInfo> result) {
                 if (result != null && !result.isEmpty()) {
-                    for (TaskInfo<T> taskInfo : result) {
-                        FileRequest<T> fileRequest = new FileRequest.Builder<T>()
-                                .tag(taskInfo.getTag())
+                    for (TaskInfo taskInfo : result) {
+                        FileRequest fileRequest = new FileRequest.Builder()
                                 .byMultiThread(taskInfo.getRangeNum() > 1)
-                                .type(taskInfo.getTagType())
                                 .key(taskInfo.getResKey())
                                 .url(taskInfo.getUrl())
                                 .packageName(taskInfo.getPackageName())
@@ -182,12 +179,11 @@ public class FileDownloader implements DownloadProxyFactory {
     }
 
     public boolean isFileDownloaded(String resKey) {
-        TaskDBInfo taskDBInfo = mDBUtil.getTaskDBInfoByResKey(resKey);
+        TaskDBInfo taskDBInfo = mFD_DBUtil.getTaskDBInfoByResKey(resKey);
         return taskDBInfo != null && taskDBInfo.getCurrentStatus() == State.SUCCESS;
     }
 
-    public <T> PendingIntent buildPendingIntent(FileRequest<T> fileRequest, Callback<T> callback) {
-
+    public PendingIntent buildPendingIntent(FileRequest fileRequest, Callback callback) {
         return null;
     }
 
@@ -200,10 +196,10 @@ public class FileDownloader implements DownloadProxyFactory {
             mExecutor.execute(new Runnable() {
                 @Override
                 public void run() {
-                    TaskDBInfo taskDBInfo = mDBUtil.getTaskDBInfoByResKey(resKey);
+                    TaskDBInfo taskDBInfo = mFD_DBUtil.getTaskDBInfoByResKey(resKey);
                     if (taskDBInfo != null) {
-                        mListenerManager.onDelete(TaskInfo.taskDBInfo2TaskInfo(taskDBInfo, mJsonParser));
-                        DownloadFileUtil.deleteDownloadFile(mContext, resKey, taskDBInfo.getRangeNum() == null ?
+                        mListenerManager.onDelete(FD_Utils.taskDBInfo2TaskInfo(taskDBInfo, mTagParser));
+                        FD_FileUtil.deleteDownloadFile(mContext, resKey, taskDBInfo.getRangeNum() == null ?
                                 0 : taskDBInfo.getRangeNum());
                     }
                 }
@@ -245,11 +241,11 @@ public class FileDownloader implements DownloadProxyFactory {
         }
     }
 
-    public <T> void addListener(Callback<T> callback) {
+    public <T> void addListener(Callback callback) {
         mListeners.add(callback);
     }
 
-    public <T> void removeListener(Callback<T> callback) {
+    public <T> void removeListener(Callback callback) {
         mListeners.remove(callback);
     }
 
@@ -257,62 +253,42 @@ public class FileDownloader implements DownloadProxyFactory {
         mListeners.clear();
     }
 
-    public <T> List<TaskInfo<T>> getSaveInDBWaitingForWifiTasksSynch() {
-        ArrayList<TaskInfo<T>> taskInfos = new ArrayList<>();
-        List<TaskDBInfo> list = mDBUtil.getWaitingForWifiTasks();
+    public List<TaskInfo> getSaveInDBWaitingForWifiTasksSynch() {
+        ArrayList<TaskInfo> taskInfos = new ArrayList<>();
+        List<TaskDBInfo> list = mFD_DBUtil.getWaitingForWifiTasks();
         for (TaskDBInfo taskDBInfo : list) {
-            TaskInfo<T> taskInfo = TaskInfo.taskDBInfo2TaskInfo(taskDBInfo, mJsonParser);
+            TaskInfo taskInfo = FD_Utils.taskDBInfo2TaskInfo(taskDBInfo, mTagParser);
             taskInfos.add(taskInfo);
         }
         return taskInfos;
     }
 
-    public <T> void getSaveInDBWaitingForWifiTasksAsynch(final SearchListener<List<TaskInfo<T>>> callback) {
-        mExecutor.execute(new Runnable() {
-            @Override
-            public void run() {
-                List<TaskInfo<T>> taskInfos = getSaveInDBWaitingForWifiTasksSynch();
-                callback.onResult(taskInfos);
-            }
-        });
-    }
-
-    public <T> List<TaskInfo<T>> getSaveInDBWaitingForWifiTasksSynch(Type tagType) {
-        ArrayList<TaskInfo<T>> taskInfos = new ArrayList<>();
-        List<TaskDBInfo> list = mDBUtil.getWaitingForWifiTasks();
+    public List<TaskInfo> getSaveInDBSuccessTasksSynch() {
+        ArrayList<TaskInfo> taskInfos = new ArrayList<>();
+        List<TaskDBInfo> list = mFD_DBUtil.getSuccessTasks();
         for (TaskDBInfo taskDBInfo : list) {
-            TaskInfo<T> taskInfo = TaskInfo.taskDBInfo2TaskInfo(taskDBInfo, tagType, mJsonParser);
+            TaskInfo taskInfo = FD_Utils.taskDBInfo2TaskInfo(taskDBInfo, mTagParser);
             taskInfos.add(taskInfo);
         }
         return taskInfos;
     }
 
-    public <T> List<TaskInfo<T>> getSaveInDBSuccessTasksSynch(Type tagType) {
-        ArrayList<TaskInfo<T>> taskInfos = new ArrayList<>();
-        List<TaskDBInfo> list = mDBUtil.getSuccessTasks();
+    public List<TaskInfo> getSaveInDBInstalledTasksSynch() {
+        ArrayList<TaskInfo> taskInfos = new ArrayList<>();
+        List<TaskDBInfo> list = mFD_DBUtil.getInstalledTasks();
         for (TaskDBInfo taskDBInfo : list) {
-            TaskInfo<T> taskInfo = TaskInfo.taskDBInfo2TaskInfo(taskDBInfo, tagType, mJsonParser);
+            TaskInfo taskInfo = FD_Utils.taskDBInfo2TaskInfo(taskDBInfo, mTagParser);
             taskInfos.add(taskInfo);
         }
         return taskInfos;
     }
 
-    public <T> List<TaskInfo<T>> getSaveInDBInstalledTasksSynch(Type tagType) {
-        ArrayList<TaskInfo<T>> taskInfos = new ArrayList<>();
-        List<TaskDBInfo> list = mDBUtil.getInstalledTasks();
-        for (TaskDBInfo taskDBInfo : list) {
-            TaskInfo<T> taskInfo = TaskInfo.taskDBInfo2TaskInfo(taskDBInfo, tagType, mJsonParser);
-            taskInfos.add(taskInfo);
-        }
-        return taskInfos;
-    }
-
-    public <T> List<TaskInfo<T>> getAllAppsSynch(Type tagType) {
+    public List<TaskInfo> getAllAppsSynch() {
         waitInitProxyFinish();
-        List<TaskDBInfo> list = mDBUtil.getAllTaskList();
-        List<TaskInfo<T>> taskInfos = new ArrayList<>();
+        List<TaskDBInfo> list = mFD_DBUtil.getAllTaskList();
+        List<TaskInfo> taskInfos = new ArrayList<>();
         for (TaskDBInfo taskDBInfo : list) {
-            TaskInfo<T> taskInfo = TaskInfo.taskDBInfo2TaskInfo(taskDBInfo, tagType, mJsonParser);
+            TaskInfo taskInfo = FD_Utils.taskDBInfo2TaskInfo(taskDBInfo, mTagParser);
             taskInfos.add(taskInfo);
         }
         return taskInfos;
@@ -335,49 +311,49 @@ public class FileDownloader implements DownloadProxyFactory {
         }
     }
 
-    public <T> void getSaveInDBWaitingForWifiTasksAsynch(final Type type, final SearchListener<List<TaskInfo<T>>> callback) {
+    public void getSaveInDBWaitingForWifiTasksAsynch(final SearchListener<List<TaskInfo>> callback) {
         mExecutor.execute(new Runnable() {
             @Override
             public void run() {
-                List<TaskInfo<T>> taskInfos = getSaveInDBWaitingForWifiTasksSynch(type);
+                List<TaskInfo> taskInfos = getSaveInDBWaitingForWifiTasksSynch();
                 callback.onResult(taskInfos);
             }
         });
     }
 
-    public <T> void getSaveInDBSuccessTasksAsynch(final Type type, final SearchListener<List<TaskInfo<T>>> callback) {
+    public void getSaveInDBSuccessTasksAsynch(final SearchListener<List<TaskInfo>> callback) {
         mExecutor.execute(new Runnable() {
             @Override
             public void run() {
-                List<TaskInfo<T>> taskInfos = getSaveInDBSuccessTasksSynch(type);
-                callback.onResult(taskInfos);
-            }
-        });
-
-    }
-
-    public <T> void getSaveInDBInstalledTasksAsynch(final Type type, final SearchListener<List<TaskInfo<T>>> callback) {
-        mExecutor.execute(new Runnable() {
-            @Override
-            public void run() {
-                List<TaskInfo<T>> taskInfos = getSaveInDBInstalledTasksSynch(type);
+                List<TaskInfo> taskInfos = getSaveInDBSuccessTasksSynch();
                 callback.onResult(taskInfos);
             }
         });
 
     }
 
-    public <T> void getAllAppsAsynch(final Type tagType, final SearchListener<List<TaskInfo<T>>> callback) {
+    public void getSaveInDBInstalledTasksAsynch(final SearchListener<List<TaskInfo>> callback) {
         mExecutor.execute(new Runnable() {
             @Override
             public void run() {
-                List<TaskInfo<T>> taskInfos = getAllAppsSynch(tagType);
+                List<TaskInfo> taskInfos = getSaveInDBInstalledTasksSynch();
+                callback.onResult(taskInfos);
+            }
+        });
+
+    }
+
+    public void getAllAppsAsynch(final SearchListener<List<TaskInfo>> callback) {
+        mExecutor.execute(new Runnable() {
+            @Override
+            public void run() {
+                List<TaskInfo> taskInfos = getAllAppsSynch();
                 callback.onResult(taskInfos);
             }
         });
     }
 
-    private <T> FileCall<T> newCall(final FileRequest<T> request, Callback<T> callback) {
+    private FileCall newCall(final FileRequest request, Callback callback) {
         final String resKey = request.key();
         FileCall fileCall = mFileCalls.get(resKey);
         if (fileCall != null) {
@@ -399,21 +375,20 @@ public class FileDownloader implements DownloadProxyFactory {
             }
         }
 
-        haveNoTask = false;
-
-
         // TODO: 2017/6/23 问下其他进程的兄弟有没有在下载这个任务
         boolean isFileDownloading = mDownloadProxy.isOtherProcessDownloading(resKey);
         if (isFileDownloading) {
             return null;
         }
 
+        haveNoTask = false;
+
         long startTime = System.currentTimeMillis();
 
-        File file = DownloadFileUtil.getDownLoadFile(mContext, request.key());//获取已下载文件
+        File file = FD_FileUtil.getDownLoadFile(mContext, request.key());//获取已下载文件
         Object[] currentSizeAndMultiPositions = null;
         if (file.exists()) {
-            currentSizeAndMultiPositions = MultiUtil.getCurrentSizeAndMultiPositions(mContext, request,
+            currentSizeAndMultiPositions = FD_MultiUtil.getCurrentSizeAndMultiPositions(mContext, request,
                     file, mHistoryTasks.get(resKey));
         }
 
@@ -421,7 +396,7 @@ public class FileDownloader implements DownloadProxyFactory {
 
         Log.d("FDL_HH", "newCall: getCurrentSizeAndMultiPositions time=" + (endTime - startTime) / 1000);
 
-        TaskInfo<T> taskInfo = generateTaskInfo(request, file, currentSizeAndMultiPositions);
+        TaskInfo taskInfo = generateTaskInfo(request, file, currentSizeAndMultiPositions);
 
 
         //校验之前下载的文件版本
@@ -429,7 +404,7 @@ public class FileDownloader implements DownloadProxyFactory {
 
         long currentSize = taskInfo.getCurrentSize();
 
-        TaskDBInfo taskDBInfo = mHistoryTasks.isEmpty() ? mDBUtil.getTaskDBInfoByResKey(resKey) : mHistoryTasks.get(resKey);
+        TaskDBInfo taskDBInfo = mHistoryTasks.isEmpty() ? mFD_DBUtil.getTaskDBInfoByResKey(resKey) : mHistoryTasks.get(resKey);
 
         boolean isUpdate = request.command() == Command.UPDATE;
         boolean isAppInstall = false;
@@ -441,7 +416,7 @@ public class FileDownloader implements DownloadProxyFactory {
             boolean hasPackageName = !TextUtils.isEmpty(packageName);
             int oldVersionCode = -1;
             if (hasPackageName) {
-                oldVersionCode = PackageUtil.getVersionCode(mContext, request.packageName());
+                oldVersionCode = FD_PackageUtil.getVersionCode(mContext, request.packageName());
                 if (oldVersionCode > 0) {
                     isAppInstall = true;
                 }
@@ -477,7 +452,7 @@ public class FileDownloader implements DownloadProxyFactory {
                 mListenerManager.onInstall(taskInfo);
                 mDownloadProxy.operateDatebase(taskInfo);
             } else {
-                taskInfo = TaskInfo.taskDBInfo2TaskInfo(taskDBInfo, mJsonParser);
+                taskInfo = FD_Utils.taskDBInfo2TaskInfo(taskDBInfo, mTagParser);
                 taskInfo.setCurrentStatus(State.INSTALL);
                 if (callback != null) {
                     callback.onInstall(taskInfo);
@@ -494,7 +469,7 @@ public class FileDownloader implements DownloadProxyFactory {
         if (taskDBInfo != null) {
             if (taskDBInfo.getCurrentStatus() != null && taskDBInfo.getCurrentStatus() == State.SUCCESS) {
                 //TODO 下载成功
-                taskInfo = TaskInfo.taskDBInfo2TaskInfo(taskDBInfo, mJsonParser);
+                taskInfo = FD_Utils.taskDBInfo2TaskInfo(taskDBInfo, mTagParser);
                 if (callback != null) {
                     callback.onSuccess(taskInfo);
                     if (!TextUtils.isEmpty(taskDBInfo.getPackageName())) {
@@ -520,7 +495,7 @@ public class FileDownloader implements DownloadProxyFactory {
                 taskDBInfo.setTotalSize(fileSize);
                 taskDBInfo.setCurrentSize(currentSize);
                 taskDBInfo.setProgress(100);
-                taskInfo = TaskInfo.taskDBInfo2TaskInfo(taskDBInfo, mJsonParser);
+                taskInfo = FD_Utils.taskDBInfo2TaskInfo(taskDBInfo, mTagParser);
             }
             taskInfo.setCurrentStatus(State.SUCCESS);
             if (callback != null) {
@@ -553,7 +528,7 @@ public class FileDownloader implements DownloadProxyFactory {
         int saveVersionCode = -1;
         long saveFileTotalSize = 0;
         if (mHistoryTasks.isEmpty()) {
-            TaskDBInfo taskDBInfo = mDBUtil.getTaskDBInfoByResKey(resKey);
+            TaskDBInfo taskDBInfo = mFD_DBUtil.getTaskDBInfoByResKey(resKey);
             if (taskDBInfo != null) {
                 Integer versionCode = taskDBInfo.getVersionCode();//获取数据库中存储的版本号
                 saveVersionCode = (versionCode == null ? -1 : versionCode);
@@ -570,7 +545,7 @@ public class FileDownloader implements DownloadProxyFactory {
 
         if ((request.versionCode() > 0 && (request.versionCode() != saveVersionCode))
                 || (request.fileSize() > 0 && (request.fileSize() != saveFileTotalSize))) {
-            boolean delete = DownloadFileUtil.deleteDownloadFile(mContext, resKey, taskInfo.getRangeNum());
+            boolean delete = FD_FileUtil.deleteDownloadFile(mContext, resKey, taskInfo.getRangeNum());
             if (delete) {
                 taskInfo.setProgress(0);
                 taskInfo.setCurrentSize(0);
@@ -583,13 +558,13 @@ public class FileDownloader implements DownloadProxyFactory {
         for (FileCall value : values) {
             fileSize += value.fileRequest().fileSize();
         }
-        if (DownloadFileUtil.externalMemoryAvailable()) {
-            long availableSize = DownloadFileUtil.getAvailableExternalMemorySize();
+        if (FD_FileUtil.externalMemoryAvailable()) {
+            long availableSize = FD_FileUtil.getAvailableExternalMemorySize();
             if (availableSize > fileSize) {
                 return true;
             }
         } else {
-            long availableSize = DownloadFileUtil.getAvailableInternalMemorySize();
+            long availableSize = FD_FileUtil.getAvailableInternalMemorySize();
             if (availableSize > fileSize) {
                 return true;
             }
@@ -597,7 +572,7 @@ public class FileDownloader implements DownloadProxyFactory {
         return false;
     }
 
-    private <T> TaskInfo<T> generateTaskInfo(FileRequest<T> request, File file, Object[] currentSizeAndMultiPositions) {
+    private TaskInfo generateTaskInfo(FileRequest request, File file, Object[] currentSizeAndMultiPositions) {
         TaskInfo taskInfo = new TaskInfo();
         long currentSize = 0;
         if (currentSizeAndMultiPositions != null) {
@@ -623,7 +598,6 @@ public class FileDownloader implements DownloadProxyFactory {
             taskInfo.setRangeNum(1);
         }
 
-
         taskInfo.setFilePath(file.getPath());
         taskInfo.setCurrentSize(currentSize);
         taskInfo.setResKey(request.key());
@@ -633,21 +607,10 @@ public class FileDownloader implements DownloadProxyFactory {
 
         taskInfo.setPackageName(request.packageName());
         taskInfo.setWifiAutoRetry(request.wifiAutoRetry());
-        T tag = request.tag();
-        Type type = request.type();
-        String tagClassName = null;
-        if (type != null) {
-            String typeStr = type.toString();
-            if (!TextUtils.isEmpty(typeStr) && typeStr.length() > 6) {
-                tagClassName = typeStr.substring(6);
-            }
-        }
-        taskInfo.setTagClassName(tagClassName);
-        if (type != null && tag != null) {
-            taskInfo.setTagJson(mJsonParser.toJson(tag));
-        }
-        taskInfo.setTag(tag);
-        taskInfo.setTagType(type);
+        Object tag = request.tag();
+        String tagClassName = request.tagClassName();
+        String tagStr = mTagParser.toString(tag);
+        taskInfo.setTagInfo(new TagInfo(tagStr, tagClassName, tag));
         return taskInfo;
     }
 
@@ -664,7 +627,7 @@ public class FileDownloader implements DownloadProxyFactory {
 
         @Override
         public void onPrepare(TaskInfo taskInfo) {
-            mHistoryTasks.put(taskInfo.getResKey(), TaskInfo.taskInfo2TaskDBInfo(taskInfo));
+            mHistoryTasks.put(taskInfo.getResKey(), FD_Utils.taskInfo2TaskDBInfo(taskInfo));
             for (Callback listener : mListeners) {
                 if (listener != null) {
                     listener.onPrepare(taskInfo);
@@ -723,7 +686,7 @@ public class FileDownloader implements DownloadProxyFactory {
         @Override
         public void onPause(TaskInfo taskInfo) {
             String resKey = taskInfo.getResKey();
-            mHistoryTasks.put(resKey, TaskInfo.taskInfo2TaskDBInfo(taskInfo));
+            mHistoryTasks.put(resKey, FD_Utils.taskInfo2TaskDBInfo(taskInfo));
             mFileCalls.remove(resKey);
             for (Callback listener : mListeners) {
                 if (listener != null) {
@@ -735,7 +698,7 @@ public class FileDownloader implements DownloadProxyFactory {
         @Override
         public void onSuccess(TaskInfo taskInfo) {
             String resKey = taskInfo.getResKey();
-            mHistoryTasks.put(resKey, TaskInfo.taskInfo2TaskDBInfo(taskInfo));
+            mHistoryTasks.put(resKey, FD_Utils.taskInfo2TaskDBInfo(taskInfo));
             mFileCalls.remove(resKey);
             for (Callback listener : mListeners) {
                 if (listener != null) {
@@ -766,7 +729,7 @@ public class FileDownloader implements DownloadProxyFactory {
 
         @Override
         public void onFailure(TaskInfo taskInfo) {
-            mHistoryTasks.put(taskInfo.getResKey(), TaskInfo.taskInfo2TaskDBInfo(taskInfo));
+            mHistoryTasks.put(taskInfo.getResKey(), FD_Utils.taskInfo2TaskDBInfo(taskInfo));
             mFileCalls.remove(taskInfo.getResKey());
             for (Callback listener : mListeners) {
                 if (listener != null) {
@@ -794,7 +757,7 @@ public class FileDownloader implements DownloadProxyFactory {
         mExecutor.execute(new Runnable() {
             @Override
             public void run() {
-                if (PackageUtil.isAppExit(mContext)) {
+                if (FD_PackageUtil.isAppExit(mContext)) {
                     SystemClock.sleep(KEEP_ALIVE_TIME_OUTAPP);
                 } else {
                     SystemClock.sleep(KEEP_ALIVE_TIME_INAPP);
@@ -809,7 +772,7 @@ public class FileDownloader implements DownloadProxyFactory {
     }
 
     public void onInstall(TaskDBInfo taskDBInfo) {
-        TaskInfo taskInfo = TaskInfo.taskDBInfo2TaskInfo(taskDBInfo, mJsonParser);
+        TaskInfo taskInfo = FD_Utils.taskDBInfo2TaskInfo(taskDBInfo, mTagParser);
         taskInfo.setCurrentStatus(State.INSTALL);
         mListenerManager.onInstall(taskInfo);
         if (mFileCalls.isEmpty()) {
@@ -819,7 +782,7 @@ public class FileDownloader implements DownloadProxyFactory {
     }
 
     public void onUnInstall(TaskDBInfo taskDBInfo) {
-        TaskInfo taskInfo = TaskInfo.taskDBInfo2TaskInfo(taskDBInfo, mJsonParser);
+        TaskInfo taskInfo = FD_Utils.taskDBInfo2TaskInfo(taskDBInfo, mTagParser);
         taskInfo.setCurrentStatus(State.UNINSTALL);
         mListenerManager.onUnInstall(taskInfo);
         if (mFileCalls.isEmpty()) {
@@ -828,7 +791,7 @@ public class FileDownloader implements DownloadProxyFactory {
         }
     }
 
-    private static class FileDownloaderBuilder {
+    public static class FileDownloaderBuilder {
 
         Context context;
 
@@ -838,7 +801,7 @@ public class FileDownloader implements DownloadProxyFactory {
 
         int maxSynchronousDownloadNum = 2;
 
-        JsonParser jsonParser;
+        TagParser mTagParser;
 
 
         private FileDownloaderBuilder(Context context) {
@@ -846,11 +809,11 @@ public class FileDownloader implements DownloadProxyFactory {
         }
 
 
-        FileDownloaderBuilder(Context context, boolean byService, int maxSynchronousDownloadNum, JsonParser jsonParser) {
+        FileDownloaderBuilder(Context context, boolean byService, int maxSynchronousDownloadNum, TagParser tagParser) {
             this.context = context;
             this.byService = byService;
             this.maxSynchronousDownloadNum = maxSynchronousDownloadNum;
-            this.jsonParser = jsonParser;
+            this.mTagParser = tagParser;
         }
 
         public void byService(boolean byService) {
@@ -865,8 +828,8 @@ public class FileDownloader implements DownloadProxyFactory {
             this.maxSynchronousDownloadNum = maxSynchronousDownloadNum;
         }
 
-        public void jsonParser(JsonParser jsonParser) {
-            this.jsonParser = jsonParser;
+        public void jsonParser(TagParser tagParser) {
+            this.mTagParser = tagParser;
         }
 
         public void init() {

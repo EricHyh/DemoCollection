@@ -6,13 +6,13 @@ import android.text.TextUtils;
 import android.util.Log;
 
 import com.hyh.tools.download.api.CallbackAdapter;
-import com.hyh.tools.download.api.HttpCall;
-import com.hyh.tools.download.api.HttpClient;
+import com.hyh.tools.download.net.HttpCall;
+import com.hyh.tools.download.net.HttpClient;
 import com.hyh.tools.download.bean.Command;
 import com.hyh.tools.download.bean.State;
 import com.hyh.tools.download.bean.TaskInfo;
-import com.hyh.tools.download.internal.net.HttpClientFactory;
-import com.hyh.tools.download.utils.DownloadFileUtil;
+import com.hyh.tools.download.net.HttpClientFactory;
+import com.hyh.tools.download.utils.FD_FileUtil;
 
 import java.util.List;
 import java.util.Map;
@@ -97,7 +97,6 @@ public abstract class SuperDownloadProxy implements IDownloadProxy {
                 AbstractHttpCallback remove = httpCallbacks.remove(resKey);
                 if (remove != null) {
                     remove.pause();
-
                     handlePause(taskInfo);
                 } else {
                     TaskCache taskCache = null;
@@ -178,7 +177,7 @@ public abstract class SuperDownloadProxy implements IDownloadProxy {
     private void handleDelete(TaskInfo taskInfo) {
         taskInfo.setCurrentStatus(State.DELETE);
         handleCallbackAndDB(taskInfo);
-        DownloadFileUtil.deleteDownloadFile(context, taskInfo.getResKey(), taskInfo.getRangeNum());
+        FD_FileUtil.deleteDownloadFile(context, taskInfo.getResKey(), taskInfo.getRangeNum());
         startNextTask();
     }
 

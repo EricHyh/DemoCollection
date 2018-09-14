@@ -23,23 +23,23 @@ public class GenClass {
 
     private static void addTaskDBInfo(Schema schema) {
         Entity entity = schema.addEntity("TaskDBInfo");
+        entity.setTableName("TaskDBInfo");
         entity.addIdProperty().autoincrement();
-        entity.addStringProperty("resKey").unique();
-        entity.addStringProperty("url");
-        entity.addIntProperty("currentStatus");
-        entity.addIntProperty("progress");
-        entity.addIntProperty("versionCode");
-        entity.addIntProperty("responseCode");
-        entity.addIntProperty("rangeNum");
-        entity.addLongProperty("totalSize");
-        entity.addLongProperty("currentSize");
-        entity.addLongProperty("time");
-        entity.addStringProperty("packageName");
-        entity.addStringProperty("filePath");
-        entity.addStringProperty("expand");
-        entity.addBooleanProperty("wifiAutoRetry");
-        entity.addStringProperty("tagJson");
-        entity.addStringProperty("tagClassName");
+        entity.addStringProperty("resKey").columnName("resKey").unique();
+        entity.addStringProperty("url").columnName("url");
+        entity.addIntProperty("currentStatus").columnName("currentStatus");
+        entity.addIntProperty("progress").columnName("progress");
+        entity.addIntProperty("versionCode").columnName("versionCode");
+        entity.addIntProperty("responseCode").columnName("responseCode");
+        entity.addIntProperty("rangeNum").columnName("rangeNum");
+        entity.addLongProperty("totalSize").columnName("totalSize");
+        entity.addLongProperty("currentSize").columnName("currentSize");
+        entity.addLongProperty("timeMillis").columnName("timeMillis");
+        entity.addStringProperty("packageName").columnName("packageName");
+        entity.addStringProperty("filePath").columnName("filePath");
+        entity.addBooleanProperty("wifiAutoRetry").columnName("wifiAutoRetry");
+        entity.addStringProperty("tagStr").columnName("tagStr");
+        entity.addStringProperty("tagClassName").columnName("tagClassName");
     }
     /*
         private String resKey;
@@ -53,7 +53,6 @@ public class GenClass {
     private Long time;
     private String packageName;
     private String filePath;
-    private String expand;
     private Boolean byService;
     private Boolean wifiAutoRetry;
     private String tagJson;

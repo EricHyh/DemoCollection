@@ -2,18 +2,12 @@ package com.hyh.tools.download.bean;
 
 import android.os.Parcel;
 import android.os.Parcelable;
-import android.text.TextUtils;
-
-import com.hyh.tools.download.internal.db.bean.TaskDBInfo;
-import com.hyh.tools.download.internal.paser.JsonParser;
-
-import java.lang.reflect.Type;
 
 /**
  * Created by Administrator on 2017/3/14.
  */
 
-public class TaskInfo<T> implements Parcelable {
+public class TaskInfo implements Parcelable {
 
 
     private String resKey;
@@ -42,33 +36,9 @@ public class TaskInfo<T> implements Parcelable {
 
     private boolean wifiAutoRetry;
 
-    private String expand;
+    protected int responseCode;
 
-    private String tagJson;
-
-    private String tagClassName;
-
-    protected int code;
-
-    private T tag;
-
-    private Type tagType;
-
-    public T getTag() {
-        return tag;
-    }
-
-    public void setTag(T tag) {
-        this.tag = tag;
-    }
-
-    public Type getTagType() {
-        return tagType;
-    }
-
-    public void setTagType(Type tagType) {
-        this.tagType = tagType;
-    }
+    private TagInfo tagInfo;
 
     public TaskInfo() {
     }
@@ -87,10 +57,8 @@ public class TaskInfo<T> implements Parcelable {
         totalSize = in.readLong();
         currentStatus = in.readInt();
         wifiAutoRetry = in.readByte() != 0;
-        expand = in.readString();
-        tagJson = in.readString();
-        tagClassName = in.readString();
-        code = in.readInt();
+        responseCode = in.readInt();
+        tagInfo = in.readParcelable(TagInfo.class.getClassLoader());
     }
 
     public static final Creator<TaskInfo> CREATOR = new Creator<TaskInfo>() {
@@ -120,12 +88,8 @@ public class TaskInfo<T> implements Parcelable {
                 ", totalSize=" + totalSize +
                 ", currentStatus=" + currentStatus +
                 ", wifiAutoRetry=" + wifiAutoRetry +
-                ", expand='" + expand + '\'' +
-                ", tagJson='" + tagJson + '\'' +
-                ", tagClassName='" + tagClassName + '\'' +
-                ", code=" + code +
-                ", tag=" + tag +
-                ", tagType=" + tagType +
+                ", responseCode=" + responseCode +
+                ", tagInfo=" + tagInfo +
                 '}';
     }
 
@@ -158,10 +122,8 @@ public class TaskInfo<T> implements Parcelable {
         dest.writeLong(totalSize);
         dest.writeInt(currentStatus);
         dest.writeByte((byte) (wifiAutoRetry ? 1 : 0));
-        dest.writeString(expand);
-        dest.writeString(tagJson);
-        dest.writeString(tagClassName);
-        dest.writeInt(code);
+        dest.writeInt(responseCode);
+        dest.writeParcelable(tagInfo, flags);
     }
 
     public String getResKey() {
@@ -260,36 +222,12 @@ public class TaskInfo<T> implements Parcelable {
         this.wifiAutoRetry = wifiAutoRetry;
     }
 
-    public String getExpand() {
-        return expand;
+    public int getResponseCode() {
+        return responseCode;
     }
 
-    public void setExpand(String expand) {
-        this.expand = expand;
-    }
-
-    public String getTagJson() {
-        return tagJson;
-    }
-
-    public void setTagJson(String tagJson) {
-        this.tagJson = tagJson;
-    }
-
-    public String getTagClassName() {
-        return tagClassName;
-    }
-
-    public void setTagClassName(String tagClassName) {
-        this.tagClassName = tagClassName;
-    }
-
-    public int getCode() {
-        return code;
-    }
-
-    public void setCode(int code) {
-        this.code = code;
+    public void setResponseCode(int responseCode) {
+        this.responseCode = responseCode;
     }
 
     public int getVersionCode() {
@@ -300,87 +238,12 @@ public class TaskInfo<T> implements Parcelable {
         this.versionCode = versionCode;
     }
 
-    public static <T> TaskInfo<T> taskDBInfo2TaskInfo(TaskDBInfo taskDBInfo, Type type, JsonParser jsonParser) {
-        TaskInfo<T> taskInfo = new TaskInfo<>();
-        taskInfo.setResKey(taskDBInfo.getResKey());
-        taskInfo.setUrl(taskDBInfo.getUrl());
-        taskInfo.setPackageName(taskDBInfo.getPackageName());
-        taskInfo.setFilePath(taskDBInfo.getFilePath());
-        taskInfo.setVersionCode(taskDBInfo.getVersionCode() == null ? -1 : taskDBInfo.getVersionCode());
-        taskInfo.setProgress(taskDBInfo.getProgress() == null ? 0 : taskDBInfo.getProgress());
-        taskInfo.setRangeNum(taskDBInfo.getRangeNum() == null ? 0 : taskDBInfo.getRangeNum());
-        taskInfo.setTotalSize(taskDBInfo.getTotalSize() == null ? 0 : taskDBInfo.getTotalSize());
-        taskInfo.setCurrentSize(taskDBInfo.getCurrentSize() == null ? 0 : taskDBInfo.getCurrentSize());
-        taskInfo.setCurrentStatus(taskDBInfo.getCurrentStatus() == null ? State.NONE : taskDBInfo.getCurrentStatus());
-        taskInfo.setWifiAutoRetry(taskDBInfo.getWifiAutoRetry() == null ? true : taskDBInfo.getWifiAutoRetry());
-        taskInfo.setCode(taskDBInfo.getResponseCode() == null ? 0 : taskDBInfo.getResponseCode());
-        taskInfo.setExpand(taskDBInfo.getExpand());
-        taskInfo.setTagClassName(taskDBInfo.getTagClassName());
-        String tagJson = taskDBInfo.getTagJson();
-        taskInfo.setTagJson(tagJson);
-        taskInfo.setTagType(type);
-        if (!TextUtils.isEmpty(tagJson)) {
-            try {
-                T tag = jsonParser.fromJson(tagJson, type);
-                taskInfo.setTag(tag);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
-        return taskInfo;
+    public TagInfo getTagInfo() {
+        return tagInfo;
     }
 
-    public static TaskInfo taskDBInfo2TaskInfo(TaskDBInfo taskDBInfo, JsonParser jsonParser) {
-        TaskInfo<Object> taskInfo = new TaskInfo<>();
-        taskInfo.setResKey(taskDBInfo.getResKey());
-        taskInfo.setUrl(taskDBInfo.getUrl());
-        taskInfo.setPackageName(taskDBInfo.getPackageName());
-        taskInfo.setFilePath(taskDBInfo.getFilePath());
-        taskInfo.setVersionCode(taskDBInfo.getVersionCode() == null ? -1 : taskDBInfo.getVersionCode());
-        taskInfo.setProgress(taskDBInfo.getProgress() == null ? 0 : taskDBInfo.getProgress());
-        taskInfo.setRangeNum(taskDBInfo.getRangeNum() == null ? 0 : taskDBInfo.getRangeNum());
-        taskInfo.setTotalSize(taskDBInfo.getTotalSize() == null ? 0 : taskDBInfo.getTotalSize());
-        taskInfo.setCurrentSize(taskDBInfo.getCurrentSize() == null ? 0 : taskDBInfo.getCurrentSize());
-        taskInfo.setCurrentStatus(taskDBInfo.getCurrentStatus() == null ? State.NONE : taskDBInfo.getCurrentStatus());
-        taskInfo.setWifiAutoRetry(taskDBInfo.getWifiAutoRetry() == null ? true : taskDBInfo.getWifiAutoRetry());
-        taskInfo.setCode(taskDBInfo.getResponseCode() == null ? 0 : taskDBInfo.getResponseCode());
-        taskInfo.setExpand(taskDBInfo.getExpand());
-        String tagJson = taskDBInfo.getTagJson();
-        String tagClassName = taskDBInfo.getTagClassName();
-        taskInfo.setTagJson(tagJson);
-        taskInfo.setTagClassName(tagClassName);
-        if (!TextUtils.isEmpty(tagJson) && !TextUtils.isEmpty(tagClassName)) {
-            try {
-                Class<?> clazz = Class.forName(tagClassName);
-                taskInfo.setTagType(clazz);
-                Object fromJson = jsonParser.fromJson(tagJson, clazz);
-                taskInfo.setTag(fromJson);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
-        return taskInfo;
-    }
-
-
-    public static TaskDBInfo taskInfo2TaskDBInfo(TaskInfo taskInfo) {
-        TaskDBInfo taskDBInfo = new TaskDBInfo();
-        taskDBInfo.setResKey(taskInfo.getResKey());
-        taskDBInfo.setUrl(taskInfo.getUrl());
-        taskDBInfo.setFilePath(taskInfo.getFilePath());
-        taskDBInfo.setExpand(taskInfo.getExpand());
-        taskDBInfo.setCurrentSize(taskInfo.getCurrentSize());
-        taskDBInfo.setCurrentStatus(taskInfo.getCurrentStatus());
-        taskDBInfo.setTotalSize(taskInfo.getTotalSize());
-        taskDBInfo.setPackageName(taskInfo.getPackageName());
-        taskDBInfo.setVersionCode(taskInfo.getVersionCode());
-        taskDBInfo.setTagClassName(taskInfo.getTagClassName());
-        taskDBInfo.setProgress(taskInfo.getProgress());
-        taskDBInfo.setRangeNum(taskInfo.getRangeNum());
-        taskDBInfo.setWifiAutoRetry(taskInfo.isWifiAutoRetry());
-        taskDBInfo.setTagJson(taskInfo.getTagJson());
-        taskDBInfo.setTime(System.currentTimeMillis());
-        return taskDBInfo;
+    public void setTagInfo(TagInfo tagInfo) {
+        this.tagInfo = tagInfo;
     }
 
 }

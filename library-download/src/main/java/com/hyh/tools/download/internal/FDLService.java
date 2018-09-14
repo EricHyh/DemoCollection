@@ -11,9 +11,8 @@ import com.hyh.tools.download.IRequest;
 import com.hyh.tools.download.bean.Command;
 import com.hyh.tools.download.bean.Constants;
 import com.hyh.tools.download.bean.TaskInfo;
-import com.hyh.tools.download.internal.db.bean.TaskDBInfo;
-import com.hyh.tools.download.utils.DBUtil;
-import com.hyh.tools.download.utils.Utils;
+import com.hyh.tools.download.utils.FD_DBUtil;
+import com.hyh.tools.download.utils.FD_Utils;
 
 import java.util.Collection;
 import java.util.Set;
@@ -54,7 +53,7 @@ public class FDLService extends Service {
                     iClient.onCall(taskInfo);
                 }
             }
-            DBUtil.getInstance(getApplicationContext()).operate(taskInfo);
+            FD_DBUtil.getInstance(getApplicationContext()).operate(taskInfo);
         }
 
 
@@ -129,7 +128,7 @@ public class FDLService extends Service {
             final TaskInfo request = intent.getParcelableExtra(Constants.REQUEST_INFO);
             if (command >= 0 && request != null) {
                 if (mCommandExecutor == null) {
-                    mCommandExecutor = Utils.buildExecutor(1, 1, 120, "FDLService Command Thread", true);
+                    mCommandExecutor = FD_Utils.buildExecutor(1, 1, 120, "FDLService Command Thread", true);
                 }
                 final String resKey = request.getResKey();
                 final Collection<IClient> values = mClients.values();

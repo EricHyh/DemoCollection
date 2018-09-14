@@ -1,8 +1,8 @@
 package com.hyh.tools.download.internal;
 
-import com.hyh.tools.download.api.HttpCall;
-import com.hyh.tools.download.api.HttpCallback;
-import com.hyh.tools.download.api.HttpResponse;
+import com.hyh.tools.download.net.HttpCall;
+import com.hyh.tools.download.net.HttpCallback;
+import com.hyh.tools.download.net.HttpResponse;
 import com.hyh.tools.download.bean.TaskInfo;
 
 import java.io.IOException;
@@ -15,7 +15,7 @@ import java.io.IOException;
 abstract class AbstractHttpCallback implements HttpCallback {
 
     @Override
-    public void onFailure(HttpCall httpCall, IOException e) {
+    public void onFailure(HttpCall httpCall, Exception e) {
     }
 
     @Override
