@@ -137,16 +137,6 @@ public class DownloadFileHelper {
         }
     }
 
-    public static File getDownLoadFile(Context context, String resKey) {
-        String defaultFileDir = getDefaultFileDir(context);
-        return new File(defaultFileDir);
-    }
-
-    static File getTempFile(Context context, String resKey, int rangeId) {
-        File downLoadFile = getDownLoadFile(context, resKey);
-        return new File(downLoadFile.getParent(), downLoadFile.getName().concat("-").concat(String.valueOf(rangeId)));
-    }
-
     public static String getDefaultFileDir(Context context) {
         File dir;
         //has sdcard 优先存于sd卡中 如果没有就存于内部内存中

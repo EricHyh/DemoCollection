@@ -115,7 +115,7 @@ public class NetworkHelper {
         String userAgent = null;
         SharedPreferences preferences = context.getSharedPreferences(Constants.Preference.SHARE_NAME, Context.MODE_PRIVATE);
         long cacheTimeMillis = preferences.getLong(Constants.Preference.Key.CACHE_USER_AGENT_TIME_MILLIS, 0);
-        if (isInIntervalDays(cacheTimeMillis, System.currentTimeMillis())) {
+        if (isSameDay(cacheTimeMillis, System.currentTimeMillis())) {
             userAgent = preferences.getString(Constants.Preference.Key.USER_AGENT, null);
         }
         if (!TextUtils.isEmpty(userAgent)) {
@@ -153,7 +153,7 @@ public class NetworkHelper {
         return userAgent;
     }
 
-    private static boolean isInIntervalDays(long timeMillis1, long timeMillis2) {
+    private static boolean isSameDay(long timeMillis1, long timeMillis2) {
         if (timeMillis1 > 0 && timeMillis2 > 0) {
             Calendar calendar = Calendar.getInstance();
             calendar.setTimeInMillis(timeMillis1);
@@ -165,7 +165,7 @@ public class NetworkHelper {
             int year2 = calendar.get(Calendar.YEAR);
             int month2 = calendar.get(Calendar.MONTH);
             int day2 = calendar.get(Calendar.DATE);
-            return year1 == year2 && month1 == month2 && Math.abs(day1 - day2) <= 10;
+            return year1 == year2 && month1 == month2 && day1 == day2;
         } else {
             return false;
         }
