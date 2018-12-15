@@ -575,6 +575,7 @@ public class FileDownloader implements DownloadProxyFactory {
     private TaskInfo generateTaskInfo(FileRequest request, File file, Object[] currentSizeAndMultiPositions) {
         TaskInfo taskInfo = new TaskInfo();
         long currentSize = 0;
+
         if (currentSizeAndMultiPositions != null) {
             currentSize = (long) currentSizeAndMultiPositions[0];
             if (request.byMultiThread()) {
