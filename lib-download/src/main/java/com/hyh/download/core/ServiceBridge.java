@@ -9,16 +9,23 @@ import android.os.Process;
 import android.os.RemoteException;
 
 import com.hyh.download.Callback;
+import com.hyh.download.FileChecker;
 import com.hyh.download.IClient;
+import com.hyh.download.IFileChecker;
 import com.hyh.download.IRequest;
 import com.hyh.download.State;
 import com.hyh.download.bean.TaskInfo;
 import com.hyh.download.core.service.FDLService;
-import com.hyh.download.db.TaskDatabaseHelper;
 
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.RejectedExecutionHandler;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Created by Administrator on 2017/3/9.
@@ -27,13 +34,33 @@ import java.util.Map;
 public class ServiceBridge implements IDownloadProxy {
 
 
+    private final ThreadPoolExecutor mExecutor;
+
+    {
+        int corePoolSize = 1;
+        int maximumPoolSize = 1;
+        long keepAliveTime = 120L;
+        TimeUnit unit = TimeUnit.SECONDS;
+        BlockingQueue<Runnable> workQueue = new LinkedBlockingQueue<>();
+        ThreadFactory threadFactory = new ThreadFactory() {
+            @Override
+            public Thread newThread(Runnable r) {
+                Thread thread = new Thread(r, "FileDownloader");
+                thread.setDaemon(true);
+                return thread;
+            }
+        };
+        RejectedExecutionHandler handler = new ThreadPoolExecutor.DiscardPolicy();
+        mExecutor = new ThreadPoolExecutor(corePoolSize, maximumPoolSize, keepAliveTime, unit, workQueue, threadFactory, handler);
+    }
+
+
     private final Object mServiceConnectedLock = new Object();
 
     private volatile boolean mIsConnected = false;
-    private boolean mIsStartBind = false;
+    private volatile boolean mIsStartBind = false;
     private volatile ServiceConnection mConnection;
     private Context mContext;
-    private TaskDatabaseHelper mDBUtil;
     private IRequest mServiceAgent;
     private Callback mCallback;
     private Map<String, TaskCache> mCacheTasks = new LinkedHashMap<>();
@@ -44,7 +71,6 @@ public class ServiceBridge implements IDownloadProxy {
 
     public ServiceBridge(Context context, boolean isIndependentProcess, int maxSynchronousDownloadNum, Callback callback) {
         this.mContext = context.getApplicationContext();
-        this.mDBUtil = TaskDatabaseHelper.getInstance().init(mContext);
         this.mServiceClass = isIndependentProcess ? FDLService.IndependentProcessService.class : FDLService.MainProcessService.class;
         this.mMaxSynchronousDownloadNum = maxSynchronousDownloadNum;
         this.mCallback = callback;
@@ -52,21 +78,21 @@ public class ServiceBridge implements IDownloadProxy {
     }
 
     @Override
-    public void initProxy() {
+    public void initProxy(Runnable afterInit) {
         waitingForService();
-        if (mIsConnected) {
-            try {
-                mServiceAgent.fixDatabaseErrorStatus();
-            } catch (RemoteException e) {
-                mDBUtil.fixDatabaseErrorStatus();
-            }
-        } else {
-            mDBUtil.fixDatabaseErrorStatus();
+        try {
+            mServiceAgent.initDownloadProxy(mMaxSynchronousDownloadNum);
+            afterInit.run();
+        } catch (Exception e) {
+            //
         }
     }
 
     private synchronized void bindService() {
-        if (mIsConnected || mIsStartBind) {
+        if (isServiceAlive()) {
+            return;
+        }
+        if (mIsStartBind) {
             return;
         }
         mIsStartBind = true;
@@ -79,6 +105,139 @@ public class ServiceBridge implements IDownloadProxy {
         mContext.startService(intent);
     }
 
+    @Override
+    public void onReceiveStartCommand(String resKey) {
+        waitingForService();
+        try {
+            mServiceAgent.onReceiveStartCommand(resKey);
+        } catch (Exception e) {
+            //
+        }
+    }
+
+    @Override
+    public void onReceivePauseCommand(String resKey) {
+        waitingForService();
+        try {
+            mServiceAgent.onReceivePauseCommand(resKey);
+        } catch (Exception e) {
+            //
+        }
+    }
+
+    @Override
+    public void onReceiveDeleteCommand(String resKey) {
+        waitingForService();
+        try {
+            mServiceAgent.onReceiveDeleteCommand(resKey);
+        } catch (Exception e) {
+            //
+        }
+    }
+
+    @Override
+    public synchronized void startTask(TaskInfo taskInfo, FileChecker fileChecker) {
+        waitingForService();
+        try {
+            String resKey = taskInfo.getResKey();
+            mCacheTasks.put(resKey, new TaskCache(Command.START, taskInfo, fileChecker));
+            IFileChecker iFileChecker = null;
+            if (fileChecker != null) {
+                iFileChecker = new FileCheckerStub(fileChecker);
+            }
+            mServiceAgent.startTask(taskInfo, iFileChecker);
+            mCacheTasks.remove(resKey);
+        } catch (Exception e) {
+            //
+        }
+    }
+
+    @Override
+    public synchronized void pauseTask(String resKey) {
+        waitingForService();
+        try {
+
+            mServiceAgent.pauseTask(resKey);
+        } catch (Exception e) {
+            //
+        }
+    }
+
+    @Override
+    public synchronized void deleteTask(String resKey) {
+        waitingForService();
+
+    }
+
+    @Override
+    public boolean isTaskAlive(String resKey) {
+        waitingForService();
+        try {
+            return mServiceAgent.isTaskAlive(resKey);
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    @Override
+    public boolean isFileDownloaded(String resKey) {
+        waitingForService();
+        try {
+            return mServiceAgent.isFileDownloaded(resKey);
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    @Override
+    public TaskInfo getTaskInfoByKey(String resKey) {
+        waitingForService();
+        try {
+            return mServiceAgent.getTaskInfoByKey(resKey);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private void waitingForService() {
+        if (isServiceAlive()) {
+            return;
+        }
+        bindService();
+        synchronized (mServiceConnectedLock) {
+            while (true) {
+                try {
+                    mServiceConnectedLock.wait();
+                } catch (Exception e) {
+                    //
+                }
+                if (isServiceAlive()) {
+                    break;
+                }
+            }
+        }
+    }
+
+    private boolean isServiceAlive() {
+        if (mIsConnected && mServiceAgent != null) {
+            try {
+                return mServiceAgent.isAlive();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        return false;
+    }
+
+    @Override
+    public void insertOrUpdate(TaskInfo taskInfo) {
+        waitingForService();
+        try {
+            mServiceAgent.insertOrUpdate(taskInfo);
+        } catch (RemoteException e) {
+            //
+        }
+    }
 
     private IClient.Stub mClient = new IClient.Stub() {
 
@@ -173,14 +332,28 @@ public class ServiceBridge implements IDownloadProxy {
                     synchronized (mServiceConnectedLock) {
                         mServiceConnectedLock.notifyAll();
                     }
-                } catch (RemoteException e) {
-                    e.printStackTrace();
-                }
-                if (mCacheTasks.size() > 0) {
-                    Collection<TaskCache> values = mCacheTasks.values();
-                    for (TaskCache taskCache : values) {
-                        enqueue(taskCache.command, taskCache.taskInfo);
+                    if (mCacheTasks.size() > 0) {
+                        Collection<TaskCache> values = mCacheTasks.values();
+                        for (TaskCache taskCache : values) {
+                            int command = taskCache.command;
+                            switch (command) {
+                                case Command.START: {
+                                    startTask(taskCache.taskInfo, taskCache.fileChecker);
+                                    break;
+                                }
+                                case Command.PAUSE: {
+                                    pauseTask(taskCache.resKey);
+                                    break;
+                                }
+                                case Command.DELETE: {
+                                    deleteTask(taskCache.resKey);
+                                    break;
+                                }
+                            }
+                        }
                     }
+                } catch (Exception e) {
+                    //
                 }
             }
 
@@ -194,120 +367,22 @@ public class ServiceBridge implements IDownloadProxy {
         };
     }
 
-    @Override
-    public boolean isTaskEnqueue(String resKey) {
-        waitingForService();
-        if (mIsConnected) {
-            try {
-                return mServiceAgent.isTaskEnqueue(resKey);
-            } catch (RemoteException e) {
-                e.printStackTrace();
-            }
-            return false;
+    private static class FileCheckerStub extends IFileChecker.Stub {
+
+        private FileChecker fileChecker;
+
+        private FileCheckerStub(FileChecker fileChecker) {
+            this.fileChecker = fileChecker;
         }
-        return false;
-    }
 
-    @Override
-    public void onReceiveStartCommand(TaskInfo taskInfo) {
-        waitingForService();
-        try {
-            mServiceAgent.onReceiveStartCommand(taskInfo);
-        } catch (Exception e) {
-
+        @Override
+        public boolean isValidFile(TaskInfo taskInfo) throws RemoteException {
+            return fileChecker == null || fileChecker.isValidFile(taskInfo);
         }
-    }
 
-    @Override
-    public void onReceivePauseCommand(TaskInfo taskInfo) {
-        waitingForService();
-        try {
-            mServiceAgent.onReceivePauseCommand(taskInfo);
-        } catch (Exception e) {
-
+        @Override
+        public boolean isRetryDownload() throws RemoteException {
+            return fileChecker != null && fileChecker.isRetryDownload();
         }
-    }
-
-    @Override
-    public void onReceiveDeleteCommand(TaskInfo taskInfo) {
-        waitingForService();
-        try {
-            mServiceAgent.onReceiveDeleteCommand(taskInfo);
-        } catch (Exception e) {
-
-        }
-    }
-
-    @Override
-    public boolean isFileDownloading(String resKey) {
-        return false;
-    }
-
-    @Override
-    public boolean isFileDownloaded(String resKey) {
-        return false;
-    }
-
-    @Override
-    public TaskInfo getTaskInfoByKey(String resKey) {
-        return null;
-    }
-
-    @Override
-    public void deleteTask(String resKey) {
-
-    }
-
-    private void waitingForService() {
-        if (!mIsConnected) {
-            bindService();
-            synchronized (mServiceConnectedLock) {
-                while (true) {
-                    try {
-                        mServiceConnectedLock.wait();
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
-                    if (mIsConnected) {
-                        break;
-                    }
-                }
-            }
-        }
-    }
-
-    @Override
-    public void operateDatabase(TaskInfo taskInfo) {
-        waitingForService();
-        try {
-            mServiceAgent.operateDatabase(mPid, taskInfo);
-        } catch (RemoteException e) {
-            mDBUtil.operate(taskInfo);
-        }
-    }
-
-
-    @Override
-    public void enqueue(int command, TaskInfo taskInfo) {
-        String resKey = taskInfo.getResKey();
-        TaskCache taskCache = new TaskCache(command, taskInfo);
-        mCacheTasks.put(resKey, taskCache);
-        if (mIsConnected) {
-            try {
-                int pid = Process.myPid();
-                mServiceAgent.register(pid, mClient);
-                mServiceAgent.request(pid, command, taskInfo);
-                mCacheTasks.remove(resKey);
-            } catch (RemoteException e) {
-                e.printStackTrace();
-            }
-        } else {
-            bindService();
-        }
-    }
-
-    @Override
-    public void setMaxSynchronousDownloadNum(int num) {
-        mMaxSynchronousDownloadNum = num;
     }
 }

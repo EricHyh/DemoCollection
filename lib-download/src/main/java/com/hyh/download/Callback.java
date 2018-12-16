@@ -16,13 +16,6 @@ public interface Callback {
     void onPrepare(TaskInfo taskInfo);
 
     /**
-     * 磁盘空间不足
-     *
-     * @param taskInfo 下载任务信息
-     */
-    void onNoEnoughSpace(TaskInfo taskInfo);
-
-    /**
      * 从网络中获取到输入流并开始往文件中写数据
      *
      * @param taskInfo 下载任务信息
@@ -36,7 +29,6 @@ public interface Callback {
      */
     void onDownloading(TaskInfo taskInfo);
 
-
     /**
      * 等待过程
      *
@@ -44,13 +36,12 @@ public interface Callback {
      */
     void onWaitingInQueue(TaskInfo taskInfo);
 
-
     /**
-     * 等待wifi过程
+     * 下载任务被暂停
      *
      * @param taskInfo 下载任务信息
      */
-    void onWaitingForWifi(TaskInfo taskInfo);
+    void onPause(TaskInfo taskInfo);
 
 
     /**
@@ -61,18 +52,25 @@ public interface Callback {
     void onDelete(TaskInfo taskInfo);
 
     /**
-     * 下载任务被暂停
-     *
-     * @param taskInfo 下载任务信息
-     */
-    void onPause(TaskInfo taskInfo);
-
-    /**
      * 下载成功
      *
      * @param taskInfo 下载任务信息
      */
     void onSuccess(TaskInfo taskInfo);
+
+    /**
+     * 等待wifi过程
+     *
+     * @param taskInfo 下载任务信息
+     */
+    void onWaitingForWifi(TaskInfo taskInfo);
+
+    /**
+     * 磁盘空间不足
+     *
+     * @param taskInfo 下载任务信息
+     */
+    void onNoEnoughSpace(TaskInfo taskInfo);
 
     /**
      * 下载失败

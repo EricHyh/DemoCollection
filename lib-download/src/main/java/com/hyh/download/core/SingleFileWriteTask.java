@@ -7,7 +7,6 @@ import com.hyh.download.utils.NetworkHelper;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.FileOutputStream;
-import java.io.IOException;
 
 /**
  * @author Administrator
@@ -22,7 +21,7 @@ class SingleFileWriteTask implements FileWrite {
 
     private long startPosition;
 
-    private long endPosition;
+    private final long endPosition;
 
     private volatile boolean stop;
 
@@ -48,11 +47,11 @@ class SingleFileWriteTask implements FileWrite {
                 startPosition += len;
                 listener.onWriteFile(len);
                 if (stop) {
+                    bos.flush();
                     break;
                 }
             }
-        } catch (IOException e) {
-            e.printStackTrace();
+        } catch (Exception e) {
             isException = true;
         } finally {
             NetworkHelper.close(bos, response);

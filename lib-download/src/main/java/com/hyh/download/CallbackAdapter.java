@@ -15,11 +15,6 @@ public abstract class CallbackAdapter implements Callback {
     }
 
     @Override
-    public void onNoEnoughSpace(TaskInfo taskInfo) {
-
-    }
-
-    @Override
     public void onFirstFileWrite(TaskInfo taskInfo) {
 
     }
@@ -35,7 +30,7 @@ public abstract class CallbackAdapter implements Callback {
     }
 
     @Override
-    public void onWaitingForWifi(TaskInfo taskInfo) {
+    public void onPause(TaskInfo taskInfo) {
 
     }
 
@@ -45,12 +40,17 @@ public abstract class CallbackAdapter implements Callback {
     }
 
     @Override
-    public void onPause(TaskInfo taskInfo) {
+    public void onSuccess(TaskInfo taskInfo) {
 
     }
 
     @Override
-    public void onSuccess(TaskInfo taskInfo) {
+    public void onWaitingForWifi(TaskInfo taskInfo) {
+
+    }
+
+    @Override
+    public void onNoEnoughSpace(TaskInfo taskInfo) {
 
     }
 

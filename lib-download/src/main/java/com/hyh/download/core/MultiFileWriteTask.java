@@ -21,7 +21,7 @@ class MultiFileWriteTask implements FileWrite {
 
     private long startPosition;
 
-    private long endPosition;
+    private final long endPosition;
 
     private boolean stop;
 

@@ -12,7 +12,7 @@ public class DownloaderConfig {
 
     private boolean isIndependentProcess = false;
 
-    private int maxSyncDownloadNum = 2;
+    private int maxSyncDownloadNum = 4;
 
     private String defaultFileDir;
 
@@ -23,6 +23,7 @@ public class DownloaderConfig {
         this.byService = byService;
         this.isIndependentProcess = isIndependentProcess;
         this.maxSyncDownloadNum = maxSyncDownloadNum;
+        this.defaultFileDir = defaultFileDir;
     }
 
     public boolean isByService() {

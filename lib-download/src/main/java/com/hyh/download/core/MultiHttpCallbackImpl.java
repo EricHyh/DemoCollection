@@ -86,7 +86,7 @@ class MultiHttpCallbackImpl extends AbstractHttpCallback {
                         OnWriteFileTask pollTask = (OnWriteFileTask) executor.getQueue().poll();
                         L.d("RealHttpCallbackImpl mergeTask pre writeLength = " + task.writeLength);
                         task.mergeTask(pollTask);
-                        L.d("RealHttpCallbackImpl mergeTask pre writeLength = " + task.writeLength);
+                        L.d("RealHttpCallbackImpl mergeTask after writeLength = " + task.writeLength);
                         executor.execute(task);
                     }
                 }
@@ -371,7 +371,7 @@ class MultiHttpCallbackImpl extends AbstractHttpCallback {
                 return false;
             }
             currentRetryTimes++;
-            if (isWifiOk(context)) {
+            if (waitingSuitableNetworkType()) {
                 if (currentRetryTimes == 0 || currentRetryTimes == 1) {
                     SystemClock.sleep(RETRY_DELAY);
                 }
@@ -400,21 +400,26 @@ class MultiHttpCallbackImpl extends AbstractHttpCallback {
             }
         }
 
-        private boolean isWifiOk(Context context) {
-            int count = 0;
+        private boolean waitingSuitableNetworkType() {
+            int waitingNumber = 0;
             while (true) {
-                if (pause || delete || isAllFailure()) {
+                if (pause || delete) {
                     return false;
                 }
-                if (NetworkHelper.isWifiEnv(context)) {
+                if (isSuitableNetworkType()) {
                     return true;
                 }
                 SystemClock.sleep(RETRY_DELAY);
-                count++;
-                if (count == SEARCH_WIFI_MAX_TIMES) {
+                waitingNumber++;
+                if (waitingNumber == SEARCH_WIFI_MAX_TIMES) {
                     return false;
                 }
             }
+        }
+
+        private boolean isSuitableNetworkType() {
+            return NetworkHelper.isWifiEnv(context)
+                    || taskInfo.isPermitMobileDataRetry() && NetworkHelper.isNetEnv(context);
         }
 
         private long fixStartPosition(long startPosition, int rangeId) {

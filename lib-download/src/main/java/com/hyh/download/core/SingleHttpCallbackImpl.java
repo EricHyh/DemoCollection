@@ -270,10 +270,8 @@ class SingleHttpCallbackImpl extends AbstractHttpCallback {
     }
 
     private boolean isSuitableNetworkType() {
-        if (NetworkHelper.isWifiEnv(context)) {
-            return true;
-        }
-        return taskInfo.isPermitMobileDataRetry() && NetworkHelper.isNetEnv(context);
+        return NetworkHelper.isWifiEnv(context)
+                || taskInfo.isPermitMobileDataRetry() && NetworkHelper.isNetEnv(context);
     }
 
     @Override

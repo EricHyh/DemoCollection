@@ -14,7 +14,9 @@ public interface HttpResponse extends Closeable {
 
     int code();
 
-    InputStream inputStream();
+    String getUrl();
+
+    InputStream inputStream() throws IOException;
 
     String header(String name);
 

@@ -5,7 +5,6 @@ import android.content.Context;
 import com.hyh.download.Callback;
 import com.hyh.download.State;
 import com.hyh.download.bean.TaskInfo;
-import com.hyh.download.db.TaskDatabaseHelper;
 
 
 /**
@@ -21,19 +20,6 @@ public class LocalDownloadProxyImpl extends SuperDownloadProxy implements IDownl
     public LocalDownloadProxyImpl(Context context, int maxSynchronousDownloadNum, Callback callback) {
         super(context, maxSynchronousDownloadNum);
         mCallback = callback;
-    }
-
-    @Override
-    public void initProxy() {
-        TaskDatabaseHelper.getInstance().init(context);
-        TaskDatabaseHelper.getInstance().fixDatabaseErrorStatus();
-    }
-
-    @Override
-    protected void handleHaveNoTask() {
-        if (mCallback != null) {
-            mCallback.onHaveNoTask();
-        }
     }
 
     @Override
@@ -70,13 +56,9 @@ public class LocalDownloadProxyImpl extends SuperDownloadProxy implements IDownl
     }
 
     @Override
-    protected void handleDatabase(TaskInfo taskInfo) {
-        TaskDatabaseHelper.getInstance().operate(taskInfo);
+    protected void handleHaveNoTask() {
+        if (mCallback != null) {
+            mCallback.onHaveNoTask();
+        }
     }
-
-    @Override
-    public void operateDatabase(TaskInfo taskInfo) {
-        TaskDatabaseHelper.getInstance().operate(taskInfo);
-    }
-
 }

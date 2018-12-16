@@ -9,14 +9,8 @@ import com.hyh.download.core.IDownloadProxy;
 import com.hyh.download.core.LocalDownloadProxyImpl;
 import com.hyh.download.core.ServiceBridge;
 import com.hyh.download.core.TaskListenerManager;
+import com.hyh.download.core.TaskStateCache;
 import com.hyh.download.utils.DownloadFileHelper;
-
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.RejectedExecutionHandler;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 
 /**
  * @author Administrator
@@ -35,31 +29,13 @@ public class FileDownloader {
 
     private Context mContext;
 
+    private final TaskStateCache mTaskStateCache = new TaskStateCache();
+
     private DownloaderConfig mDownloaderConfig = new DownloaderConfig();
 
     private final Object mInitProxyLock = new Object();
 
     private volatile boolean mIsInitProxy;
-
-    private final ThreadPoolExecutor mExecutor;
-
-    {
-        int corePoolSize = 1;
-        int maximumPoolSize = 1;
-        long keepAliveTime = 120L;
-        TimeUnit unit = TimeUnit.SECONDS;
-        BlockingQueue<Runnable> workQueue = new LinkedBlockingQueue<>();
-        ThreadFactory threadFactory = new ThreadFactory() {
-            @Override
-            public Thread newThread(Runnable r) {
-                Thread thread = new Thread(r, "FileDownloader");
-                thread.setDaemon(true);
-                return thread;
-            }
-        };
-        RejectedExecutionHandler handler = new ThreadPoolExecutor.DiscardPolicy();
-        mExecutor = new ThreadPoolExecutor(corePoolSize, maximumPoolSize, keepAliveTime, unit, workQueue, threadFactory, handler);
-    }
 
     private IDownloadProxy mDownloadProxy;//本地下载代理类
 
@@ -75,17 +51,15 @@ public class FileDownloader {
         mContext = context.getApplicationContext();
         mDownloaderConfig = downloaderConfig;
         mDownloadProxy = createDownloadProxy();
-        mListenerManager = new TaskListenerManager();
+        mListenerManager = new TaskListenerManager(mTaskStateCache);
         initProxy();
     }
 
     private void initProxy() {
-        mExecutor.execute(new Runnable() {
-
+        mDownloadProxy.initProxy(new Runnable() {
             @Override
             public void run() {
                 synchronized (mInitProxyLock) {
-                    mDownloadProxy.initProxy();
                     mIsInitProxy = true;
                     mInitProxyLock.notifyAll();
                 }
@@ -119,7 +93,8 @@ public class FileDownloader {
             callback.onSuccess(mDownloadProxy.getTaskInfoByKey(key));
             return;
         }
-        if (isFileDownloading(request.key())) {
+
+        if (mTaskStateCache.isTaskPrepared(request.key()) || isTaskAlive(request.key())) {
             if (callback != null) {
                 mListenerManager.addSingleTaskCallback(request.key(), callback);
             }
@@ -127,70 +102,50 @@ public class FileDownloader {
         }
 
         final TaskInfo taskInfo = getTaskInfo(request);
-        mDownloadProxy.operateDatabase(taskInfo);
+        mDownloadProxy.insertOrUpdate(taskInfo);
         if (callback != null) {
             mListenerManager.addSingleTaskCallback(request.key(), callback);
         }
         onReceiveStartCommand(taskInfo);
-        mExecutor.execute(new Runnable() {
-            @Override
-            public void run() {
-                mDownloadProxy.enqueue(Command.START, taskInfo);
-            }
-        });
+        mDownloadProxy.startTask(taskInfo, request.fileChecker());
     }
 
     public synchronized void pauseTask(final String resKey) {
         waitingForInitProxyFinish();
-        if (mDownloadProxy.isFileDownloading(resKey)) {
-            final TaskInfo taskInfo = mDownloadProxy.getTaskInfoByKey(resKey);
-            onReceivePauseCommand(taskInfo);
-            mExecutor.execute(new Runnable() {
-                @Override
-                public void run() {
-                    mDownloadProxy.enqueue(Command.PAUSE, taskInfo);
-                }
-            });
+        if (mDownloadProxy.isTaskAlive(resKey)) {
+            onReceivePauseCommand(resKey);
+            mDownloadProxy.pauseTask(resKey);
         }
     }
 
     public synchronized void deleteTask(final String resKey) {
         waitingForInitProxyFinish();
-        if (mDownloadProxy.isFileDownloading(resKey)) {
-            final TaskInfo taskInfo = mDownloadProxy.getTaskInfoByKey(resKey);
-            onReceiveDeleteCommand(taskInfo);
-            mExecutor.execute(new Runnable() {
-                @Override
-                public void run() {
-                    mDownloadProxy.enqueue(Command.DELETE, taskInfo);
-                }
-            });
-        } else {
-            mDownloadProxy.deleteTask(resKey);
-        }
+        onReceiveDeleteCommand(resKey);
+        mDownloadProxy.deleteTask(resKey);
     }
 
     private void onReceiveStartCommand(TaskInfo taskInfo) {
         mListenerManager.onPrepare(taskInfo);
-        mDownloadProxy.onReceiveStartCommand(taskInfo);
-        mListenerManager.onPrepare(taskInfo);
+        mDownloadProxy.onReceiveStartCommand(taskInfo.getResKey());
     }
 
-    private void onReceivePauseCommand(TaskInfo taskInfo) {
+    private void onReceivePauseCommand(String resKey) {
+        TaskInfo taskInfo = mDownloadProxy.getTaskInfoByKey(resKey);
         mListenerManager.onPause(taskInfo);
-        mDownloadProxy.onReceivePauseCommand(taskInfo);
-        mListenerManager.onPause(taskInfo);
+        mDownloadProxy.onReceivePauseCommand(resKey);
     }
 
-    private void onReceiveDeleteCommand(TaskInfo taskInfo) {
-        mListenerManager.onDelete(taskInfo);
-        mDownloadProxy.onReceiveDeleteCommand(taskInfo);
-        mListenerManager.onDelete(taskInfo);
+    private void onReceiveDeleteCommand(String resKey) {
+        TaskInfo taskInfo = mDownloadProxy.getTaskInfoByKey(resKey);
+        if (taskInfo != null) {
+            mListenerManager.onDelete(taskInfo);
+        }
+        mDownloadProxy.onReceiveDeleteCommand(resKey);
     }
 
-    public boolean isFileDownloading(String resKey) {
+    public boolean isTaskAlive(String resKey) {
         waitingForInitProxyFinish();
-        return mDownloadProxy.isFileDownloading(resKey);
+        return mDownloadProxy.isTaskAlive(resKey);
     }
 
     public boolean isFileDownloaded(String resKey) {
@@ -239,7 +194,7 @@ public class FileDownloader {
     }
 
     private void fixDownloadUrl(FileRequest request, TaskInfo taskInfo) {
-
+        taskInfo.setRequestUrl(request.url());
     }
 
     private void fixFilePath(FileRequest request, TaskInfo taskInfo) {

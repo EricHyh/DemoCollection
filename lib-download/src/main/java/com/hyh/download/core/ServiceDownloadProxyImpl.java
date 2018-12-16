@@ -5,7 +5,6 @@ import android.os.RemoteException;
 
 import com.hyh.download.IClient;
 import com.hyh.download.bean.TaskInfo;
-import com.hyh.download.db.TaskDatabaseHelper;
 
 import java.util.Iterator;
 import java.util.Map;
@@ -25,16 +24,6 @@ public class ServiceDownloadProxyImpl extends SuperDownloadProxy implements IDow
                                     int maxSynchronousDownloadNum) {
         super(context, maxSynchronousDownloadNum);
         this.mClients = clients;
-    }
-
-    @Override
-    public void initProxy() {
-        TaskDatabaseHelper.getInstance().fixDatabaseErrorStatus();
-    }
-
-    @Override
-    public void operateDatabase(TaskInfo taskInfo) {
-        TaskDatabaseHelper.getInstance().operate(taskInfo);
     }
 
     @Override
@@ -77,10 +66,5 @@ public class ServiceDownloadProxyImpl extends SuperDownloadProxy implements IDow
         } catch (Exception e) {
             return false;
         }
-    }
-
-    @Override
-    protected void handleDatabase(TaskInfo taskInfo) {
-        TaskDatabaseHelper.getInstance().operate(taskInfo);
     }
 }

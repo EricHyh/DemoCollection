@@ -1,6 +1,7 @@
 package com.hyh.download.core;
 
 
+import com.hyh.download.FileChecker;
 import com.hyh.download.bean.TaskInfo;
 
 /**
@@ -15,14 +16,18 @@ public class TaskCache {
 
     TaskInfo taskInfo;
 
-    TaskCache(int command, TaskInfo taskInfo) {
+    FileChecker fileChecker;
+
+    TaskCache(int command, TaskInfo taskInfo, FileChecker fileChecker) {
         this.command = command;
         this.taskInfo = taskInfo;
+        this.fileChecker = fileChecker;
     }
 
-    TaskCache(String resKey, TaskInfo taskInfo) {
+    TaskCache(String resKey, TaskInfo taskInfo, FileChecker fileChecker) {
         this.resKey = resKey;
         this.taskInfo = taskInfo;
+        this.fileChecker = fileChecker;
     }
 
     @Override
@@ -32,5 +37,4 @@ public class TaskCache {
         TaskCache taskCache = (TaskCache) o;
         return resKey.equals(taskCache.resKey);
     }
-
 }

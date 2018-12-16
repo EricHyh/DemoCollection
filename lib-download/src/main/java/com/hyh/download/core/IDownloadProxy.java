@@ -1,6 +1,7 @@
 package com.hyh.download.core;
 
 
+import com.hyh.download.FileChecker;
 import com.hyh.download.bean.TaskInfo;
 
 /**
@@ -11,28 +12,26 @@ import com.hyh.download.bean.TaskInfo;
 
 public interface IDownloadProxy {
 
-    void initProxy();
+    void initProxy(Runnable afterInit);
 
-    void enqueue(int command, TaskInfo taskInfo);
+    void onReceiveStartCommand(String resKey);
 
-    void setMaxSynchronousDownloadNum(int num);
+    void onReceivePauseCommand(String resKey);
 
-    boolean isTaskEnqueue(String resKey);
+    void onReceiveDeleteCommand(String resKey);
 
-    void onReceiveStartCommand(TaskInfo taskInfo);
+    void startTask(TaskInfo taskInfo, FileChecker fileChecker);
 
-    void onReceivePauseCommand(TaskInfo taskInfo);
-
-    void onReceiveDeleteCommand(TaskInfo taskInfo);
-
-    boolean isFileDownloading(String resKey);
-
-    boolean isFileDownloaded(String resKey);
-
-    TaskInfo getTaskInfoByKey(String resKey);
+    void pauseTask(String resKey);
 
     void deleteTask(String resKey);
 
-    void operateDatabase(TaskInfo taskInfo);
+    boolean isTaskAlive(String resKey);
+
+    boolean isFileDownloaded(String resKey);
+
+    void insertOrUpdate(TaskInfo taskInfo);
+
+    TaskInfo getTaskInfoByKey(String resKey);
 
 }

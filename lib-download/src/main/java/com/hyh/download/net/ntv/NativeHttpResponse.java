@@ -37,15 +37,16 @@ public class NativeHttpResponse implements HttpResponse {
     }
 
     @Override
-    public InputStream inputStream() {
+    public String getUrl() {
+        return connection.getURL().toString();
+    }
+
+    @Override
+    public InputStream inputStream() throws IOException {
         if (inputStream != null) {
             return inputStream;
         }
-        try {
-            inputStream = connection.getInputStream();
-        } catch (IOException e) {
-            //
-        }
+        inputStream = connection.getInputStream();
         return inputStream;
     }
 

@@ -25,10 +25,22 @@ public class TaskDatabaseHelper {
     public void fixDatabaseErrorStatus() {
     }
 
-    public void operate(TaskInfo taskInfo) {
+    public void insertOrUpdate(TaskInfo taskInfo) {
+    }
+
+    public void delete(String resKey) {
+
+    }
+
+    public void delete(TaskInfo taskInfo) {
+
     }
 
     public Map<String, TaskInfo> getAllTask() {
+        return null;
+    }
+
+    public TaskInfo getTaskInfoByKey(String resKey) {
         return null;
     }
 }
