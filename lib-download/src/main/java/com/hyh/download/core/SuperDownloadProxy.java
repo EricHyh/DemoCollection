@@ -2,7 +2,6 @@ package com.hyh.download.core;
 
 import android.content.Context;
 
-import com.hyh.download.CallbackAdapter;
 import com.hyh.download.FileChecker;
 import com.hyh.download.State;
 import com.hyh.download.bean.TaskInfo;
@@ -12,7 +11,6 @@ import com.hyh.download.net.HttpClient;
 import com.hyh.download.net.ntv.NativeHttpClient;
 import com.hyh.download.utils.DownloadFileHelper;
 import com.hyh.download.utils.L;
-import com.sun.istack.internal.NotNull;
 
 import java.util.Iterator;
 import java.util.Map;
@@ -65,7 +63,7 @@ public abstract class SuperDownloadProxy implements IDownloadProxy {
 
     private int maxSynchronousDownloadNum;
 
-    private DownloadCallback downloadCallback;
+    private DownloadCallbackImpl mDownloadCallbackImpl;
 
     private Map<String, Integer> mTaskCommandMap = new ConcurrentHashMap<>();
 
@@ -75,20 +73,20 @@ public abstract class SuperDownloadProxy implements IDownloadProxy {
         this.context = context;
         this.client = new NativeHttpClient(context);
         this.maxSynchronousDownloadNum = maxSynchronousDownloadNum;
-        this.downloadCallback = new DownloadCallback();
+        this.mDownloadCallbackImpl = new DownloadCallbackImpl();
     }
 
     private AbstractHttpCallback getHttpCallbackImpl(TaskInfo taskInfo) {
         int rangeNum = taskInfo.getRangeNum();
         if (rangeNum > 1) {
-            return new MultiHttpCallbackImpl(context, client, taskInfo, downloadCallback);
+            return new MultiHttpCallbackImpl(context, client, taskInfo, mDownloadCallbackImpl);
         } else {
-            return new SingleHttpCallbackImpl(context, client, taskInfo, downloadCallback);
+            return new SingleHttpCallbackImpl(context, client, taskInfo, mDownloadCallbackImpl);
         }
     }
 
     @Override
-    public void initProxy(@NotNull final Runnable afterInit) {
+    public void initProxy(final Runnable afterInit) {
         mExecutor.execute(new Runnable() {
             @Override
             public void run() {
@@ -129,7 +127,7 @@ public abstract class SuperDownloadProxy implements IDownloadProxy {
         mExecutor.execute(new Runnable() {
             @Override
             public void run() {
-                String resKey = taskInfo.getResKey();
+                final String resKey = taskInfo.getResKey();
                 if (!checkCommand(resKey, Command.START)) return;
                 int runningTaskSize = httpCallbackMap.size();
                 AbstractHttpCallback httpCallbackImpl = httpCallbackMap.get(resKey);
@@ -146,14 +144,24 @@ public abstract class SuperDownloadProxy implements IDownloadProxy {
                     handleWaitingInQueue(taskInfo, fileChecker);
                     return;
                 }
-                HttpCall call = callFactory.produce(client, taskInfo);
-                if (call == null) {
-                    handleFailure(taskInfo);
-                    return;
-                }
-                httpCallbackImpl = getHttpCallbackImpl(taskInfo);
-                httpCallbackMap.put(resKey, httpCallbackImpl);
-                call.enqueue(httpCallbackImpl);
+                callFactory.create(client, taskInfo, new HttpCallFactory.HttpCallCreateListener() {
+                    @Override
+                    public void onCreateFinish(HttpCall call) {
+                        if (!checkCommand(resKey, Command.START)) {
+                            if (call != null) {
+                                call.cancel();
+                            }
+                            return;
+                        }
+                        if (call == null) {
+                            handleFailure(taskInfo);
+                            return;
+                        }
+                        AbstractHttpCallback httpCallbackImpl = getHttpCallbackImpl(taskInfo);
+                        httpCallbackMap.put(resKey, httpCallbackImpl);
+                        call.enqueue(httpCallbackImpl);
+                    }
+                });
             }
         });
     }
@@ -316,7 +324,7 @@ public abstract class SuperDownloadProxy implements IDownloadProxy {
     }
 
     private void handleFailure(TaskInfo taskInfo) {
-        if (taskInfo.isWifiAutoRetryFailedTask()) {
+        if (taskInfo.isWifiAutoRetry()) {
             taskInfo.setCurrentStatus(State.WAITING_FOR_WIFI);
         } else {
             taskInfo.setCurrentStatus(State.FAILURE);
@@ -343,7 +351,8 @@ public abstract class SuperDownloadProxy implements IDownloadProxy {
         TaskDatabaseHelper.getInstance().insertOrUpdate(taskInfo);
     }
 
-    private class DownloadCallback extends CallbackAdapter {
+    private class DownloadCallbackImpl implements DownloadCallback {
+
         @Override
         public void onFirstFileWrite(TaskInfo taskInfo) {
             handleFirstFileWrite(taskInfo);

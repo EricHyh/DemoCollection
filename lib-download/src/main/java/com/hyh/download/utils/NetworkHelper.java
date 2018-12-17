@@ -11,6 +11,7 @@ import android.webkit.WebSettings;
 import com.hyh.download.core.Constants;
 
 import java.io.Closeable;
+import java.net.HttpURLConnection;
 import java.util.Calendar;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -25,9 +26,14 @@ public class NetworkHelper {
 
     public static final int CHUNKED_CONTENT_LENGTH = -1;
 
+    public static final String TRANSFER_ENCODING = "Transfer-Encoding";
+    public static final String ACCEPT_RANGES = "Accept-Ranges";
+
     public static final String CONTENT_LENGTH = "Content-Length";
     public static final String CONTENT_RANGE = "Content-Range";
     public static final String CONTENT_DISPOSITION = "Content-Disposition";
+    public static final String CONTENT_TYPE = "Content-Type";
+    public static final String ETAG = "ETag";
 
 
     private static final Pattern CONTENT_DISPOSITION_QUOTED_PATTERN = Pattern.compile("attachment;\\s*filename\\s*=\\s*\"([^\"]*)\"");
@@ -185,5 +191,14 @@ public class NetworkHelper {
                 e.printStackTrace();
             }
         }
+    }
+
+    public static boolean isRedirect(int code) {
+        return code == HttpURLConnection.HTTP_MOVED_PERM
+                || code == HttpURLConnection.HTTP_MOVED_TEMP
+                || code == HttpURLConnection.HTTP_SEE_OTHER
+                || code == HttpURLConnection.HTTP_MULT_CHOICE
+                || code == Constants.ResponseCode.HTTP_TEMPORARY_REDIRECT
+                || code == Constants.ResponseCode.HTTP_PERMANENT_REDIRECT;
     }
 }

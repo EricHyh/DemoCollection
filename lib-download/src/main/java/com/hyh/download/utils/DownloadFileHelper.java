@@ -3,6 +3,7 @@ package com.hyh.download.utils;
 import android.content.Context;
 import android.os.Environment;
 import android.os.StatFs;
+import android.text.TextUtils;
 
 import com.hyh.download.bean.TaskInfo;
 import com.hyh.download.core.Constants;
@@ -83,7 +84,6 @@ public class DownloadFileHelper {
         return ensureCreated(new File(fileDirPath));
     }
 
-
     public static long getFileLength(String filePath) {
         File file = new File(filePath);
         if (file.exists() && file.isFile()) {
@@ -94,6 +94,10 @@ public class DownloadFileHelper {
 
 
     public static boolean deleteFile(String filePath) {
+        if (TextUtils.isEmpty(filePath)) {
+            L.d("deleteFile filePath is null");
+            return false;
+        }
         try {
             File file = new File(filePath);
             if (file.exists()) {
@@ -110,6 +114,7 @@ public class DownloadFileHelper {
     }
 
     public static boolean deleteFile(File file) {
+        L.d("deleteFile file is null");
         if (file == null) {
             return false;
         }

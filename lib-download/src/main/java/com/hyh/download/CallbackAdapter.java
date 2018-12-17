@@ -1,7 +1,7 @@
 package com.hyh.download;
 
 
-import com.hyh.download.bean.TaskInfo;
+import com.hyh.download.bean.DownloadInfo;
 
 /**
  * Created by Eric_He on 2017/3/11.
@@ -10,52 +10,52 @@ import com.hyh.download.bean.TaskInfo;
 public abstract class CallbackAdapter implements Callback {
 
     @Override
-    public void onPrepare(TaskInfo taskInfo) {
+    public void onPrepare(DownloadInfo downloadInfo) {
 
     }
 
     @Override
-    public void onFirstFileWrite(TaskInfo taskInfo) {
+    public void onFirstFileWrite(DownloadInfo downloadInfo) {
 
     }
 
     @Override
-    public void onDownloading(TaskInfo taskInfo) {
+    public void onDownloading(DownloadInfo downloadInfo) {
 
     }
 
     @Override
-    public void onWaitingInQueue(TaskInfo taskInfo) {
+    public void onWaitingInQueue(DownloadInfo downloadInfo) {
 
     }
 
     @Override
-    public void onPause(TaskInfo taskInfo) {
+    public void onPause(DownloadInfo downloadInfo) {
 
     }
 
     @Override
-    public void onDelete(TaskInfo taskInfo) {
+    public void onDelete(DownloadInfo downloadInfo) {
 
     }
 
     @Override
-    public void onSuccess(TaskInfo taskInfo) {
+    public void onSuccess(DownloadInfo downloadInfo) {
 
     }
 
     @Override
-    public void onWaitingForWifi(TaskInfo taskInfo) {
+    public void onWaitingForWifi(DownloadInfo downloadInfo) {
 
     }
 
     @Override
-    public void onNoEnoughSpace(TaskInfo taskInfo) {
+    public void onNoEnoughSpace(DownloadInfo downloadInfo) {
 
     }
 
     @Override
-    public void onFailure(TaskInfo taskInfo) {
+    public void onFailure(DownloadInfo downloadInfo) {
 
     }
 

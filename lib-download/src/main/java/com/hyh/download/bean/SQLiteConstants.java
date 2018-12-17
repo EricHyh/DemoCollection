@@ -28,7 +28,7 @@ public class SQLiteConstants {
      private Long time;
      private String packageName;
      private String filePath;
-     private Boolean wifiAutoRetryFailedTask;
+     private Boolean wifiAutoRetry;
      private String tagJson;
      private String tagClassName;
      */
@@ -45,7 +45,7 @@ public class SQLiteConstants {
     public static String TIME_MILLIS = "timeMillis";
     public static String PACKAGE_NAME = "packageName";
     public static String FILE_PATH = "filePath";
-    public static String WIFI_AUTO_RETRY = "wifiAutoRetryFailedTask";
+    public static String WIFI_AUTO_RETRY = "wifiAutoRetry";
     public static String TAG_JSON = "tagJson";
     public static String TAG_CLASS_NAME = "tagClassName";
 

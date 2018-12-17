@@ -3,7 +3,6 @@ package com.hyh.download.core;
 import android.content.Context;
 import android.os.SystemClock;
 
-import com.hyh.download.Callback;
 import com.hyh.download.bean.TaskInfo;
 import com.hyh.download.net.HttpCall;
 import com.hyh.download.net.HttpCallback;
@@ -44,7 +43,7 @@ class MultiHttpCallbackImpl extends AbstractHttpCallback {
 
     private final TaskInfo taskInfo;
 
-    private final Callback downloadCallback;
+    private final DownloadCallback downloadCallback;
 
     private final int rangeNum;
 
@@ -98,7 +97,7 @@ class MultiHttpCallbackImpl extends AbstractHttpCallback {
     }
 
 
-    MultiHttpCallbackImpl(Context context, HttpClient client, TaskInfo taskInfo, Callback downloadCallback) {
+    MultiHttpCallbackImpl(Context context, HttpClient client, TaskInfo taskInfo, DownloadCallback downloadCallback) {
         this.context = context;
         this.client = client;
         this.taskInfo = taskInfo;

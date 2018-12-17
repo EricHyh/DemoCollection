@@ -49,7 +49,7 @@ public class NativeHttpClient implements HttpClient {
 
     @Override
     public HttpResponse getHttpResponse(String url) throws Exception {
-        NativeHttpCall nativeHttpCall = new NativeHttpCall(url, mUserAgent, 0, -1, mExecutor);
+        NativeHttpCall nativeHttpCall = new NativeHttpCall(url, mUserAgent, -1, -1, mExecutor);
         return nativeHttpCall.execute();
     }
 }

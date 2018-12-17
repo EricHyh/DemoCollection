@@ -19,14 +19,15 @@ class HttpCallFactory {
 
     private Map<String, Integer> mGetTotalSizeRetryTimesMap = new HashMap<>();
 
-    HttpCall produce(HttpClient client, TaskInfo taskInfo) {
+    void create(HttpClient client, TaskInfo taskInfo, HttpCallCreateListener listener) {
         String resKey = taskInfo.getResKey();
         mGetTotalSizeRetryTimesMap.put(resKey, 0);
         String url = taskInfo.getRequestUrl();
         int rangeNum = taskInfo.getRangeNum();
         if (rangeNum <= 1) {
-            return client.newCall(resKey, url, taskInfo.getCurrentSize());
+            listener.onCreateFinish(client.newCall(resKey, url, taskInfo.getCurrentSize()));
         } else {
+            HttpCall httpCall = null;
             long totalSize = getTotalSize(client, taskInfo);
             if (totalSize > 0) {
                 long[] startPositions = taskInfo.getStartPositions();
@@ -49,15 +50,14 @@ class HttpCallFactory {
                         httpCallMap.put(tag, client.newCall(tag, url, startPosition, endPosition));
                     }
                 }
-                return new MultiHttpCall(httpCallMap);
+                httpCall = new MultiHttpCall(httpCallMap);
             }
             int code = taskInfo.getResponseCode();
             if (code == Constants.ResponseCode.OK) {//无法获取到文件长度，不能进行多线程下载
                 taskInfo.setRangeNum(1);//设置为单线程下载
-                return client.newCall(resKey, url, taskInfo.getCurrentSize());
-            } else {
-                return null;
+                httpCall = client.newCall(resKey, url, taskInfo.getCurrentSize());
             }
+            listener.onCreateFinish(httpCall);
         }
     }
 
@@ -110,5 +110,12 @@ class HttpCallFactory {
             }
         }
         return endPositions;
+    }
+
+
+    public interface HttpCallCreateListener {
+
+        void onCreateFinish(HttpCall call);
+
     }
 }

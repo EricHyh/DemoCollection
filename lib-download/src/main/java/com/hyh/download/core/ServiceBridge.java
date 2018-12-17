@@ -14,6 +14,7 @@ import com.hyh.download.IClient;
 import com.hyh.download.IFileChecker;
 import com.hyh.download.IRequest;
 import com.hyh.download.State;
+import com.hyh.download.bean.DownloadInfo;
 import com.hyh.download.bean.TaskInfo;
 import com.hyh.download.core.service.FDLService;
 
@@ -248,54 +249,54 @@ public class ServiceBridge implements IDownloadProxy {
 
         @SuppressWarnings("unchecked")
         @Override
-        public void onCallback(TaskInfo taskInfo) throws RemoteException {
-            if (taskInfo == null) {
+        public void onCallback(DownloadInfo downloadInfo) throws RemoteException {
+            if (downloadInfo == null) {
                 return;
             }
-            switch (taskInfo.getCurrentStatus()) {
+            switch (downloadInfo.getCurrentStatus()) {
                 case State.PREPARE:
                     if (mCallback != null) {
-                        mCallback.onPrepare(taskInfo);
+                        mCallback.onPrepare(downloadInfo);
                     }
                     break;
                 case State.START_WRITE:
                     if (mCallback != null) {
-                        mCallback.onFirstFileWrite(taskInfo);
+                        mCallback.onFirstFileWrite(downloadInfo);
                     }
                     break;
                 case State.DOWNLOADING:
                     if (mCallback != null) {
-                        mCallback.onDownloading(taskInfo);
+                        mCallback.onDownloading(downloadInfo);
                     }
                     break;
                 case State.WAITING_IN_QUEUE:
                     if (mCallback != null) {
-                        mCallback.onWaitingInQueue(taskInfo);
+                        mCallback.onWaitingInQueue(downloadInfo);
                     }
                     break;
                 case State.WAITING_FOR_WIFI:
                     if (mCallback != null) {
-                        mCallback.onWaitingForWifi(taskInfo);
+                        mCallback.onWaitingForWifi(downloadInfo);
                     }
                     break;
                 case State.PAUSE:
                     if (mCallback != null) {
-                        mCallback.onPause(taskInfo);
+                        mCallback.onPause(downloadInfo);
                     }
                     break;
                 case State.DELETE:
                     if (mCallback != null) {
-                        mCallback.onDelete(taskInfo);
+                        mCallback.onDelete(downloadInfo);
                     }
                     break;
                 case State.SUCCESS:
                     if (mCallback != null) {
-                        mCallback.onSuccess(taskInfo);
+                        mCallback.onSuccess(downloadInfo);
                     }
                     break;
                 case State.FAILURE:
                     if (mCallback != null) {
-                        mCallback.onFailure(taskInfo);
+                        mCallback.onFailure(downloadInfo);
                     }
                     break;
             }
@@ -376,8 +377,8 @@ public class ServiceBridge implements IDownloadProxy {
         }
 
         @Override
-        public boolean isValidFile(TaskInfo taskInfo) throws RemoteException {
-            return fileChecker == null || fileChecker.isValidFile(taskInfo);
+        public boolean isValidFile(DownloadInfo downloadInfo) throws RemoteException {
+            return fileChecker == null || fileChecker.isValidFile(downloadInfo);
         }
 
         @Override

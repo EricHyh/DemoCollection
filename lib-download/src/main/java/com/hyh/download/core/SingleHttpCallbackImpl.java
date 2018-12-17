@@ -3,8 +3,8 @@ package com.hyh.download.core;
 import android.content.Context;
 import android.os.SystemClock;
 import android.text.TextUtils;
+import android.webkit.URLUtil;
 
-import com.hyh.download.Callback;
 import com.hyh.download.bean.TaskInfo;
 import com.hyh.download.net.HttpCall;
 import com.hyh.download.net.HttpClient;
@@ -31,12 +31,7 @@ class SingleHttpCallbackImpl extends AbstractHttpCallback {
 
     private HttpCall call;
 
-    private Callback downloadCallback;
-
-    /**
-     * 是否支持断点续传
-     */
-    private boolean isSupportPartialContent = true;
+    private DownloadCallback downloadCallback;
 
     private volatile boolean pause;
 
@@ -57,7 +52,7 @@ class SingleHttpCallbackImpl extends AbstractHttpCallback {
 
     private FileWrite mFileWrite;
 
-    SingleHttpCallbackImpl(Context context, HttpClient client, TaskInfo taskInfo, Callback downloadCallback) {
+    SingleHttpCallbackImpl(Context context, HttpClient client, TaskInfo taskInfo, DownloadCallback downloadCallback) {
         this.context = context;
         this.client = client;
         this.taskInfo = taskInfo;
@@ -78,9 +73,7 @@ class SingleHttpCallbackImpl extends AbstractHttpCallback {
         taskInfo.setResponseCode(code);
         long contentLength = response.contentLength();
 
-        if (code == Constants.ResponseCode.OK && taskInfo.getCurrentSize() > 0 &&
-                (taskInfo.getTotalSize() != 0 && contentLength == taskInfo.getTotalSize())) {
-            isSupportPartialContent = false;
+        if (!checkIsSupportPartial(response, taskInfo)) {
             boolean delete = DownloadFileHelper.deleteFile(taskInfo.getFilePath());
             L.d("not support partial content, delete file " + delete);
             taskInfo.setCurrentSize(0);
@@ -114,11 +107,11 @@ class SingleHttpCallbackImpl extends AbstractHttpCallback {
         }
     }
 
+
     @Override
     TaskInfo getTaskInfo() {
         return taskInfo;
     }
-
 
     @Override
     public void onFailure(HttpCall call, Exception e) {
@@ -128,6 +121,19 @@ class SingleHttpCallbackImpl extends AbstractHttpCallback {
         }
     }
 
+    private boolean checkIsSupportPartial(HttpResponse response, TaskInfo taskInfo) {
+        if (!TextUtils.equals(response.url(), taskInfo.getCacheTargetUrl())) {
+            return false;
+        }
+
+        if (response.code() == Constants.ResponseCode.PARTIAL_CONTENT) {
+            return true;
+        }
+
+        final String acceptRanges = response.header(NetworkHelper.ACCEPT_RANGES);
+        return "bytes".equals(acceptRanges);
+    }
+
     private void handleDownload(HttpResponse response, final TaskInfo taskInfo) {
         final long currentSize = taskInfo.getCurrentSize();
         final long totalSize = taskInfo.getTotalSize();
@@ -135,10 +141,15 @@ class SingleHttpCallbackImpl extends AbstractHttpCallback {
         String filePath = taskInfo.getFilePath();
         if (!TextUtils.isEmpty(filePath)) {
             String contentDisposition = response.header(NetworkHelper.CONTENT_DISPOSITION);
-            String fileName = NetworkHelper.parseContentDisposition(contentDisposition);
-
+            String contentType = response.header(NetworkHelper.CONTENT_TYPE);
+            String fileName = URLUtil.guessFileName(response.url(), contentDisposition, contentType);
+            if (TextUtils.isEmpty(fileName)) {
+                fileName = DownloadFileHelper.string2MD5(taskInfo.getResKey());
+            }
+            filePath = fileDir + File.separator + fileName;
+            taskInfo.setFilePath(filePath);
         }
-        mFileWrite = new SingleFileWriteTask(taskInfo.getFilePath(), currentSize, totalSize);
+        mFileWrite = new SingleFileWriteTask(filePath, currentSize, totalSize);
         mFileWrite.write(response, new SingleFileWriteListener(totalSize, currentSize));
     }
 
@@ -220,7 +231,6 @@ class SingleHttpCallbackImpl extends AbstractHttpCallback {
             if (currentRetryTimes == 0 || currentRetryTimes == 1) {
                 SystemClock.sleep(RETRY_DELAY);
             }
-
             if (currentRetryTimes == 2) {
                 SystemClock.sleep(2 * RETRY_DELAY);
             }
@@ -239,15 +249,10 @@ class SingleHttpCallbackImpl extends AbstractHttpCallback {
     }
 
     private long fixCurrentSize() {
-        if (isSupportPartialContent) {
-            String filePath = taskInfo.getFilePath();
-            File file = new File(filePath);
-            if (file.isFile() && file.exists()) {
-                return file.length();
-            }
-        } else {
-            String filePath = taskInfo.getFilePath();
-            DownloadFileHelper.deleteFile(filePath);
+        String filePath = taskInfo.getFilePath();
+        File file = new File(filePath);
+        if (file.isFile() && file.exists()) {
+            return file.length();
         }
         return 0;
     }

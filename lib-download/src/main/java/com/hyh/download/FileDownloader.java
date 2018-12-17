@@ -37,7 +37,7 @@ public class FileDownloader {
 
     private volatile boolean mIsInitProxy;
 
-    private IDownloadProxy mDownloadProxy;//本地下载代理类
+    private IDownloadProxy mDownloadProxy;
 
     private TaskListenerManager mListenerManager;
 
@@ -90,7 +90,7 @@ public class FileDownloader {
         waitingForInitProxyFinish();
         String key = request.key();
         if (isFileDownloaded(key)) {
-            callback.onSuccess(mDownloadProxy.getTaskInfoByKey(key));
+            callback.onSuccess(mDownloadProxy.getTaskInfoByKey(key).toDownloadInfo());
             return;
         }
 
@@ -125,20 +125,20 @@ public class FileDownloader {
     }
 
     private void onReceiveStartCommand(TaskInfo taskInfo) {
-        mListenerManager.onPrepare(taskInfo);
+        mListenerManager.onPrepare(taskInfo.toDownloadInfo());
         mDownloadProxy.onReceiveStartCommand(taskInfo.getResKey());
     }
 
     private void onReceivePauseCommand(String resKey) {
         TaskInfo taskInfo = mDownloadProxy.getTaskInfoByKey(resKey);
-        mListenerManager.onPause(taskInfo);
+        mListenerManager.onPause(taskInfo.toDownloadInfo());
         mDownloadProxy.onReceivePauseCommand(resKey);
     }
 
     private void onReceiveDeleteCommand(String resKey) {
         TaskInfo taskInfo = mDownloadProxy.getTaskInfoByKey(resKey);
         if (taskInfo != null) {
-            mListenerManager.onDelete(taskInfo);
+            mListenerManager.onDelete(taskInfo.toDownloadInfo());
         }
         mDownloadProxy.onReceiveDeleteCommand(resKey);
     }
@@ -236,7 +236,7 @@ public class FileDownloader {
         taskInfo.setFileDir(createFileDir(request));
         taskInfo.setFilePath(request.filePath());
         taskInfo.setByMultiThread(request.byMultiThread());
-        taskInfo.setWifiAutoRetryFailedTask(request.wifiAutoRetryFailedTask());
+        taskInfo.setWifiAutoRetry(request.wifiAutoRetry());
         taskInfo.setPermitMobileDataRetry(request.permitMobileDataRetry());
         taskInfo.setTag(request.tag());
         return taskInfo;

@@ -1,2 +1,2 @@
 package com.hyh.download.bean;
-parcelable TaskInfo;
+parcelable DownloadInfo;

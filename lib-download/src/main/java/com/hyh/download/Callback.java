@@ -1,6 +1,6 @@
 package com.hyh.download;
 
-import com.hyh.download.bean.TaskInfo;
+import com.hyh.download.bean.DownloadInfo;
 
 /**
  * Created by Administrator on 2017/3/9.
@@ -11,73 +11,73 @@ public interface Callback {
     /**
      * 准备下载阶段
      *
-     * @param taskInfo 下载任务信息
+     * @param downloadInfo 下载任务信息
      */
-    void onPrepare(TaskInfo taskInfo);
+    void onPrepare(DownloadInfo downloadInfo);
 
     /**
      * 从网络中获取到输入流并开始往文件中写数据
      *
-     * @param taskInfo 下载任务信息
+     * @param downloadInfo 下载任务信息
      */
-    void onFirstFileWrite(TaskInfo taskInfo);
+    void onFirstFileWrite(DownloadInfo downloadInfo);
 
     /**
      * 下载过程
      *
-     * @param taskInfo 下载任务信息
+     * @param downloadInfo 下载任务信息
      */
-    void onDownloading(TaskInfo taskInfo);
+    void onDownloading(DownloadInfo downloadInfo);
 
     /**
      * 等待过程
      *
-     * @param taskInfo 下载任务信息
+     * @param downloadInfo 下载任务信息
      */
-    void onWaitingInQueue(TaskInfo taskInfo);
+    void onWaitingInQueue(DownloadInfo downloadInfo);
 
     /**
      * 下载任务被暂停
      *
-     * @param taskInfo 下载任务信息
+     * @param downloadInfo 下载任务信息
      */
-    void onPause(TaskInfo taskInfo);
+    void onPause(DownloadInfo downloadInfo);
 
 
     /**
      * 下载任务被删除
      *
-     * @param taskInfo 下载任务信息
+     * @param downloadInfo 下载任务信息
      */
-    void onDelete(TaskInfo taskInfo);
+    void onDelete(DownloadInfo downloadInfo);
 
     /**
      * 下载成功
      *
-     * @param taskInfo 下载任务信息
+     * @param downloadInfo 下载任务信息
      */
-    void onSuccess(TaskInfo taskInfo);
+    void onSuccess(DownloadInfo downloadInfo);
 
     /**
      * 等待wifi过程
      *
-     * @param taskInfo 下载任务信息
+     * @param downloadInfo 下载任务信息
      */
-    void onWaitingForWifi(TaskInfo taskInfo);
+    void onWaitingForWifi(DownloadInfo downloadInfo);
 
     /**
      * 磁盘空间不足
      *
-     * @param taskInfo 下载任务信息
+     * @param downloadInfo 下载任务信息
      */
-    void onNoEnoughSpace(TaskInfo taskInfo);
+    void onNoEnoughSpace(DownloadInfo downloadInfo);
 
     /**
      * 下载失败
      *
-     * @param taskInfo 下载任务信息
+     * @param downloadInfo 下载任务信息
      */
-    void onFailure(TaskInfo taskInfo);
+    void onFailure(DownloadInfo downloadInfo);
 
     /**
      * 任务结束

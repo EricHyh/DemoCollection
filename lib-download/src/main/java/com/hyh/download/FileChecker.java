@@ -1,6 +1,6 @@
 package com.hyh.download;
 
-import com.hyh.download.bean.TaskInfo;
+import com.hyh.download.bean.DownloadInfo;
 
 /**
  * @author Administrator
@@ -10,7 +10,7 @@ import com.hyh.download.bean.TaskInfo;
 
 public interface FileChecker {
 
-    boolean isValidFile(TaskInfo taskInfo);
+    boolean isValidFile(DownloadInfo downloadInfo);
 
     boolean isRetryDownload();
 

@@ -5,7 +5,7 @@ import android.os.Looper;
 
 import com.hyh.download.Callback;
 import com.hyh.download.CallbackAdapter;
-import com.hyh.download.bean.TaskInfo;
+import com.hyh.download.bean.DownloadInfo;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -83,16 +83,16 @@ public class TaskListenerManager extends CallbackAdapter {
     }
 
     @Override
-    public void onPrepare(final TaskInfo taskInfo) {
-        mTaskStateCache.addPreparedResKey(taskInfo.getResKey());
+    public void onPrepare(final DownloadInfo downloadInfo) {
+        mTaskStateCache.addPreparedResKey(downloadInfo.getResKey());
         postUiThread(new Runnable() {
             @Override
             public void run() {
-                String resKey = taskInfo.getResKey();
+                String resKey = downloadInfo.getResKey();
                 List<Callback> singleCallbacks = getSingleCallbacks(resKey);
                 if (singleCallbacks != null) {
                     for (Callback callback : singleCallbacks) {
-                        callback.onPrepare(taskInfo);
+                        callback.onPrepare(downloadInfo);
                     }
                 }
             }
@@ -100,8 +100,8 @@ public class TaskListenerManager extends CallbackAdapter {
     }
 
     @Override
-    public void onFirstFileWrite(final TaskInfo taskInfo) {
-        final String resKey = taskInfo.getResKey();
+    public void onFirstFileWrite(final DownloadInfo downloadInfo) {
+        final String resKey = downloadInfo.getResKey();
         if (!mTaskStateCache.isTaskPrepared(resKey)) return;
         postUiThread(new Runnable() {
             @Override
@@ -109,7 +109,7 @@ public class TaskListenerManager extends CallbackAdapter {
                 List<Callback> singleCallbacks = getSingleCallbacks(resKey);
                 if (singleCallbacks != null) {
                     for (Callback callback : singleCallbacks) {
-                        callback.onFirstFileWrite(taskInfo);
+                        callback.onFirstFileWrite(downloadInfo);
                     }
                 }
             }
@@ -117,8 +117,8 @@ public class TaskListenerManager extends CallbackAdapter {
     }
 
     @Override
-    public void onDownloading(final TaskInfo taskInfo) {
-        final String resKey = taskInfo.getResKey();
+    public void onDownloading(final DownloadInfo downloadInfo) {
+        final String resKey = downloadInfo.getResKey();
         if (!mTaskStateCache.isTaskPrepared(resKey)) return;
         postBackThread(new Runnable() {
             @Override
@@ -126,7 +126,7 @@ public class TaskListenerManager extends CallbackAdapter {
                 List<Callback> singleCallbacks = getSingleCallbacks(resKey);
                 if (singleCallbacks != null) {
                     for (Callback callback : singleCallbacks) {
-                        callback.onDownloading(taskInfo);
+                        callback.onDownloading(downloadInfo);
                     }
                 }
             }
@@ -134,17 +134,17 @@ public class TaskListenerManager extends CallbackAdapter {
     }
 
     @Override
-    public void onWaitingInQueue(final TaskInfo taskInfo) {
-        final String resKey = taskInfo.getResKey();
+    public void onWaitingInQueue(final DownloadInfo downloadInfo) {
+        final String resKey = downloadInfo.getResKey();
         if (!mTaskStateCache.isTaskPrepared(resKey)) return;
         postUiThread(new Runnable() {
             @Override
             public void run() {
-                String resKey = taskInfo.getResKey();
+                String resKey = downloadInfo.getResKey();
                 List<Callback> singleCallbacks = getSingleCallbacks(resKey);
                 if (singleCallbacks != null) {
                     for (Callback callback : singleCallbacks) {
-                        callback.onWaitingInQueue(taskInfo);
+                        callback.onWaitingInQueue(downloadInfo);
                     }
                 }
             }
@@ -152,8 +152,8 @@ public class TaskListenerManager extends CallbackAdapter {
     }
 
     @Override
-    public void onPause(final TaskInfo taskInfo) {
-        final String resKey = taskInfo.getResKey();
+    public void onPause(final DownloadInfo downloadInfo) {
+        final String resKey = downloadInfo.getResKey();
         if (!mTaskStateCache.isTaskPrepared(resKey)) return;
         mTaskStateCache.removePreparedResKey(resKey);
         final List<Callback> singleCallbacks = getSingleCallbacks(resKey);
@@ -162,7 +162,7 @@ public class TaskListenerManager extends CallbackAdapter {
             public void run() {
                 if (singleCallbacks != null) {
                     for (Callback callback : singleCallbacks) {
-                        callback.onPause(taskInfo);
+                        callback.onPause(downloadInfo);
                     }
                 }
             }
@@ -173,8 +173,8 @@ public class TaskListenerManager extends CallbackAdapter {
     }
 
     @Override
-    public void onDelete(final TaskInfo taskInfo) {
-        final String resKey = taskInfo.getResKey();
+    public void onDelete(final DownloadInfo downloadInfo) {
+        final String resKey = downloadInfo.getResKey();
         mTaskStateCache.removePreparedResKey(resKey);
         final List<Callback> singleCallbacks = getSingleCallbacks(resKey);
         postUiThread(new Runnable() {
@@ -182,7 +182,7 @@ public class TaskListenerManager extends CallbackAdapter {
             public void run() {
                 if (singleCallbacks != null) {
                     for (Callback callback : singleCallbacks) {
-                        callback.onDelete(taskInfo);
+                        callback.onDelete(downloadInfo);
                     }
                 }
             }
@@ -193,8 +193,8 @@ public class TaskListenerManager extends CallbackAdapter {
     }
 
     @Override
-    public void onSuccess(final TaskInfo taskInfo) {
-        final String resKey = taskInfo.getResKey();
+    public void onSuccess(final DownloadInfo downloadInfo) {
+        final String resKey = downloadInfo.getResKey();
         if (!mTaskStateCache.isTaskPrepared(resKey)) return;
         mTaskStateCache.removePreparedResKey(resKey);
         final List<Callback> singleCallbacks = getSingleCallbacks(resKey);
@@ -203,7 +203,7 @@ public class TaskListenerManager extends CallbackAdapter {
             public void run() {
                 if (singleCallbacks != null) {
                     for (Callback callback : singleCallbacks) {
-                        callback.onSuccess(taskInfo);
+                        callback.onSuccess(downloadInfo);
                     }
                 }
             }
@@ -214,8 +214,8 @@ public class TaskListenerManager extends CallbackAdapter {
     }
 
     @Override
-    public void onWaitingForWifi(final TaskInfo taskInfo) {
-        final String resKey = taskInfo.getResKey();
+    public void onWaitingForWifi(final DownloadInfo downloadInfo) {
+        final String resKey = downloadInfo.getResKey();
         if (!mTaskStateCache.isTaskPrepared(resKey)) return;
         mTaskStateCache.removePreparedResKey(resKey);
         final List<Callback> singleCallbacks = getSingleCallbacks(resKey);
@@ -224,7 +224,7 @@ public class TaskListenerManager extends CallbackAdapter {
             public void run() {
                 if (singleCallbacks != null) {
                     for (Callback callback : singleCallbacks) {
-                        callback.onWaitingForWifi(taskInfo);
+                        callback.onWaitingForWifi(downloadInfo);
                     }
                 }
             }
@@ -235,8 +235,8 @@ public class TaskListenerManager extends CallbackAdapter {
     }
 
     @Override
-    public void onNoEnoughSpace(final TaskInfo taskInfo) {
-        final String resKey = taskInfo.getResKey();
+    public void onNoEnoughSpace(final DownloadInfo downloadInfo) {
+        final String resKey = downloadInfo.getResKey();
         if (!mTaskStateCache.isTaskPrepared(resKey)) return;
         mTaskStateCache.removePreparedResKey(resKey);
         final List<Callback> singleCallbacks = getSingleCallbacks(resKey);
@@ -245,7 +245,7 @@ public class TaskListenerManager extends CallbackAdapter {
             public void run() {
                 if (singleCallbacks != null) {
                     for (Callback callback : singleCallbacks) {
-                        callback.onNoEnoughSpace(taskInfo);
+                        callback.onNoEnoughSpace(downloadInfo);
                     }
                 }
             }
@@ -256,8 +256,8 @@ public class TaskListenerManager extends CallbackAdapter {
     }
 
     @Override
-    public void onFailure(final TaskInfo taskInfo) {
-        final String resKey = taskInfo.getResKey();
+    public void onFailure(final DownloadInfo downloadInfo) {
+        final String resKey = downloadInfo.getResKey();
         if (!mTaskStateCache.isTaskPrepared(resKey)) return;
         mTaskStateCache.removePreparedResKey(resKey);
         final List<Callback> singleCallbacks = getSingleCallbacks(resKey);
@@ -266,7 +266,7 @@ public class TaskListenerManager extends CallbackAdapter {
             public void run() {
                 if (singleCallbacks != null) {
                     for (Callback callback : singleCallbacks) {
-                        callback.onFailure(taskInfo);
+                        callback.onFailure(downloadInfo);
                     }
                 }
             }

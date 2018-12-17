@@ -37,7 +37,7 @@ public class NativeHttpResponse implements HttpResponse {
     }
 
     @Override
-    public String getUrl() {
+    public String url() {
         return connection.getURL().toString();
     }
 

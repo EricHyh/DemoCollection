@@ -19,6 +19,8 @@ public class TaskInfo implements Parcelable {
 
     private int versionCode;
 
+    private int priority;
+
     private String fileDir;
 
     private String filePath;
@@ -39,11 +41,13 @@ public class TaskInfo implements Parcelable {
 
     private int currentStatus;
 
-    private boolean wifiAutoRetryFailedTask;
+    private boolean wifiAutoRetry;
 
     private boolean permitMobileDataRetry;
 
     private int responseCode;
+
+    private String eTag;
 
     private String tag;
 
@@ -64,7 +68,7 @@ public class TaskInfo implements Parcelable {
         endPositions = in.createLongArray();
         totalSize = in.readLong();
         currentStatus = in.readInt();
-        wifiAutoRetryFailedTask = in.readByte() != 0;
+        wifiAutoRetry = in.readByte() != 0;
         permitMobileDataRetry = in.readByte() != 0;
         responseCode = in.readInt();
         tag = in.readString();
@@ -96,7 +100,7 @@ public class TaskInfo implements Parcelable {
                 ", currentSize=" + currentSize +
                 ", totalSize=" + totalSize +
                 ", currentStatus=" + currentStatus +
-                ", wifiAutoRetryFailedTask=" + wifiAutoRetryFailedTask +
+                ", wifiAutoRetry=" + wifiAutoRetry +
                 ", permitMobileDataRetry=" + permitMobileDataRetry +
                 ", responseCode=" + responseCode +
                 ", tag=" + tag +
@@ -130,7 +134,7 @@ public class TaskInfo implements Parcelable {
         dest.writeLongArray(endPositions);
         dest.writeLong(totalSize);
         dest.writeInt(currentStatus);
-        dest.writeByte((byte) (wifiAutoRetryFailedTask ? 1 : 0));
+        dest.writeByte((byte) (wifiAutoRetry ? 1 : 0));
         dest.writeByte((byte) (permitMobileDataRetry ? 1 : 0));
         dest.writeInt(responseCode);
         dest.writeString(tag);
@@ -150,6 +154,22 @@ public class TaskInfo implements Parcelable {
 
     public void setRequestUrl(String requestUrl) {
         this.requestUrl = requestUrl;
+    }
+
+    public String getCacheRequestUrl() {
+        return cacheRequestUrl;
+    }
+
+    public void setCacheRequestUrl(String cacheRequestUrl) {
+        this.cacheRequestUrl = cacheRequestUrl;
+    }
+
+    public String getCacheTargetUrl() {
+        return cacheTargetUrl;
+    }
+
+    public void setCacheTargetUrl(String cacheTargetUrl) {
+        this.cacheTargetUrl = cacheTargetUrl;
     }
 
     public int getVersionCode() {
@@ -240,12 +260,12 @@ public class TaskInfo implements Parcelable {
         this.currentStatus = currentStatus;
     }
 
-    public boolean isWifiAutoRetryFailedTask() {
-        return wifiAutoRetryFailedTask;
+    public boolean isWifiAutoRetry() {
+        return wifiAutoRetry;
     }
 
-    public void setWifiAutoRetryFailedTask(boolean wifiAutoRetryFailedTask) {
-        this.wifiAutoRetryFailedTask = wifiAutoRetryFailedTask;
+    public void setWifiAutoRetry(boolean wifiAutoRetry) {
+        this.wifiAutoRetry = wifiAutoRetry;
     }
 
     public boolean isPermitMobileDataRetry() {
@@ -272,4 +292,7 @@ public class TaskInfo implements Parcelable {
         this.tag = tag;
     }
 
+    public DownloadInfo toDownloadInfo() {
+        return new DownloadInfo();
+    }
 }

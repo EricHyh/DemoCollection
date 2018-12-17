@@ -15,7 +15,7 @@ public class FileRequest {
 
     private boolean byMultiThread;
 
-    private boolean wifiAutoRetryFailedTask;
+    private boolean wifiAutoRetry;
 
     private boolean permitMobileDataRetry;
 
@@ -58,8 +58,8 @@ public class FileRequest {
         return byMultiThread;
     }
 
-    public boolean wifiAutoRetryFailedTask() {
-        return wifiAutoRetryFailedTask;
+    public boolean wifiAutoRetry() {
+        return wifiAutoRetry;
     }
 
     public boolean permitMobileDataRetry() {
@@ -100,7 +100,7 @@ public class FileRequest {
 
         private boolean byMultiThread = false;
 
-        private boolean wifiAutoRetryFailedTask = false;
+        private boolean wifiAutoRetry = false;
 
         private boolean permitMobileDataRetry = false;
 
@@ -126,7 +126,7 @@ public class FileRequest {
             fileRequest.url = this.url;
             fileRequest.needVerifyUrl = this.needVerifyUrl;
             fileRequest.byMultiThread = this.byMultiThread;
-            fileRequest.wifiAutoRetryFailedTask = this.wifiAutoRetryFailedTask;
+            fileRequest.wifiAutoRetry = this.wifiAutoRetry;
             fileRequest.permitMobileDataRetry = this.permitMobileDataRetry;
             fileRequest.isForceDownload = this.isForceDownload;
             fileRequest.versionCode = this.versionCode;
@@ -157,8 +157,8 @@ public class FileRequest {
             return this;
         }
 
-        public Builder wifiAutoRetryFailedTask(boolean wifiAutoRetryFailedTask) {
-            this.wifiAutoRetryFailedTask = wifiAutoRetryFailedTask;
+        public Builder wifiAutoRetry(boolean wifiAutoRetry) {
+            this.wifiAutoRetry = wifiAutoRetry;
             return this;
         }
 

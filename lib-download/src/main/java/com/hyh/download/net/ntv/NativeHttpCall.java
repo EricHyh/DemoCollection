@@ -4,6 +4,7 @@ import com.hyh.download.net.HttpCall;
 import com.hyh.download.net.HttpCallback;
 import com.hyh.download.net.HttpResponse;
 import com.hyh.download.utils.L;
+import com.hyh.download.utils.NetworkHelper;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -20,23 +21,11 @@ import java.util.concurrent.ThreadPoolExecutor;
 
 public class NativeHttpCall implements HttpCall {
 
-
     private static final int MAX_REDIRECT_TIMES = 10;
-    /**
-     * The target resource resides temporarily under a different URI and the user agent MUST NOT
-     * change the request method if it performs an automatic redirection to that URI.
-     */
-    private static final int HTTP_TEMPORARY_REDIRECT = 307;
-    /**
-     * The target resource has been assigned a new permanent URI and any future references to this
-     * resource ought to use one of the enclosed URIs.
-     */
-    private static final int HTTP_PERMANENT_REDIRECT = 308;
 
     private static final int REQUEST_TIME_OUT = 15_000;
 
     private static final int READ_TIME_OUT = 15_000;
-
 
     private String url;
     private String userAgent;
@@ -113,15 +102,6 @@ public class NativeHttpCall implements HttpCall {
     }
 
 
-    private static boolean isRedirect(int code) {
-        return code == HttpURLConnection.HTTP_MOVED_PERM
-                || code == HttpURLConnection.HTTP_MOVED_TEMP
-                || code == HttpURLConnection.HTTP_SEE_OTHER
-                || code == HttpURLConnection.HTTP_MULT_CHOICE
-                || code == HTTP_TEMPORARY_REDIRECT
-                || code == HTTP_PERMANENT_REDIRECT;
-    }
-
     private HttpURLConnection getConnection(String url, long startPosition, long endPosition) throws IOException, IllegalAccessException {
         HttpURLConnection connection = (HttpURLConnection) new URL(url).openConnection();
         connection.setRequestMethod("GET");
@@ -130,14 +110,16 @@ public class NativeHttpCall implements HttpCall {
         connection.addRequestProperty("User-Agent", userAgent);
         connection.setConnectTimeout(REQUEST_TIME_OUT);
         connection.setReadTimeout(READ_TIME_OUT);
-        if (endPosition < 0) {
-            connection.setRequestProperty("Range", "bytes=" + startPosition + "-");
-        } else {
-            connection.setRequestProperty("Range", "bytes=" + startPosition + "-" + endPosition);
+        if (startPosition > 0) {
+            if (endPosition < 0) {
+                connection.setRequestProperty("Range", "bytes=" + startPosition + "-");
+            } else {
+                connection.setRequestProperty("Range", "bytes=" + startPosition + "-" + endPosition);
+            }
         }
         int code = connection.getResponseCode();
         String location = connection.getHeaderField("Location");
-        if (isRedirect(code)) {
+        if (NetworkHelper.isRedirect(code)) {
             if (++redirectTimes >= MAX_REDIRECT_TIMES) {
                 throw new IllegalAccessException("redirect times reach max");
             }

@@ -26,31 +26,31 @@ public class LocalDownloadProxyImpl extends SuperDownloadProxy implements IDownl
     protected void handleCallback(TaskInfo taskInfo) {
         switch (taskInfo.getCurrentStatus()) {
             case State.PREPARE:
-                mCallback.onPrepare(taskInfo);
+                mCallback.onPrepare(taskInfo.toDownloadInfo());
                 break;
             case State.START_WRITE:
-                mCallback.onFirstFileWrite(taskInfo);
+                mCallback.onFirstFileWrite(taskInfo.toDownloadInfo());
                 break;
             case State.DOWNLOADING:
-                mCallback.onDownloading(taskInfo);
+                mCallback.onDownloading(taskInfo.toDownloadInfo());
                 break;
             case State.WAITING_IN_QUEUE:
-                mCallback.onWaitingInQueue(taskInfo);
+                mCallback.onWaitingInQueue(taskInfo.toDownloadInfo());
                 break;
             case State.WAITING_FOR_WIFI:
-                mCallback.onWaitingForWifi(taskInfo);
+                mCallback.onWaitingForWifi(taskInfo.toDownloadInfo());
                 break;
             case State.PAUSE:
-                mCallback.onPause(taskInfo);
+                mCallback.onPause(taskInfo.toDownloadInfo());
                 break;
             case State.DELETE:
-                mCallback.onDelete(taskInfo);
+                mCallback.onDelete(taskInfo.toDownloadInfo());
                 break;
             case State.FAILURE:
-                mCallback.onFailure(taskInfo);
+                mCallback.onFailure(taskInfo.toDownloadInfo());
                 break;
             case State.SUCCESS:
-                mCallback.onSuccess(taskInfo);
+                mCallback.onSuccess(taskInfo.toDownloadInfo());
                 break;
         }
     }
