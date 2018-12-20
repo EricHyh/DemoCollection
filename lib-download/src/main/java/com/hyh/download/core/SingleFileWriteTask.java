@@ -2,7 +2,7 @@ package com.hyh.download.core;
 
 import com.hyh.download.net.HttpResponse;
 import com.hyh.download.utils.L;
-import com.hyh.download.utils.NetworkHelper;
+import com.hyh.download.utils.StreamUtil;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -54,7 +54,7 @@ class SingleFileWriteTask implements FileWrite {
         } catch (Exception e) {
             isException = true;
         } finally {
-            NetworkHelper.close(bos, response);
+            StreamUtil.close(bos, response);
         }
         if (startPosition == endPosition) {
             listener.onWriteFinish();

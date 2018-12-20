@@ -5,11 +5,12 @@ import android.content.Intent;
 import android.os.IBinder;
 import android.os.RemoteException;
 
+import com.hyh.download.DownloadInfo;
 import com.hyh.download.FileChecker;
 import com.hyh.download.IClient;
 import com.hyh.download.IFileChecker;
 import com.hyh.download.IRequest;
-import com.hyh.download.bean.TaskInfo;
+import com.hyh.download.db.bean.TaskInfo;
 import com.hyh.download.core.IDownloadProxy;
 import com.hyh.download.core.ServiceDownloadProxyImpl;
 import com.hyh.download.db.TaskDatabaseHelper;
@@ -184,12 +185,12 @@ public class FDLService extends Service {
 
         private IFileChecker fileChecker;
 
-        public FileCheckerWrapper(IFileChecker fileChecker) {
+        FileCheckerWrapper(IFileChecker fileChecker) {
             this.fileChecker = fileChecker;
         }
 
         @Override
-        public boolean isValidFile(TaskInfo taskInfo) {
+        public boolean isValidFile(DownloadInfo taskInfo) {
             if (fileChecker == null) {
                 return true;
             }

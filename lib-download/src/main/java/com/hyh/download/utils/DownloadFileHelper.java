@@ -5,8 +5,8 @@ import android.os.Environment;
 import android.os.StatFs;
 import android.text.TextUtils;
 
-import com.hyh.download.bean.TaskInfo;
 import com.hyh.download.core.Constants;
+import com.hyh.download.db.bean.TaskInfo;
 
 import java.io.File;
 import java.security.MessageDigest;
@@ -73,6 +73,11 @@ public class DownloadFileHelper {
     }
 
 
+    public static boolean isFileExists(String filePath) {
+        return !TextUtils.isEmpty(filePath) && new File(filePath).exists();
+    }
+
+
     public static File ensureCreated(File fileDir) {
         if (!fileDir.exists() && !fileDir.mkdirs()) {
             L.w("Unable to create the directory:" + fileDir.getPath());
@@ -85,6 +90,9 @@ public class DownloadFileHelper {
     }
 
     public static long getFileLength(String filePath) {
+        if (TextUtils.isEmpty(filePath)) {
+            return 0;
+        }
         File file = new File(filePath);
         if (file.exists() && file.isFile()) {
             return file.length();
@@ -92,6 +100,18 @@ public class DownloadFileHelper {
         return 0;
     }
 
+
+    public static void deleteDownloadFile(TaskInfo taskInfo) {
+        String filePath = taskInfo.getFilePath();
+        deleteFile(filePath);
+        int rangeNum = taskInfo.getRangeNum();
+        if (rangeNum > 1) {
+            for (int index = 0; index < rangeNum; index++) {
+                File tempFile = new File(filePath + "-" + index);
+                deleteFile(tempFile);
+            }
+        }
+    }
 
     public static boolean deleteFile(String filePath) {
         if (TextUtils.isEmpty(filePath)) {
@@ -130,16 +150,8 @@ public class DownloadFileHelper {
         return false;
     }
 
-    public static void deleteDownloadFile(TaskInfo taskInfo) {
-        String filePath = taskInfo.getFilePath();
-        deleteFile(filePath);
-        int rangeNum = taskInfo.getRangeNum();
-        if (rangeNum > 1) {
-            for (int index = 0; index < rangeNum; index++) {
-                File tempFile = new File(filePath + "-" + index);
-                deleteFile(tempFile);
-            }
-        }
+    public static String getRangeFilePath(String filePath, int rangeIndex) {
+        return filePath + "-range-" + rangeIndex;
     }
 
     public static String getDefaultFileDir(Context context) {

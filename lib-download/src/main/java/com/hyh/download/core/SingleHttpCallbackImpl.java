@@ -5,13 +5,14 @@ import android.os.SystemClock;
 import android.text.TextUtils;
 import android.webkit.URLUtil;
 
-import com.hyh.download.bean.TaskInfo;
+import com.hyh.download.db.bean.TaskInfo;
 import com.hyh.download.net.HttpCall;
 import com.hyh.download.net.HttpClient;
 import com.hyh.download.net.HttpResponse;
 import com.hyh.download.utils.DownloadFileHelper;
 import com.hyh.download.utils.L;
 import com.hyh.download.utils.NetworkHelper;
+import com.hyh.download.utils.ProgressHelper;
 
 import java.io.File;
 import java.io.IOException;
@@ -58,7 +59,6 @@ class SingleHttpCallbackImpl extends AbstractHttpCallback {
         this.taskInfo = taskInfo;
         this.downloadCallback = downloadCallback;
     }
-
 
     @Override
     public void onResponse(HttpCall call, HttpResponse response) throws IOException {
@@ -107,7 +107,6 @@ class SingleHttpCallbackImpl extends AbstractHttpCallback {
         }
     }
 
-
     @Override
     TaskInfo getTaskInfo() {
         return taskInfo;
@@ -134,9 +133,17 @@ class SingleHttpCallbackImpl extends AbstractHttpCallback {
         return "bytes".equals(acceptRanges);
     }
 
-    private void handleDownload(HttpResponse response, final TaskInfo taskInfo) {
+    private void handleDownload(HttpResponse response, TaskInfo taskInfo) {
+        taskInfo.setCacheRequestUrl(taskInfo.getRequestUrl());
+        taskInfo.setCacheTargetUrl(response.url());
+        String filePath = fixFilePath(response, taskInfo);
         final long currentSize = taskInfo.getCurrentSize();
         final long totalSize = taskInfo.getTotalSize();
+        mFileWrite = new SingleFileWriteTask(filePath, currentSize, totalSize);
+        mFileWrite.write(response, new SingleFileWriteListener(totalSize, currentSize));
+    }
+
+    private String fixFilePath(HttpResponse response, TaskInfo taskInfo) {
         String fileDir = taskInfo.getFileDir();
         String filePath = taskInfo.getFilePath();
         if (!TextUtils.isEmpty(filePath)) {
@@ -149,50 +156,49 @@ class SingleHttpCallbackImpl extends AbstractHttpCallback {
             filePath = fileDir + File.separator + fileName;
             taskInfo.setFilePath(filePath);
         }
-        mFileWrite = new SingleFileWriteTask(filePath, currentSize, totalSize);
-        mFileWrite.write(response, new SingleFileWriteListener(totalSize, currentSize));
+        return filePath;
     }
 
     private class SingleFileWriteListener implements FileWrite.FileWriteListener {
 
         long totalSize;
 
-        long oldSize;
+        long currentSize;
 
-        int oldProgress;
+        int currentProgress;
 
         SingleFileWriteListener(long totalSize, long currentSize) {
             this.totalSize = totalSize;
-            this.oldSize = currentSize;
-            this.oldProgress = (totalSize == -1) ? 0 : Math.round(oldSize * 100.0f / totalSize);
+            this.currentSize = currentSize;
+            this.currentProgress = (totalSize == -1) ? 0 : Math.round(this.currentSize * 100.0f / totalSize);
         }
 
         @Override
         public void onWriteFile(long writeLength) {
             if (writeLength > 0) {
                 currentRetryTimes = 0;
-                if (oldSize == 0 && !pause && !delete) {
+                if (currentSize == 0 && !pause && !delete) {
                     downloadCallback.onFirstFileWrite(taskInfo);
                 }
 
-                oldSize += writeLength;
-                taskInfo.setCurrentSize(oldSize);
+                currentSize += writeLength;
+                taskInfo.setCurrentSize(currentSize);
 
                 if (totalSize == -1) {
-                    if (oldProgress != -1) {
+                    if (currentProgress != -1) {
                         taskInfo.setProgress(-1);
                         downloadCallback.onDownloading(taskInfo);
                     }
-                    oldProgress = -1;
+                    currentProgress = -1;
                 } else {
-                    int progress = Math.round(oldSize * 100.0f / totalSize);
-                    if (progress != oldProgress) {
+                    int progress = ProgressHelper.computeProgress(currentSize, taskInfo.getTotalSize());
+                    if (progress != this.currentProgress) {
                         currentRetryTimes = 0;
                         taskInfo.setProgress(progress);
                         if (!pause && !delete) {
                             downloadCallback.onDownloading(taskInfo);
                         }
-                        oldProgress = progress;
+                        this.currentProgress = progress;
                     }
                 }
             }

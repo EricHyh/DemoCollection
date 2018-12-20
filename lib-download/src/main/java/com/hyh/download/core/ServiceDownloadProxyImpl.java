@@ -4,7 +4,7 @@ import android.content.Context;
 import android.os.RemoteException;
 
 import com.hyh.download.IClient;
-import com.hyh.download.bean.TaskInfo;
+import com.hyh.download.db.bean.TaskInfo;
 
 import java.util.Iterator;
 import java.util.Map;

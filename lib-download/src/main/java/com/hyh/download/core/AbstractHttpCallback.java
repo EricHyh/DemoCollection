@@ -1,7 +1,7 @@
 package com.hyh.download.core;
 
 
-import com.hyh.download.bean.TaskInfo;
+import com.hyh.download.db.bean.TaskInfo;
 import com.hyh.download.net.HttpCall;
 import com.hyh.download.net.HttpCallback;
 import com.hyh.download.net.HttpResponse;

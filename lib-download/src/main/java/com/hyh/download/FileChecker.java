@@ -1,7 +1,5 @@
 package com.hyh.download;
 
-import com.hyh.download.bean.DownloadInfo;
-
 /**
  * @author Administrator
  * @description

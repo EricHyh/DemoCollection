@@ -5,7 +5,7 @@ import android.os.Looper;
 
 import com.hyh.download.Callback;
 import com.hyh.download.CallbackAdapter;
-import com.hyh.download.bean.DownloadInfo;
+import com.hyh.download.DownloadInfo;
 
 import java.util.ArrayList;
 import java.util.List;

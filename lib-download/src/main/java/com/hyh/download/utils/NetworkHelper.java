@@ -10,7 +10,6 @@ import android.webkit.WebSettings;
 
 import com.hyh.download.core.Constants;
 
-import java.io.Closeable;
 import java.net.HttpURLConnection;
 import java.util.Calendar;
 import java.util.regex.Matcher;
@@ -174,22 +173,6 @@ public class NetworkHelper {
             return year1 == year2 && month1 == month2 && day1 == day2;
         } else {
             return false;
-        }
-    }
-
-    public static void close(Closeable... closeables) {
-        if (closeables == null || closeables.length <= 0) {
-            return;
-        }
-        for (Closeable closeable : closeables) {
-            if (closeable == null) {
-                continue;
-            }
-            try {
-                closeable.close();
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
         }
     }
 

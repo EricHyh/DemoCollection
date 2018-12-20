@@ -4,7 +4,7 @@ import android.content.Context;
 
 import com.hyh.download.FileChecker;
 import com.hyh.download.State;
-import com.hyh.download.bean.TaskInfo;
+import com.hyh.download.db.bean.TaskInfo;
 import com.hyh.download.db.TaskDatabaseHelper;
 import com.hyh.download.net.HttpCall;
 import com.hyh.download.net.HttpClient;
@@ -157,6 +157,8 @@ public abstract class SuperDownloadProxy implements IDownloadProxy {
                             handleFailure(taskInfo);
                             return;
                         }
+                        taskInfo.setCurrentStatus(State.DOWNLOADING);
+                        insertOrUpdate(taskInfo);
                         AbstractHttpCallback httpCallbackImpl = getHttpCallbackImpl(taskInfo);
                         httpCallbackMap.put(resKey, httpCallbackImpl);
                         call.enqueue(httpCallbackImpl);
@@ -278,7 +280,7 @@ public abstract class SuperDownloadProxy implements IDownloadProxy {
             String resKey = entry.getKey();
             TaskCache taskCache = entry.getValue();
             iterator.remove();
-            L.d("startNextTask resKey=" + resKey);
+            L.d("startNextTask resKey is " + resKey);
             startTask(taskCache.taskInfo, taskCache.fileChecker);
         } else {
             if (httpCallbackMap.isEmpty()) {

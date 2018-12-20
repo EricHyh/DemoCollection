@@ -1,4 +1,4 @@
-package com.hyh.download.bean;
+package com.hyh.download;
 
 import android.os.Parcel;
 import android.os.Parcelable;

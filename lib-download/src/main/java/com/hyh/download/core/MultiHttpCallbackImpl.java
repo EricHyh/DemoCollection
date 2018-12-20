@@ -3,19 +3,21 @@ package com.hyh.download.core;
 import android.content.Context;
 import android.os.SystemClock;
 
-import com.hyh.download.bean.TaskInfo;
+import com.hyh.download.db.bean.TaskInfo;
 import com.hyh.download.net.HttpCall;
 import com.hyh.download.net.HttpCallback;
 import com.hyh.download.net.HttpClient;
 import com.hyh.download.net.HttpResponse;
 import com.hyh.download.utils.L;
 import com.hyh.download.utils.NetworkHelper;
+import com.hyh.download.utils.ProgressHelper;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
@@ -47,6 +49,8 @@ class MultiHttpCallbackImpl extends AbstractHttpCallback {
 
     private final int rangeNum;
 
+    private List<RangeInfo> rangeInfoList;
+
     private volatile AtomicInteger successCount = new AtomicInteger();
 
     private volatile AtomicInteger failureCount = new AtomicInteger();
@@ -66,7 +70,7 @@ class MultiHttpCallbackImpl extends AbstractHttpCallback {
         int maximumPoolSize = 1;
         long keepAliveTime = 120L;
         TimeUnit unit = TimeUnit.SECONDS;
-        BlockingQueue<Runnable> workQueue = new ArrayBlockingQueue<Runnable>(10);
+        BlockingQueue<Runnable> workQueue = new ArrayBlockingQueue<Runnable>(5);
         ThreadFactory threadFactory = new ThreadFactory() {
             @Override
             public Thread newThread(Runnable r) {
@@ -104,11 +108,15 @@ class MultiHttpCallbackImpl extends AbstractHttpCallback {
         this.downloadCallback = downloadCallback;
         this.httpCallbackMap = new HashMap<>();
         this.rangeNum = taskInfo.getRangeNum();
-        for (int rangeId = 0; rangeId < rangeNum; rangeId++) {
-            RealHttpCallbackImpl realHttpCallback = new RealHttpCallbackImpl(rangeId);
-            String tag = taskInfo.getResKey().concat("-").concat(String.valueOf(rangeId));
+        for (int rangeIndex = 0; rangeIndex < rangeNum; rangeIndex++) {
+            RealHttpCallbackImpl realHttpCallback = new RealHttpCallbackImpl(rangeInfoList.get(rangeIndex));
+            String tag = taskInfo.getResKey().concat("-").concat(String.valueOf(rangeIndex));
             httpCallbackMap.put(tag, realHttpCallback);
         }
+    }
+
+    void setRangeInfoList(List<RangeInfo> rangeInfoList) {
+        this.rangeInfoList = rangeInfoList;
     }
 
     HttpCallback getHttpCallback(String tag) {
@@ -208,25 +216,16 @@ class MultiHttpCallbackImpl extends AbstractHttpCallback {
         //总重试的最大次数
         private static final int TOTAL_RETRY_MAX_TIMES = 20;
 
+        private final RangeInfo rangeInfo;
+
         private volatile boolean isFailure;
 
         private HttpCall call;
 
-        private long startPosition;
-
-        private long endPosition;
-
-        private int rangeId;
-
         private FileWrite mFileWrite;
 
-
-        RealHttpCallbackImpl(int rangeId) {
-            this.rangeId = rangeId;
-            long[] startPositions = taskInfo.getStartPositions();
-            long[] endPositions = taskInfo.getEndPositions();
-            startPosition = startPositions[rangeId];
-            endPosition = endPositions[rangeId];
+        RealHttpCallbackImpl(RangeInfo rangeInfo) {
+            this.rangeInfo = rangeInfo;
         }
 
         void wake() {
@@ -287,7 +286,8 @@ class MultiHttpCallbackImpl extends AbstractHttpCallback {
 
         private void handleDownload(HttpResponse response, final TaskInfo taskInfo) throws IOException {
             String filePath = taskInfo.getFilePath();
-            String tempPath = filePath.concat("-").concat(String.valueOf(rangeId));
+
+            String tempPath = rangeInfo.getRangeFilePath();
             long totalSize = taskInfo.getTotalSize();
 
 
@@ -298,8 +298,7 @@ class MultiHttpCallbackImpl extends AbstractHttpCallback {
                 raf.close();
             }
 
-
-            mFileWrite = new MultiFileWriteTask(filePath, tempPath, startPosition, endPosition);
+            mFileWrite = new MultiFileWriteTask(filePath, tempPath, rangeInfo.getStartPosition(), rangeInfo.getEndPosition());
             mFileWrite.write(response, new MultiFileWriteListener());
         }
 
@@ -312,7 +311,7 @@ class MultiHttpCallbackImpl extends AbstractHttpCallback {
             @Override
             public void onWriteFile(long writeLength) {
                 if (writeLength > 0) {
-                    startPosition += writeLength;
+                    rangeInfo.addStartPosition(writeLength);
                     currentRetryTimes = 0;
                     MultiHttpCallbackImpl.this.handleWriteFile(writeLength);
                 }
@@ -381,16 +380,14 @@ class MultiHttpCallbackImpl extends AbstractHttpCallback {
                     return false;
                 }
 
-                HttpCall call = client.newCall(taskInfo.getResKey().concat("-").concat(String.valueOf(rangeId)),
+                long oldStartPosition = rangeInfo.getStartPosition();
+                long curStartPosition = fixStartPosition();
+                addCurrentSize(curStartPosition - oldStartPosition);
+
+                HttpCall call = client.newCall(taskInfo.getResKey().concat("-").concat(String.valueOf(rangeInfo.getRangeId())),
                         taskInfo.getRequestUrl(),
-                        startPosition,
-                        endPosition);
-
-
-                long oldStartPosition = startPosition;
-                this.startPosition = fixStartPosition(startPosition, rangeId);
-
-                addCurrentSize(startPosition - oldStartPosition);
+                        curStartPosition,
+                        rangeInfo.getEndPosition());
 
                 call.enqueue(RealHttpCallbackImpl.this);
                 return true;
@@ -421,10 +418,9 @@ class MultiHttpCallbackImpl extends AbstractHttpCallback {
                     || taskInfo.isPermitMobileDataRetry() && NetworkHelper.isNetEnv(context);
         }
 
-        private long fixStartPosition(long startPosition, int rangeId) {
+        private long fixStartPosition() {
             return 0;
         }
-
     }
 
     private class OnWriteFileTask implements Runnable {
@@ -455,7 +451,7 @@ class MultiHttpCallbackImpl extends AbstractHttpCallback {
 
             currentSize = addCurrentSize(writeLength);
 
-            int progress = Math.round(currentSize * 100.0f / totalSize);
+            int progress = ProgressHelper.computeProgress(currentSize, totalSize);
 
             if (progress != oldProgress) {
                 taskInfo.setProgress(progress);

@@ -2,7 +2,7 @@
 package com.hyh.download;
 
 // Declare any non-default types here with import statements
-import  com.hyh.download.bean.DownloadInfo;
+import  com.hyh.download.DownloadInfo;
 
 interface IFileChecker {
     /**

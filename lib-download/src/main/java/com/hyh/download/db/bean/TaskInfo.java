@@ -1,7 +1,14 @@
-package com.hyh.download.bean;
+package com.hyh.download.db.bean;
 
 import android.os.Parcel;
 import android.os.Parcelable;
+
+import com.hyh.download.DownloadInfo;
+import com.hyh.download.FileRequest;
+import com.hyh.download.db.annotation.Column;
+import com.hyh.download.db.annotation.Id;
+import com.hyh.download.db.annotation.NotNull;
+import com.hyh.download.db.annotation.Unique;
 
 /**
  * Created by Administrator on 2017/3/14.
@@ -9,68 +16,99 @@ import android.os.Parcelable;
 
 public class TaskInfo implements Parcelable {
 
+    @Id
+    @Column(nameInDb = "_id")
+    private long id = -1;
+
+    @NotNull
+    @Unique
+    @Column(nameInDb = "resKey")
     private String resKey;
 
+    @NotNull
+    @Column(nameInDb = "requestUrl")
     private String requestUrl;
 
+    @Column(nameInDb = "cacheRequestUrl")
     private String cacheRequestUrl;
 
+    @Column(nameInDb = "cacheTargetUrl")
     private String cacheTargetUrl;
 
+    @Column(nameInDb = "versionCode")
     private int versionCode;
 
+    @Column(nameInDb = "priority")
     private int priority;
 
+    @NotNull
+    @Column(nameInDb = "fileDir")
     private String fileDir;
 
+    @Column(nameInDb = "filePath")
     private String filePath;
 
+    @Column(nameInDb = "progress")
     private int progress;
 
+    @Column(nameInDb = "byMultiThread")
     private boolean byMultiThread;
 
+    @Column(nameInDb = "rangeNum")
     private int rangeNum;
 
+    @Column(nameInDb = "currentSize")
     private long currentSize;
 
-    private long[] startPositions;
-
-    private long[] endPositions;
-
+    @Column(nameInDb = "totalSize")
     private long totalSize;
 
+    @Column(nameInDb = "currentStatus")
     private int currentStatus;
 
+    @Column(nameInDb = "wifiAutoRetry")
     private boolean wifiAutoRetry;
 
+    @Column(nameInDb = "permitMobileDataRetry")
     private boolean permitMobileDataRetry;
 
+    @Column(nameInDb = "permitRetryIfInterrupt")
+    private boolean permitRetryIfInterrupt;
+
+    @Column(nameInDb = "responseCode")
     private int responseCode;
 
+    @Column(nameInDb = "eTag")
     private String eTag;
 
+    @Column(nameInDb = "tag")
     private String tag;
 
     public TaskInfo() {
     }
 
+
     protected TaskInfo(Parcel in) {
+        id = in.readLong();
         resKey = in.readString();
         requestUrl = in.readString();
+        cacheRequestUrl = in.readString();
+        cacheTargetUrl = in.readString();
         versionCode = in.readInt();
+        priority = in.readInt();
         fileDir = in.readString();
         filePath = in.readString();
         progress = in.readInt();
         byMultiThread = in.readByte() != 0;
         rangeNum = in.readInt();
         currentSize = in.readLong();
-        startPositions = in.createLongArray();
-        endPositions = in.createLongArray();
         totalSize = in.readLong();
         currentStatus = in.readInt();
         wifiAutoRetry = in.readByte() != 0;
         permitMobileDataRetry = in.readByte() != 0;
+        permitRetryIfInterrupt = in.readByte() != 0;
         responseCode = in.readInt();
+        eTag = in.readString();
         tag = in.readString();
     }
 
@@ -87,27 +125,6 @@ public class TaskInfo implements Parcelable {
     };
 
     @Override
-    public String toString() {
-        return "TaskInfo{" +
-                "resKey='" + resKey + '\'' +
-                ", requestUrl='" + requestUrl + '\'' +
-                ", versionCode=" + versionCode +
-                ", fileDir='" + fileDir + '\'' +
-                ", filePath='" + filePath + '\'' +
-                ", progress=" + progress +
-                ", byMultiThread=" + byMultiThread +
-                ", rangeNum=" + rangeNum +
-                ", currentSize=" + currentSize +
-                ", totalSize=" + totalSize +
-                ", currentStatus=" + currentStatus +
-                ", wifiAutoRetry=" + wifiAutoRetry +
-                ", permitMobileDataRetry=" + permitMobileDataRetry +
-                ", responseCode=" + responseCode +
-                ", tag=" + tag +
-                '}';
-    }
-
-    @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
@@ -122,22 +139,37 @@ public class TaskInfo implements Parcelable {
 
     @Override
     public void writeToParcel(Parcel dest, int flags) {
+
+        dest.writeLong(id);
         dest.writeString(resKey);
         dest.writeString(requestUrl);
+        dest.writeString(cacheRequestUrl);
+        dest.writeString(cacheTargetUrl);
         dest.writeInt(versionCode);
+        dest.writeInt(priority);
+        dest.writeString(fileDir);
         dest.writeString(filePath);
         dest.writeInt(progress);
         dest.writeByte((byte) (byMultiThread ? 1 : 0));
         dest.writeInt(rangeNum);
         dest.writeLong(currentSize);
-        dest.writeLongArray(startPositions);
-        dest.writeLongArray(endPositions);
         dest.writeLong(totalSize);
         dest.writeInt(currentStatus);
         dest.writeByte((byte) (wifiAutoRetry ? 1 : 0));
         dest.writeByte((byte) (permitMobileDataRetry ? 1 : 0));
+        dest.writeByte((byte) (permitRetryIfInterrupt ? 1 : 0));
         dest.writeInt(responseCode);
+        dest.writeString(eTag);
         dest.writeString(tag);
+    }
+
+
+    public long getId() {
+        return id;
+    }
+
+    public void setId(long id) {
+        this.id = id;
     }
 
     public String getResKey() {
@@ -178,6 +210,14 @@ public class TaskInfo implements Parcelable {
 
     public void setVersionCode(int versionCode) {
         this.versionCode = versionCode;
+    }
+
+    public int getPriority() {
+        return priority;
+    }
+
+    public void setPriority(int priority) {
+        this.priority = priority;
     }
 
     public String getFileDir() {
@@ -228,22 +268,6 @@ public class TaskInfo implements Parcelable {
         this.currentSize = currentSize;
     }
 
-    public long[] getStartPositions() {
-        return startPositions;
-    }
-
-    public void setStartPositions(long[] startPositions) {
-        this.startPositions = startPositions;
-    }
-
-    public long[] getEndPositions() {
-        return endPositions;
-    }
-
-    public void setEndPositions(long[] endPositions) {
-        this.endPositions = endPositions;
-    }
-
     public long getTotalSize() {
         return totalSize;
     }
@@ -276,12 +300,28 @@ public class TaskInfo implements Parcelable {
         this.permitMobileDataRetry = permitMobileDataRetry;
     }
 
+    public boolean isPermitRetryIfInterrupt() {
+        return permitRetryIfInterrupt;
+    }
+
+    public void setPermitRetryIfInterrupt(boolean permitRetryIfInterrupt) {
+        this.permitRetryIfInterrupt = permitRetryIfInterrupt;
+    }
+
     public int getResponseCode() {
         return responseCode;
     }
 
     public void setResponseCode(int responseCode) {
         this.responseCode = responseCode;
+    }
+
+    public String getETag() {
+        return eTag;
+    }
+
+    public void setETag(String eTag) {
+        this.eTag = eTag;
     }
 
     public String getTag() {
@@ -294,5 +334,9 @@ public class TaskInfo implements Parcelable {
 
     public DownloadInfo toDownloadInfo() {
         return new DownloadInfo();
+    }
+
+    public FileRequest toFileRequest() {
+        return new FileRequest.Builder().build();
     }
 }

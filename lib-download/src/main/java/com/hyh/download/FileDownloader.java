@@ -4,7 +4,7 @@ import android.annotation.SuppressLint;
 import android.content.Context;
 import android.text.TextUtils;
 
-import com.hyh.download.bean.TaskInfo;
+import com.hyh.download.db.bean.TaskInfo;
 import com.hyh.download.core.IDownloadProxy;
 import com.hyh.download.core.LocalDownloadProxyImpl;
 import com.hyh.download.core.ServiceBridge;
@@ -171,18 +171,25 @@ public class FileDownloader {
     private TaskInfo getTaskInfo(FileRequest request) {
         String key = request.key();
         TaskInfo taskInfo = mDownloadProxy.getTaskInfoByKey(key);
-        if (taskInfo != null
-                && !request.isForceDownload()
-                && !isVersionChanged(request, taskInfo)
-                && !isUrlChanged(request, taskInfo)) {
-            fixDownloadUrl(request, taskInfo);
-            fixFilePath(request, taskInfo);
-            fixByMultiThread(request, taskInfo);
+        if (taskInfo != null) {
+            if (!isRequestChanged(request, taskInfo)) {
+                fixRequestInfo(request, taskInfo);
+            } else {
+                DownloadFileHelper.deleteDownloadFile(taskInfo);
+                taskInfo = newTaskInfo(request);
+            }
         } else {
             taskInfo = newTaskInfo(request);
         }
         taskInfo.setCurrentStatus(State.PREPARE);
         return taskInfo;
+    }
+
+    private boolean isRequestChanged(FileRequest request, TaskInfo taskInfo) {
+        return request.isForceDownload()
+                || isVersionChanged(request, taskInfo)
+                || isUrlChanged(request, taskInfo)
+                || isFilePathChanged(request, taskInfo);
     }
 
     private boolean isVersionChanged(FileRequest request, TaskInfo taskInfo) {
@@ -193,11 +200,7 @@ public class FileDownloader {
         return request.needVerifyUrl() && !TextUtils.equals(request.url(), taskInfo.getRequestUrl());
     }
 
-    private void fixDownloadUrl(FileRequest request, TaskInfo taskInfo) {
-        taskInfo.setRequestUrl(request.url());
-    }
-
-    private void fixFilePath(FileRequest request, TaskInfo taskInfo) {
+    private boolean isFilePathChanged(FileRequest request, TaskInfo taskInfo) {
         String cacheFileDir = taskInfo.getFileDir();
         String cacheFilePath = taskInfo.getFilePath();
         String requestFileDir = request.fileDir();
@@ -205,28 +208,23 @@ public class FileDownloader {
         if (!TextUtils.isEmpty(requestFilePath)) {
             if (!TextUtils.equals(cacheFilePath, requestFilePath)) {
                 //之前下载额文件路径与现在请求的路径不一致，删除之前下载的文件,表示是一个新的下载
-                DownloadFileHelper.deleteFile(cacheFilePath);
-                taskInfo.setFileDir(DownloadFileHelper.getParenFilePath(requestFilePath));
-                taskInfo.setFilePath(requestFilePath);
-                taskInfo.setCurrentSize(0);
-                taskInfo.setTotalSize(0);
+                return true;
             }
         } else if (!TextUtils.isEmpty(requestFileDir)) {
             if (!TextUtils.equals(cacheFileDir, requestFileDir)) {
                 //之前下载额文件路径与现在请求的目录不一致，删除之前下载的文件,表示是一个新的下载
-                DownloadFileHelper.deleteFile(cacheFilePath);
-                taskInfo.setFileDir(requestFileDir);
-                taskInfo.setCurrentSize(0);
-                taskInfo.setTotalSize(0);
+                return true;
             }
         }
+        return false;
     }
 
-    private void fixByMultiThread(FileRequest request, TaskInfo taskInfo) {
-        String filePath = taskInfo.getFilePath();
-        if (DownloadFileHelper.getFileLength(filePath) <= 0) {
-            taskInfo.setByMultiThread(request.byMultiThread());
-        }
+    private void fixRequestInfo(FileRequest request, TaskInfo taskInfo) {
+        taskInfo.setRequestUrl(request.url());
+        taskInfo.setWifiAutoRetry(request.wifiAutoRetry());
+        taskInfo.setPermitMobileDataRetry(request.permitMobileDataRetry());
+        taskInfo.setResponseCode(0);
+        taskInfo.setTag(request.tag());
     }
 
     private TaskInfo newTaskInfo(FileRequest request) {

@@ -4,7 +4,7 @@ import android.content.Context;
 
 import com.hyh.download.Callback;
 import com.hyh.download.State;
-import com.hyh.download.bean.TaskInfo;
+import com.hyh.download.db.bean.TaskInfo;
 
 
 /**

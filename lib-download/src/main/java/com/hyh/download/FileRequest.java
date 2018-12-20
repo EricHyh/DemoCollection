@@ -19,6 +19,8 @@ public class FileRequest {
 
     private boolean permitMobileDataRetry;
 
+    private boolean permitRetryIfInterrupt;
+
     private boolean isForceDownload;
 
     private int versionCode;
@@ -66,6 +68,10 @@ public class FileRequest {
         return permitMobileDataRetry;
     }
 
+    public boolean permitRetryIfInterrupt() {
+        return permitRetryIfInterrupt;
+    }
+
     public boolean isForceDownload() {
         return isForceDownload;
     }
@@ -104,6 +110,8 @@ public class FileRequest {
 
         private boolean permitMobileDataRetry = false;
 
+        private boolean permitRetryIfInterrupt;
+
         private boolean isForceDownload = false;
 
         private int versionCode = -1;
@@ -128,6 +136,7 @@ public class FileRequest {
             fileRequest.byMultiThread = this.byMultiThread;
             fileRequest.wifiAutoRetry = this.wifiAutoRetry;
             fileRequest.permitMobileDataRetry = this.permitMobileDataRetry;
+            fileRequest.permitRetryIfInterrupt = this.permitRetryIfInterrupt;
             fileRequest.isForceDownload = this.isForceDownload;
             fileRequest.versionCode = this.versionCode;
             fileRequest.fileDir = fileDir;
@@ -164,6 +173,11 @@ public class FileRequest {
 
         public Builder permitMobileDataRetry(boolean permitMobileDataRetry) {
             this.permitMobileDataRetry = permitMobileDataRetry;
+            return this;
+        }
+
+        public Builder permitRetryIfInterrupt(boolean permitRetryIfInterrupt) {
+            this.permitRetryIfInterrupt = permitRetryIfInterrupt;
             return this;
         }
 

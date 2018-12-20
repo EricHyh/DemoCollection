@@ -2,7 +2,7 @@
 package com.hyh.download;
 
 // Declare any non-default types here with import statements
-import  com.hyh.download.bean.TaskInfo;
+import  com.hyh.download.db.bean.TaskInfo;
 import com.hyh.download.IClient;
 import com.hyh.download.IFileChecker;
 //import java.util.Map;

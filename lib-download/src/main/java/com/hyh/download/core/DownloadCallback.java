@@ -1,6 +1,6 @@
 package com.hyh.download.core;
 
-import com.hyh.download.bean.TaskInfo;
+import com.hyh.download.db.bean.TaskInfo;
 
 /**
  * @author Administrator

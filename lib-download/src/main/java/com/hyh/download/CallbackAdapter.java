@@ -1,8 +1,6 @@
 package com.hyh.download;
 
 
-import com.hyh.download.bean.DownloadInfo;
-
 /**
  * Created by Eric_He on 2017/3/11.
  */

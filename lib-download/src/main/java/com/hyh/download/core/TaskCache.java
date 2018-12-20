@@ -2,7 +2,7 @@ package com.hyh.download.core;
 
 
 import com.hyh.download.FileChecker;
-import com.hyh.download.bean.TaskInfo;
+import com.hyh.download.db.bean.TaskInfo;
 
 /**
  * Created by Administrator on 2017/3/16.

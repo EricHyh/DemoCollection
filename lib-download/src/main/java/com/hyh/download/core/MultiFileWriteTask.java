@@ -2,7 +2,7 @@ package com.hyh.download.core;
 
 import com.hyh.download.net.HttpResponse;
 import com.hyh.download.utils.L;
-import com.hyh.download.utils.NetworkHelper;
+import com.hyh.download.utils.StreamUtil;
 
 import java.io.BufferedInputStream;
 import java.io.IOException;
@@ -60,7 +60,7 @@ class MultiFileWriteTask implements FileWrite {
             e.printStackTrace();
             isException = true;
         } finally {
-            NetworkHelper.close(fileRaf, tempRaf, response);
+            StreamUtil.close(fileRaf, tempRaf, response);
         }
         if (startPosition == endPosition + 1) {
             listener.onWriteFinish();

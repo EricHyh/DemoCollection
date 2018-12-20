@@ -5,6 +5,7 @@ import com.hyh.download.net.HttpCall;
 import com.hyh.download.net.HttpCallback;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -13,18 +14,21 @@ import java.util.Set;
  * @description
  * @data 2017/7/12
  */
-@SuppressWarnings("unchecked")
 class MultiHttpCall implements HttpCall {
 
     private Map<String, HttpCall> httpCallMap;
 
-    MultiHttpCall(Map<String, HttpCall> httpCallMap) {
+    private List<RangeInfo> rangeInfoList;
+
+    MultiHttpCall(Map<String, HttpCall> httpCallMap, List<RangeInfo> rangeInfoList) {
         this.httpCallMap = httpCallMap;
+        this.rangeInfoList = rangeInfoList;
     }
 
     @Override
     public void enqueue(HttpCallback httpCallback) {
         MultiHttpCallbackImpl multiHttpCallbackImpl = (MultiHttpCallbackImpl) httpCallback;
+        multiHttpCallbackImpl.setRangeInfoList(rangeInfoList);
         Set<Map.Entry<String, HttpCall>> entrySet = httpCallMap.entrySet();
         for (Map.Entry<String, HttpCall> httpCallEntry : entrySet) {
             String tag = httpCallEntry.getKey();

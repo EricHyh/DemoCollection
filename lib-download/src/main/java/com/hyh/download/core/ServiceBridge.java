@@ -14,8 +14,8 @@ import com.hyh.download.IClient;
 import com.hyh.download.IFileChecker;
 import com.hyh.download.IRequest;
 import com.hyh.download.State;
-import com.hyh.download.bean.DownloadInfo;
-import com.hyh.download.bean.TaskInfo;
+import com.hyh.download.DownloadInfo;
+import com.hyh.download.db.bean.TaskInfo;
 import com.hyh.download.core.service.FDLService;
 
 import java.util.Collection;
