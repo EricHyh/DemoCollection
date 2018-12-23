@@ -56,8 +56,7 @@ class MultiFileWriteTask implements FileWrite {
                     break;
                 }
             }
-        } catch (IOException e) {
-            e.printStackTrace();
+        } catch (Exception e) {
             isException = true;
         } finally {
             StreamUtil.close(fileRaf, tempRaf, response);

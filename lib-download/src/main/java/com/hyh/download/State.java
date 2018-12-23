@@ -10,19 +10,19 @@ public class State {
 
     public static final int PREPARE = 1;//准备状态，显示下载中
 
-    public static final int START_WRITE = 2;//开始写状态，显示下载中
+    public static final int WAITING_IN_QUEUE = 2;//等待状态
 
     public static final int DOWNLOADING = 3;//下载中状态，显示下载中
 
-    public static final int WAITING_IN_QUEUE = 4;//等待状态
+    public static final int DELETE = 4;//下载任务被删除
 
-    public static final int WAITING_FOR_WIFI = 5;//等待wifi状态
+    public static final int PAUSE = 5;//下载任务被暂停
 
-    public static final int DELETE = 6;//下载任务被删除
+    public static final int SUCCESS = 6;//下载成功
 
-    public static final int PAUSE = 7;//下载任务被暂停
+    public static final int WAITING_FOR_WIFI = 7;//等待wifi状态
 
-    public static final int SUCCESS = 8;//下载成功
+    public static final int LOW_DISK_SPACE = 8;//磁盘空间不足
 
     public static final int FAILURE = 9;//下载失败
 

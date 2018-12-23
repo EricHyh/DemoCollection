@@ -17,7 +17,7 @@ import java.util.List;
 public class PackageUtil {
 
     public static int getVersionCode(Context context, String packageName) {
-        PackageManager manager = context.getPackageManager();//获取包管理器
+        PackageManager manager = context.getPackageManager();
         try {
             PackageInfo packageInfo = manager.getPackageInfo(packageName, PackageManager.GET_META_DATA);
             return packageInfo.versionCode;

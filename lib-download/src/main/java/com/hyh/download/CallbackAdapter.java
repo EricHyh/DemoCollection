@@ -13,11 +13,6 @@ public abstract class CallbackAdapter implements Callback {
     }
 
     @Override
-    public void onFirstFileWrite(DownloadInfo downloadInfo) {
-
-    }
-
-    @Override
     public void onDownloading(DownloadInfo downloadInfo) {
 
     }
@@ -48,7 +43,7 @@ public abstract class CallbackAdapter implements Callback {
     }
 
     @Override
-    public void onNoEnoughSpace(DownloadInfo downloadInfo) {
+    public void onLowDiskSpace(DownloadInfo downloadInfo) {
 
     }
 

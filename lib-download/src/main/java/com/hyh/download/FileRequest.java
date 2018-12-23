@@ -17,11 +17,13 @@ public class FileRequest {
 
     private boolean wifiAutoRetry;
 
-    private boolean permitMobileDataRetry;
+    private boolean permitRetryInMobileData;
 
-    private boolean permitRetryIfInterrupt;
+    private boolean permitRetryInvalidFileTask;
 
-    private boolean isForceDownload;
+    private boolean permitRecoverTask;
+
+    private boolean forceDownload;
 
     private int versionCode;
 
@@ -64,16 +66,20 @@ public class FileRequest {
         return wifiAutoRetry;
     }
 
-    public boolean permitMobileDataRetry() {
-        return permitMobileDataRetry;
+    public boolean permitRetryInMobileData() {
+        return permitRetryInMobileData;
     }
 
-    public boolean permitRetryIfInterrupt() {
-        return permitRetryIfInterrupt;
+    public boolean permitRetryInvalidFileTask() {
+        return permitRetryInvalidFileTask;
     }
 
-    public boolean isForceDownload() {
-        return isForceDownload;
+    public boolean permitRecoverTask() {
+        return permitRecoverTask;
+    }
+
+    public boolean forceDownload() {
+        return forceDownload;
     }
 
     public int versionCode() {
@@ -108,11 +114,13 @@ public class FileRequest {
 
         private boolean wifiAutoRetry = false;
 
-        private boolean permitMobileDataRetry = false;
+        private boolean permitRetryInMobileData = false;
 
-        private boolean permitRetryIfInterrupt;
+        private boolean permitRetryInvalidFileTask = false;
 
-        private boolean isForceDownload = false;
+        private boolean permitRecoverTask = false;
+
+        private boolean forceDownload = false;
 
         private int versionCode = -1;
 
@@ -135,9 +143,10 @@ public class FileRequest {
             fileRequest.needVerifyUrl = this.needVerifyUrl;
             fileRequest.byMultiThread = this.byMultiThread;
             fileRequest.wifiAutoRetry = this.wifiAutoRetry;
-            fileRequest.permitMobileDataRetry = this.permitMobileDataRetry;
-            fileRequest.permitRetryIfInterrupt = this.permitRetryIfInterrupt;
-            fileRequest.isForceDownload = this.isForceDownload;
+            fileRequest.permitRetryInMobileData = this.permitRetryInMobileData;
+            fileRequest.permitRetryInvalidFileTask = this.permitRetryInvalidFileTask;
+            fileRequest.permitRecoverTask = this.permitRecoverTask;
+            fileRequest.forceDownload = this.forceDownload;
             fileRequest.versionCode = this.versionCode;
             fileRequest.fileDir = fileDir;
             fileRequest.filePath = filePath;
@@ -171,18 +180,23 @@ public class FileRequest {
             return this;
         }
 
-        public Builder permitMobileDataRetry(boolean permitMobileDataRetry) {
-            this.permitMobileDataRetry = permitMobileDataRetry;
+        public Builder permitRetryInMobileData(boolean permitRetryInMobileData) {
+            this.permitRetryInMobileData = permitRetryInMobileData;
             return this;
         }
 
-        public Builder permitRetryIfInterrupt(boolean permitRetryIfInterrupt) {
-            this.permitRetryIfInterrupt = permitRetryIfInterrupt;
+        public Builder permitRetryInvalidFileTask(boolean permitRetryInvalidFileTask) {
+            this.permitRetryInvalidFileTask = permitRetryInvalidFileTask;
             return this;
         }
 
-        public Builder isForceDownload(boolean isForceDownload) {
-            this.isForceDownload = isForceDownload;
+        public Builder permitRecoverTask(boolean permitRecoverTask) {
+            this.permitRecoverTask = permitRecoverTask;
+            return this;
+        }
+
+        public Builder forceDownload(boolean isForceDownload) {
+            this.forceDownload = isForceDownload;
             return this;
         }
 

@@ -6,10 +6,6 @@ package com.hyh.download;
  * @data 2018/12/13
  */
 
-public interface FileChecker {
-
-    boolean isValidFile(DownloadInfo downloadInfo);
-
-    boolean isRetryDownload();
+public abstract class FileChecker extends IFileChecker.Stub {
 
 }

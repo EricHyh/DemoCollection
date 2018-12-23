@@ -94,7 +94,7 @@ class SingleHttpCallbackImpl extends AbstractHttpCallback {
             }
             handleDownload(response, taskInfo);
         } else if (contentLength <= 0 && (code == Constants.ResponseCode.OK || code == Constants.ResponseCode.PARTIAL_CONTENT)) {
-            //无法获取到文件长度的下载情况，简直坑爹
+            //无法获取到文件长度的下载情况
             taskInfo.setTotalSize(-1L);
             handleDownload(response, taskInfo);
         } else if (code == Constants.ResponseCode.NOT_FOUND) {
@@ -177,9 +177,6 @@ class SingleHttpCallbackImpl extends AbstractHttpCallback {
         public void onWriteFile(long writeLength) {
             if (writeLength > 0) {
                 currentRetryTimes = 0;
-                if (currentSize == 0 && !pause && !delete) {
-                    downloadCallback.onFirstFileWrite(taskInfo);
-                }
 
                 currentSize += writeLength;
                 taskInfo.setCurrentSize(currentSize);
@@ -282,7 +279,7 @@ class SingleHttpCallbackImpl extends AbstractHttpCallback {
 
     private boolean isSuitableNetworkType() {
         return NetworkHelper.isWifiEnv(context)
-                || taskInfo.isPermitMobileDataRetry() && NetworkHelper.isNetEnv(context);
+                || taskInfo.isPermitRetryInMobileData() && NetworkHelper.isNetEnv(context);
     }
 
     @Override

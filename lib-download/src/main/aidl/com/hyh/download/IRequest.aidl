@@ -2,6 +2,7 @@
 package com.hyh.download;
 
 // Declare any non-default types here with import statements
+import  com.hyh.download.core.DownloadProxyConfig;
 import  com.hyh.download.db.bean.TaskInfo;
 import com.hyh.download.IClient;
 import com.hyh.download.IFileChecker;
@@ -13,13 +14,7 @@ interface IRequest {
      */
     boolean isAlive();
 
-    void initDownloadProxy(int maxSynchronousDownloadNum);
-
-    void onReceiveStartCommand(String resKey);
-
-    void onReceivePauseCommand(String resKey);
-
-    void onReceiveDeleteCommand(String resKey);
+    void initDownloadProxy(in DownloadProxyConfig downloadProxyConfig, in IFileChecker globalFileChecker);
 
     void insertOrUpdate(in TaskInfo taskInfo);
 
@@ -27,7 +22,7 @@ interface IRequest {
 
     boolean isTaskAlive(String resKey);
 
-    boolean isFileDownloaded(String resKey);
+    boolean isFileDownloaded(String resKey, in IFileChecker fileChecker);
 
     TaskInfo getTaskInfoByKey(String resKey);
 

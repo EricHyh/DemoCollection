@@ -31,9 +31,10 @@ public class TaskInfoDao {
     private static Map<String, ColumnInfo> sColumns = new LinkedHashMap<>();
 
     private static String[] sColumnNames = {"_id", "resKey", "requestUrl", "cacheRequestUrl", "cacheTargetUrl",
-            "versionCode", "priority", "fileDir", "filePath", "progress",
-            "byMultiThread", "rangeNum", "currentSize", "totalSize", "currentStatus",
-            "wifiAutoRetry", "permitMobileDataRetry", "permitRetryIfInterrupt", "responseCode", "eTag", "tag"};
+            "versionCode", "priority", "fileDir", "filePath", "byMultiThread",
+            "rangeNum", "totalSize", "currentSize", "progress", "currentStatus",
+            "wifiAutoRetry", "permitRetryInMobileData", "permitRetryInvalidFileTask", "permitRecoverTask", "responseCode",
+            "failureCode", "eTag", "updateTimeMillis", "tag"};
 
     static {
         loadColumns();
@@ -103,7 +104,6 @@ public class TaskInfoDao {
         db.execSQL(sql);
     }
 
-
     private static String getColumnType(Class<?> type) {
         String columnType = null;
         if (type.equals(byte.class) || type.equals(Byte.class)) {
@@ -138,10 +138,6 @@ public class TaskInfoDao {
         } else {
             insert(taskInfo);
         }
-    }
-
-    public synchronized void delete(TaskInfo taskInfo) {
-        delete(taskInfo.getResKey());
     }
 
     public synchronized void delete(String resKey) {
@@ -251,11 +247,14 @@ public class TaskInfoDao {
         taskInfo.setTotalSize(cursor.getLong(13));
         taskInfo.setCurrentStatus(cursor.getInt(14));
         taskInfo.setWifiAutoRetry(cursor.getInt(15) == 1);
-        taskInfo.setPermitMobileDataRetry(cursor.getInt(16) == 1);
-        taskInfo.setPermitRetryIfInterrupt(cursor.getInt(16) == 1);
-        taskInfo.setResponseCode(cursor.getInt(17));
-        taskInfo.setETag(cursor.getString(18));
-        taskInfo.setTag(cursor.getString(19));
+        taskInfo.setPermitRetryInMobileData(cursor.getInt(16) == 1);
+        taskInfo.setPermitRetryInvalidFileTask(cursor.getInt(17) == 1);
+        taskInfo.setPermitRecoverTask(cursor.getInt(18) == 1);
+        taskInfo.setResponseCode(cursor.getInt(19));
+        taskInfo.setFailureCode(cursor.getInt(20));
+        taskInfo.setETag(cursor.getString(21));
+        taskInfo.setUpdateTimeMillis(cursor.getLong(22));
+        taskInfo.setTag(cursor.getString(23));
         return taskInfo;
     }
 
@@ -273,17 +272,20 @@ public class TaskInfoDao {
         contentValues.put("priority", taskInfo.getPriority());
         contentValues.put("fileDir", taskInfo.getFileDir());
         contentValues.put("filePath", taskInfo.getFilePath());
-        contentValues.put("progress", taskInfo.getProgress());
         contentValues.put("byMultiThread", taskInfo.isByMultiThread() ? 1 : 0);
         contentValues.put("rangeNum", taskInfo.getRangeNum());
-        contentValues.put("currentSize", taskInfo.getCurrentSize());
         contentValues.put("totalSize", taskInfo.getTotalSize());
+        contentValues.put("currentSize", taskInfo.getCurrentSize());
+        contentValues.put("progress", taskInfo.getProgress());
         contentValues.put("currentStatus", taskInfo.getCurrentStatus());
         contentValues.put("wifiAutoRetry", taskInfo.isWifiAutoRetry() ? 1 : 0);
-        contentValues.put("permitMobileDataRetry", taskInfo.isPermitMobileDataRetry() ? 1 : 0);
-        contentValues.put("permitRetryIfInterrupt", taskInfo.isPermitRetryIfInterrupt() ? 1 : 0);
+        contentValues.put("permitRetryInMobileData", taskInfo.isPermitRetryInMobileData() ? 1 : 0);
+        contentValues.put("permitRetryInvalidFileTask", taskInfo.isPermitRetryInvalidFileTask() ? 1 : 0);
+        contentValues.put("permitRecoverTask", taskInfo.isPermitRecoverTask() ? 1 : 0);
         contentValues.put("responseCode", taskInfo.getResponseCode());
+        contentValues.put("failureCode", taskInfo.getFailureCode());
         contentValues.put("eTag", taskInfo.getETag());
+        contentValues.put("updateTimeMillis", taskInfo.getUpdateTimeMillis());
         contentValues.put("tag", taskInfo.getTag());
         return contentValues;
     }

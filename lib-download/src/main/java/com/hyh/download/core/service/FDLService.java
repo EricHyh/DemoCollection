@@ -5,15 +5,13 @@ import android.content.Intent;
 import android.os.IBinder;
 import android.os.RemoteException;
 
-import com.hyh.download.DownloadInfo;
-import com.hyh.download.FileChecker;
 import com.hyh.download.IClient;
 import com.hyh.download.IFileChecker;
 import com.hyh.download.IRequest;
-import com.hyh.download.db.bean.TaskInfo;
+import com.hyh.download.core.DownloadProxyConfig;
 import com.hyh.download.core.IDownloadProxy;
 import com.hyh.download.core.ServiceDownloadProxyImpl;
-import com.hyh.download.db.TaskDatabaseHelper;
+import com.hyh.download.db.bean.TaskInfo;
 import com.hyh.download.utils.L;
 
 import java.util.concurrent.ConcurrentHashMap;
@@ -28,7 +26,7 @@ public class FDLService extends Service {
 
     private final ConcurrentHashMap<Integer, IClient> mClients = new ConcurrentHashMap<>();
 
-    private IDownloadProxy mServiceProxy;
+    private volatile IDownloadProxy mServiceProxy;
 
     private volatile boolean mIsInitProxy;
 
@@ -40,39 +38,22 @@ public class FDLService extends Service {
         }
 
         @Override
-        public void register(int pid, IClient client) throws RemoteException {
-            waitingForInitProxy();
-            mClients.put(pid, client);
-        }
-
-        @Override
-        public void initDownloadProxy(int maxSynchronousDownloadNum) throws RemoteException {
+        public synchronized void initDownloadProxy(DownloadProxyConfig downloadProxyConfig, IFileChecker globalFileChecker) throws RemoteException {
             if (mServiceProxy != null) {
                 mServiceProxy = new ServiceDownloadProxyImpl(
                         getApplicationContext(),
                         mClients,
-                        maxSynchronousDownloadNum);
+                        downloadProxyConfig,
+                        globalFileChecker);
                 initProxy();
             }
             waitingForInitProxy();
         }
 
         @Override
-        public void onReceiveStartCommand(String resKey) throws RemoteException {
+        public void register(int pid, IClient client) throws RemoteException {
             waitingForInitProxy();
-            mServiceProxy.onReceiveStartCommand(resKey);
-        }
-
-        @Override
-        public void onReceivePauseCommand(String resKey) throws RemoteException {
-            waitingForInitProxy();
-            mServiceProxy.onReceivePauseCommand(resKey);
-        }
-
-        @Override
-        public void onReceiveDeleteCommand(String resKey) throws RemoteException {
-            waitingForInitProxy();
-            mServiceProxy.onReceiveDeleteCommand(resKey);
+            mClients.put(pid, client);
         }
 
         @Override
@@ -82,15 +63,15 @@ public class FDLService extends Service {
         }
 
         @Override
-        public boolean isTaskAlive(String resKey) throws RemoteException {
+        public synchronized boolean isTaskAlive(String resKey) throws RemoteException {
             waitingForInitProxy();
             return mServiceProxy.isTaskAlive(resKey);
         }
 
         @Override
-        public boolean isFileDownloaded(String resKey) throws RemoteException {
+        public synchronized boolean isFileDownloaded(String resKey, IFileChecker fileChecker) throws RemoteException {
             waitingForInitProxy();
-            return mServiceProxy.isFileDownloaded(resKey);
+            return mServiceProxy.isFileDownloaded(resKey, fileChecker);
         }
 
         @Override
@@ -102,11 +83,7 @@ public class FDLService extends Service {
         @Override
         public void startTask(TaskInfo taskInfo, IFileChecker fileChecker) throws RemoteException {
             waitingForInitProxy();
-            FileCheckerWrapper fileCheckerWrapper = null;
-            if (fileChecker != null) {
-                fileCheckerWrapper = new FileCheckerWrapper(fileChecker);
-            }
-            mServiceProxy.startTask(taskInfo, fileCheckerWrapper);
+            mServiceProxy.startTask(taskInfo, fileChecker);
         }
 
         @Override
@@ -131,7 +108,6 @@ public class FDLService extends Service {
     @Override
     public void onCreate() {
         super.onCreate();
-        TaskDatabaseHelper.getInstance().init(getApplicationContext());
     }
 
     private void initProxy() {
@@ -179,38 +155,5 @@ public class FDLService extends Service {
     }
 
     public static class IndependentProcessService extends FDLService {
-    }
-
-    private static class FileCheckerWrapper implements FileChecker {
-
-        private IFileChecker fileChecker;
-
-        FileCheckerWrapper(IFileChecker fileChecker) {
-            this.fileChecker = fileChecker;
-        }
-
-        @Override
-        public boolean isValidFile(DownloadInfo taskInfo) {
-            if (fileChecker == null) {
-                return true;
-            }
-            try {
-                return fileChecker.isValidFile(taskInfo);
-            } catch (Exception e) {
-                return false;
-            }
-        }
-
-        @Override
-        public boolean isRetryDownload() {
-            if (fileChecker == null) {
-                return false;
-            }
-            try {
-                return fileChecker.isRetryDownload();
-            } catch (Exception e) {
-                return false;
-            }
-        }
     }
 }

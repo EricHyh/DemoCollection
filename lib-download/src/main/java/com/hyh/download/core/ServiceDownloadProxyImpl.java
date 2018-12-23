@@ -4,6 +4,7 @@ import android.content.Context;
 import android.os.RemoteException;
 
 import com.hyh.download.IClient;
+import com.hyh.download.IFileChecker;
 import com.hyh.download.db.bean.TaskInfo;
 
 import java.util.Iterator;
@@ -20,8 +21,8 @@ public class ServiceDownloadProxyImpl extends SuperDownloadProxy implements IDow
 
     private Map<Integer, IClient> mClients;
 
-    public ServiceDownloadProxyImpl(Context context, Map<Integer, IClient> clients, int maxSynchronousDownloadNum) {
-        super(context, maxSynchronousDownloadNum);
+    public ServiceDownloadProxyImpl(Context context, Map<Integer, IClient> clients, DownloadProxyConfig downloadProxyConfig, IFileChecker globalFileChecker) {
+        super(context, downloadProxyConfig, globalFileChecker);
         this.mClients = clients;
     }
 

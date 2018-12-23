@@ -4,7 +4,6 @@ import android.os.Parcel;
 import android.os.Parcelable;
 
 import com.hyh.download.DownloadInfo;
-import com.hyh.download.FileRequest;
 import com.hyh.download.db.annotation.Column;
 import com.hyh.download.db.annotation.Id;
 import com.hyh.download.db.annotation.NotNull;
@@ -48,20 +47,20 @@ public class TaskInfo implements Parcelable {
     @Column(nameInDb = "filePath")
     private String filePath;
 
-    @Column(nameInDb = "progress")
-    private int progress;
-
     @Column(nameInDb = "byMultiThread")
     private boolean byMultiThread;
 
     @Column(nameInDb = "rangeNum")
     private int rangeNum;
 
+    @Column(nameInDb = "totalSize")
+    private long totalSize;
+
     @Column(nameInDb = "currentSize")
     private long currentSize;
 
-    @Column(nameInDb = "totalSize")
-    private long totalSize;
+    @Column(nameInDb = "progress")
+    private int progress;
 
     @Column(nameInDb = "currentStatus")
     private int currentStatus;
@@ -69,17 +68,26 @@ public class TaskInfo implements Parcelable {
     @Column(nameInDb = "wifiAutoRetry")
     private boolean wifiAutoRetry;
 
-    @Column(nameInDb = "permitMobileDataRetry")
-    private boolean permitMobileDataRetry;
+    @Column(nameInDb = "permitRetryInMobileData")
+    private boolean permitRetryInMobileData;
 
-    @Column(nameInDb = "permitRetryIfInterrupt")
-    private boolean permitRetryIfInterrupt;
+    @Column(nameInDb = "permitRetryInvalidFileTask")
+    private boolean permitRetryInvalidFileTask;
+
+    @Column(nameInDb = "permitRecoverTask")
+    private boolean permitRecoverTask;
 
     @Column(nameInDb = "responseCode")
     private int responseCode;
 
+    @Column(nameInDb = "failureCode")
+    private int failureCode;
+
     @Column(nameInDb = "eTag")
     private String eTag;
+
+    @Column(nameInDb = "updateTimeMillis")
+    private long updateTimeMillis;
 
     @Column(nameInDb = "tag")
     private String tag;
@@ -98,17 +106,20 @@ public class TaskInfo implements Parcelable {
         priority = in.readInt();
         fileDir = in.readString();
         filePath = in.readString();
-        progress = in.readInt();
         byMultiThread = in.readByte() != 0;
         rangeNum = in.readInt();
-        currentSize = in.readLong();
         totalSize = in.readLong();
+        currentSize = in.readLong();
+        progress = in.readInt();
         currentStatus = in.readInt();
         wifiAutoRetry = in.readByte() != 0;
-        permitMobileDataRetry = in.readByte() != 0;
-        permitRetryIfInterrupt = in.readByte() != 0;
+        permitRetryInMobileData = in.readByte() != 0;
+        permitRetryInvalidFileTask = in.readByte() != 0;
+        permitRecoverTask = in.readByte() != 0;
         responseCode = in.readInt();
+        failureCode = in.readInt();
         eTag = in.readString();
+        updateTimeMillis = in.readLong();
         tag = in.readString();
     }
 
@@ -139,7 +150,6 @@ public class TaskInfo implements Parcelable {
 
     @Override
     public void writeToParcel(Parcel dest, int flags) {
-
         dest.writeLong(id);
         dest.writeString(resKey);
         dest.writeString(requestUrl);
@@ -149,17 +159,20 @@ public class TaskInfo implements Parcelable {
         dest.writeInt(priority);
         dest.writeString(fileDir);
         dest.writeString(filePath);
-        dest.writeInt(progress);
         dest.writeByte((byte) (byMultiThread ? 1 : 0));
         dest.writeInt(rangeNum);
-        dest.writeLong(currentSize);
         dest.writeLong(totalSize);
+        dest.writeLong(currentSize);
+        dest.writeInt(progress);
         dest.writeInt(currentStatus);
         dest.writeByte((byte) (wifiAutoRetry ? 1 : 0));
-        dest.writeByte((byte) (permitMobileDataRetry ? 1 : 0));
-        dest.writeByte((byte) (permitRetryIfInterrupt ? 1 : 0));
+        dest.writeByte((byte) (permitRetryInMobileData ? 1 : 0));
+        dest.writeByte((byte) (permitRetryInvalidFileTask ? 1 : 0));
+        dest.writeByte((byte) (permitRecoverTask ? 1 : 0));
         dest.writeInt(responseCode);
+        dest.writeInt(failureCode);
         dest.writeString(eTag);
+        dest.writeLong(updateTimeMillis);
         dest.writeString(tag);
     }
 
@@ -260,20 +273,20 @@ public class TaskInfo implements Parcelable {
         this.rangeNum = rangeNum;
     }
 
-    public long getCurrentSize() {
-        return currentSize;
-    }
-
-    public void setCurrentSize(long currentSize) {
-        this.currentSize = currentSize;
-    }
-
     public long getTotalSize() {
         return totalSize;
     }
 
     public void setTotalSize(long totalSize) {
         this.totalSize = totalSize;
+    }
+
+    public long getCurrentSize() {
+        return currentSize;
+    }
+
+    public void setCurrentSize(long currentSize) {
+        this.currentSize = currentSize;
     }
 
     public int getCurrentStatus() {
@@ -292,20 +305,28 @@ public class TaskInfo implements Parcelable {
         this.wifiAutoRetry = wifiAutoRetry;
     }
 
-    public boolean isPermitMobileDataRetry() {
-        return permitMobileDataRetry;
+    public boolean isPermitRetryInMobileData() {
+        return permitRetryInMobileData;
     }
 
-    public void setPermitMobileDataRetry(boolean permitMobileDataRetry) {
-        this.permitMobileDataRetry = permitMobileDataRetry;
+    public void setPermitRetryInMobileData(boolean permitRetryInMobileData) {
+        this.permitRetryInMobileData = permitRetryInMobileData;
     }
 
-    public boolean isPermitRetryIfInterrupt() {
-        return permitRetryIfInterrupt;
+    public boolean isPermitRetryInvalidFileTask() {
+        return permitRetryInvalidFileTask;
     }
 
-    public void setPermitRetryIfInterrupt(boolean permitRetryIfInterrupt) {
-        this.permitRetryIfInterrupt = permitRetryIfInterrupt;
+    public void setPermitRetryInvalidFileTask(boolean permitRetryInvalidFileTask) {
+        this.permitRetryInvalidFileTask = permitRetryInvalidFileTask;
+    }
+
+    public boolean isPermitRecoverTask() {
+        return permitRecoverTask;
+    }
+
+    public void setPermitRecoverTask(boolean permitRecoverTask) {
+        this.permitRecoverTask = permitRecoverTask;
     }
 
     public int getResponseCode() {
@@ -316,12 +337,28 @@ public class TaskInfo implements Parcelable {
         this.responseCode = responseCode;
     }
 
+    public int getFailureCode() {
+        return failureCode;
+    }
+
+    public void setFailureCode(int failureCode) {
+        this.failureCode = failureCode;
+    }
+
     public String getETag() {
         return eTag;
     }
 
     public void setETag(String eTag) {
         this.eTag = eTag;
+    }
+
+    public long getUpdateTimeMillis() {
+        return updateTimeMillis;
+    }
+
+    public void setUpdateTimeMillis(long updateTimeMillis) {
+        this.updateTimeMillis = updateTimeMillis;
     }
 
     public String getTag() {
@@ -334,9 +371,5 @@ public class TaskInfo implements Parcelable {
 
     public DownloadInfo toDownloadInfo() {
         return new DownloadInfo();
-    }
-
-    public FileRequest toFileRequest() {
-        return new FileRequest.Builder().build();
     }
 }

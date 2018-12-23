@@ -10,11 +10,7 @@ import com.hyh.download.db.bean.TaskInfo;
 
 public interface DownloadCallback {
 
-    void onFirstFileWrite(TaskInfo taskInfo);
-
     void onDownloading(TaskInfo taskInfo);
-
-
 
     void onFailure(TaskInfo taskInfo);
 

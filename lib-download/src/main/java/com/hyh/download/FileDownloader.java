@@ -4,12 +4,12 @@ import android.annotation.SuppressLint;
 import android.content.Context;
 import android.text.TextUtils;
 
-import com.hyh.download.db.bean.TaskInfo;
+import com.hyh.download.core.DownloadProxyConfig;
 import com.hyh.download.core.IDownloadProxy;
 import com.hyh.download.core.LocalDownloadProxyImpl;
 import com.hyh.download.core.ServiceBridge;
 import com.hyh.download.core.TaskListenerManager;
-import com.hyh.download.core.TaskStateCache;
+import com.hyh.download.db.bean.TaskInfo;
 import com.hyh.download.utils.DownloadFileHelper;
 
 /**
@@ -29,9 +29,7 @@ public class FileDownloader {
 
     private Context mContext;
 
-    private final TaskStateCache mTaskStateCache = new TaskStateCache();
-
-    private DownloaderConfig mDownloaderConfig = new DownloaderConfig();
+    private DownloaderConfig mDownloaderConfig;
 
     private final Object mInitProxyLock = new Object();
 
@@ -44,14 +42,22 @@ public class FileDownloader {
     private FileDownloader() {
     }
 
+    public void init(Context context) {
+        init(context, null);
+    }
+
     public void init(Context context, DownloaderConfig downloaderConfig) {
         if (mContext != null) {
             return;
         }
         mContext = context.getApplicationContext();
-        mDownloaderConfig = downloaderConfig;
+        if (downloaderConfig == null) {
+            mDownloaderConfig = new DownloaderConfig();
+        } else {
+            mDownloaderConfig = downloaderConfig;
+        }
         mDownloadProxy = createDownloadProxy();
-        mListenerManager = new TaskListenerManager(mTaskStateCache);
+        mListenerManager = new TaskListenerManager();
         initProxy();
     }
 
@@ -86,15 +92,21 @@ public class FileDownloader {
         }
     }
 
+    public synchronized void startTask(FileRequest request) {
+        startTask(request, null);
+    }
+
     public synchronized void startTask(final FileRequest request, final Callback callback) {
         waitingForInitProxyFinish();
         String key = request.key();
-        if (isFileDownloaded(key)) {
-            callback.onSuccess(mDownloadProxy.getTaskInfoByKey(key).toDownloadInfo());
+        if (isFileDownloaded(key, request.fileChecker())) {
+            if (callback != null) {
+                callback.onSuccess(mDownloadProxy.getTaskInfoByKey(key).toDownloadInfo());
+            }
             return;
         }
 
-        if (mTaskStateCache.isTaskPrepared(request.key()) || isTaskAlive(request.key())) {
+        if (isTaskAlive(request.key())) {
             if (callback != null) {
                 mListenerManager.addSingleTaskCallback(request.key(), callback);
             }
@@ -106,41 +118,19 @@ public class FileDownloader {
         if (callback != null) {
             mListenerManager.addSingleTaskCallback(request.key(), callback);
         }
-        onReceiveStartCommand(taskInfo);
         mDownloadProxy.startTask(taskInfo, request.fileChecker());
     }
 
     public synchronized void pauseTask(final String resKey) {
         waitingForInitProxyFinish();
         if (mDownloadProxy.isTaskAlive(resKey)) {
-            onReceivePauseCommand(resKey);
             mDownloadProxy.pauseTask(resKey);
         }
     }
 
     public synchronized void deleteTask(final String resKey) {
         waitingForInitProxyFinish();
-        onReceiveDeleteCommand(resKey);
         mDownloadProxy.deleteTask(resKey);
-    }
-
-    private void onReceiveStartCommand(TaskInfo taskInfo) {
-        mListenerManager.onPrepare(taskInfo.toDownloadInfo());
-        mDownloadProxy.onReceiveStartCommand(taskInfo.getResKey());
-    }
-
-    private void onReceivePauseCommand(String resKey) {
-        TaskInfo taskInfo = mDownloadProxy.getTaskInfoByKey(resKey);
-        mListenerManager.onPause(taskInfo.toDownloadInfo());
-        mDownloadProxy.onReceivePauseCommand(resKey);
-    }
-
-    private void onReceiveDeleteCommand(String resKey) {
-        TaskInfo taskInfo = mDownloadProxy.getTaskInfoByKey(resKey);
-        if (taskInfo != null) {
-            mListenerManager.onDelete(taskInfo.toDownloadInfo());
-        }
-        mDownloadProxy.onReceiveDeleteCommand(resKey);
     }
 
     public boolean isTaskAlive(String resKey) {
@@ -150,19 +140,23 @@ public class FileDownloader {
 
     public boolean isFileDownloaded(String resKey) {
         waitingForInitProxyFinish();
-        return mDownloadProxy.isFileDownloaded(resKey);
+        return mDownloadProxy.isFileDownloaded(resKey, null);
+    }
+
+    public boolean isFileDownloaded(String resKey, FileChecker fileChecker) {
+        waitingForInitProxyFinish();
+        return mDownloadProxy.isFileDownloaded(resKey, fileChecker);
     }
 
     private IDownloadProxy createDownloadProxy() {
         IDownloadProxy proxy;
         if (mDownloaderConfig.isByService()) {
             proxy = new ServiceBridge(mContext,
-                    mDownloaderConfig.isIndependentProcess(),
-                    mDownloaderConfig.getMaxSyncDownloadNum(),
+                    mDownloaderConfig,
                     mListenerManager);
         } else {
             proxy = new LocalDownloadProxyImpl(mContext,
-                    mDownloaderConfig.getMaxSyncDownloadNum(),
+                    mDownloaderConfig,
                     mListenerManager);
         }
         return proxy;
@@ -186,7 +180,7 @@ public class FileDownloader {
     }
 
     private boolean isRequestChanged(FileRequest request, TaskInfo taskInfo) {
-        return request.isForceDownload()
+        return request.forceDownload()
                 || isVersionChanged(request, taskInfo)
                 || isUrlChanged(request, taskInfo)
                 || isFilePathChanged(request, taskInfo);
@@ -221,9 +215,14 @@ public class FileDownloader {
 
     private void fixRequestInfo(FileRequest request, TaskInfo taskInfo) {
         taskInfo.setRequestUrl(request.url());
+
         taskInfo.setWifiAutoRetry(request.wifiAutoRetry());
-        taskInfo.setPermitMobileDataRetry(request.permitMobileDataRetry());
+        taskInfo.setPermitRetryInMobileData(request.permitRetryInMobileData());
+        taskInfo.setPermitRetryInvalidFileTask(request.permitRetryInvalidFileTask());
+        taskInfo.setPermitRecoverTask(request.permitRecoverTask());
+
         taskInfo.setResponseCode(0);
+        taskInfo.setFailureCode(0);
         taskInfo.setTag(request.tag());
     }
 
@@ -231,11 +230,16 @@ public class FileDownloader {
         TaskInfo taskInfo = new TaskInfo();
         taskInfo.setResKey(request.key());
         taskInfo.setRequestUrl(request.url());
+        taskInfo.setVersionCode(request.versionCode());
         taskInfo.setFileDir(createFileDir(request));
         taskInfo.setFilePath(request.filePath());
         taskInfo.setByMultiThread(request.byMultiThread());
+
         taskInfo.setWifiAutoRetry(request.wifiAutoRetry());
-        taskInfo.setPermitMobileDataRetry(request.permitMobileDataRetry());
+        taskInfo.setPermitRetryInMobileData(request.permitRetryInMobileData());
+        taskInfo.setPermitRetryInvalidFileTask(request.permitRetryInvalidFileTask());
+        taskInfo.setPermitRecoverTask(request.permitRecoverTask());
+
         taskInfo.setTag(request.tag());
         return taskInfo;
     }

@@ -20,6 +20,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ThreadPoolExecutor;
 
 /**
  * @author Administrator
@@ -29,9 +31,34 @@ import java.util.Map;
 
 class HttpCallFactory {
 
+    private final ThreadPoolExecutor mExecutor;
+
     private Map<String, Integer> mGetTotalSizeRetryTimesMap = new HashMap<>();
 
-    void create(HttpClient client, TaskInfo taskInfo, HttpCallCreateListener listener) {
+    private List<String> mCreatingList = new CopyOnWriteArrayList<>();
+
+    HttpCallFactory(ThreadPoolExecutor executor) {
+        mExecutor = executor;
+    }
+
+    void create(final HttpClient client, final TaskInfo taskInfo, final HttpCallCreateListener listener) {
+        final String resKey = taskInfo.getResKey();
+        mCreatingList.add(resKey);
+        mExecutor.execute(new Runnable() {
+            @Override
+            public void run() {
+                HttpCall httpCall = getHttpCall(client, taskInfo);
+                listener.onCreateFinish(httpCall);
+                mCreatingList.remove(resKey);
+            }
+        });
+    }
+
+    boolean isCreating(String resKey) {
+        return mCreatingList.contains(resKey);
+    }
+
+    private HttpCall getHttpCall(HttpClient client, TaskInfo taskInfo) {
         String resKey = taskInfo.getResKey();
         String url = taskInfo.getRequestUrl();
         mGetTotalSizeRetryTimesMap.put(resKey, 0);
@@ -40,38 +67,31 @@ class HttpCallFactory {
             if (rangeNum == 0) {//表示是一个新的下载
                 Long curTotalSize = requestFileInfo(client, taskInfo);
                 if (curTotalSize == null) {
-                    listener.onCreateFinish(null);
-                    return;
+                    return null;
                 }
                 rangeNum = computeRangeNum(curTotalSize);
                 taskInfo.setRangeNum(rangeNum);
                 taskInfo.setTotalSize(curTotalSize);
 
                 List<RangeInfo> rangeInfoList = getRangeInfoList(taskInfo, true);
-                MultiHttpCall multiHttpCall = getMultiHttpCall(client, taskInfo, rangeInfoList);
-
-                listener.onCreateFinish(multiHttpCall);
+                return getMultiHttpCall(client, taskInfo, rangeInfoList);
             } else if (rangeNum == 1) {//表示之前是使用一个线程下载
                 String filePath = taskInfo.getFilePath();
                 long fileLength = DownloadFileHelper.getFileLength(filePath);
                 taskInfo.setCurrentSize(fileLength);
                 taskInfo.setProgress(ProgressHelper.computeProgress(fileLength, taskInfo.getTotalSize()));
-                listener.onCreateFinish(client.newCall(resKey, url, taskInfo.getCurrentSize()));
+                return client.newCall(resKey, url, taskInfo.getCurrentSize());
             } else {
                 long cacheTotalSize = taskInfo.getTotalSize();
                 Long curTotalSize = requestFileInfo(client, taskInfo);
                 if (curTotalSize == null) {
-                    listener.onCreateFinish(null);
-                    return;
+                    return null;
                 }
                 String filePath = taskInfo.getFilePath();
                 long fileLength = DownloadFileHelper.getFileLength(filePath);
                 if (cacheTotalSize == curTotalSize && fileLength == curTotalSize) {
-
                     List<RangeInfo> rangeInfoList = getRangeInfoList(taskInfo, false);
-                    MultiHttpCall multiHttpCall = getMultiHttpCall(client, taskInfo, rangeInfoList);
-
-                    listener.onCreateFinish(multiHttpCall);
+                    return getMultiHttpCall(client, taskInfo, rangeInfoList);
                 } else {
                     DownloadFileHelper.deleteDownloadFile(taskInfo);
                     taskInfo.setTotalSize(curTotalSize);
@@ -82,21 +102,18 @@ class HttpCallFactory {
                         //重新计算下载区间数
                         rangeNum = computeRangeNum(curTotalSize);
                         taskInfo.setRangeNum(rangeNum);
-
                         List<RangeInfo> rangeInfoList = getRangeInfoList(taskInfo, true);
-                        MultiHttpCall multiHttpCall = getMultiHttpCall(client, taskInfo, rangeInfoList);
-
-                        listener.onCreateFinish(multiHttpCall);
+                        return getMultiHttpCall(client, taskInfo, rangeInfoList);
                     } else {
                         //没有获取到下载大小，采用单线程下载
                         rangeNum = 1;
                         taskInfo.setRangeNum(rangeNum);
-                        listener.onCreateFinish(client.newCall(resKey, url, taskInfo.getCurrentSize()));
+                        return client.newCall(resKey, url, taskInfo.getCurrentSize());
                     }
                 }
             }
         } else {
-            listener.onCreateFinish(client.newCall(resKey, url, taskInfo.getCurrentSize()));
+            return client.newCall(resKey, url, taskInfo.getCurrentSize());
         }
     }
 

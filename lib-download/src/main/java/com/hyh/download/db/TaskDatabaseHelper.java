@@ -1,14 +1,13 @@
 package com.hyh.download.db;
 
 import android.content.Context;
-import android.os.Looper;
+import android.os.RemoteException;
 
-import com.hyh.download.FileRequest;
+import com.hyh.download.IFileChecker;
 import com.hyh.download.State;
 import com.hyh.download.db.bean.TaskInfo;
 import com.hyh.download.db.dao.TaskInfoDao;
 import com.hyh.download.utils.DownloadFileHelper;
-import com.hyh.download.utils.ProgressHelper;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -38,9 +37,9 @@ public class TaskDatabaseHelper {
         mTaskInfoDao = new TaskInfoDao(context);
     }
 
-    public void fixDatabaseErrorStatus() {
+    public List<TaskInfo> fixDatabaseErrorStatus(IFileChecker globalFileChecker) {
         List<TaskInfo> taskInfoList = mTaskInfoDao.loadAll();
-        List<FileRequest> interruptRequests = null;
+        List<TaskInfo> interruptTasks = null;
         if (taskInfoList != null && !taskInfoList.isEmpty()) {
             for (TaskInfo taskInfo : taskInfoList) {
                 String resKey = taskInfo.getResKey();
@@ -59,16 +58,20 @@ public class TaskDatabaseHelper {
                     long fileLength = DownloadFileHelper.getFileLength(filePath);
                     boolean isRealSuccess = false;
                     if (fileLength > 0) {
-                        if (totalSize > 0) {
-                            isRealSuccess = fileLength == totalSize;
-                        } else {
-                            isRealSuccess = true;
+                        isRealSuccess = totalSize <= 0 || fileLength == totalSize;
+                    }
+                    if (isRealSuccess && globalFileChecker != null) {
+                        if (!checkFile(taskInfo, globalFileChecker)) {
+                            isRealSuccess = false;
                         }
                     }
                     if (!isRealSuccess) {
-                        taskInfo.setCurrentSize(fileLength);
-                        taskInfo.setProgress(ProgressHelper.computeProgress(fileLength, totalSize));
-                        taskInfo.setCurrentStatus(State.FAILURE);
+                        DownloadFileHelper.deleteDownloadFile(taskInfo);
+                        taskInfo.setTotalSize(0);
+                        taskInfo.setCurrentSize(0);
+                        taskInfo.setProgress(0);
+                        taskInfo.setETag(null);
+                        taskInfo.setCurrentStatus(State.NONE);
                         insertOrUpdate(taskInfo);
                     }
                     mTaskInfoMap.put(resKey, taskInfo);
@@ -77,45 +80,42 @@ public class TaskDatabaseHelper {
                 taskInfo.setCurrentStatus(State.FAILURE);
                 insertOrUpdate(taskInfo);
                 mTaskInfoMap.put(resKey, taskInfo);
-                if (taskInfo.isPermitRetryIfInterrupt()) {
-                    if (interruptRequests == null) {
-                        interruptRequests = new ArrayList<>();
+                if (taskInfo.isPermitRecoverTask()) {
+                    if (interruptTasks == null) {
+                        interruptTasks = new ArrayList<>();
                     }
-                    interruptRequests.add(taskInfo.toFileRequest());
+                    interruptTasks.add(taskInfo);
                 }
             }
         }
-        if (interruptRequests != null) {
-            final List<FileRequest> finalInterruptRequests = interruptRequests;
-            new android.os.Handler(Looper.getMainLooper()).post(new Runnable() {
-                @Override
-                public void run() {
-                    for (FileRequest fileRequest : finalInterruptRequests) {
+        return interruptTasks;
+    }
 
-                    }
-                }
-            });
+    private boolean checkFile(TaskInfo taskInfo, IFileChecker globalFileChecker) {
+        try {
+            return globalFileChecker.isValidFile(taskInfo.toDownloadInfo());
+        } catch (RemoteException e) {
+            return true;
         }
     }
 
     public void insertOrUpdate(final TaskInfo taskInfo) {
+        String resKey = taskInfo.getResKey();
+        mTaskInfoMap.put(resKey, taskInfo);
         mTaskInfoDao.insertOrUpdate(taskInfo);
     }
 
     public void delete(String resKey) {
+        mTaskInfoMap.remove(resKey);
         mTaskInfoDao.delete(resKey);
     }
 
     public void delete(TaskInfo taskInfo) {
-        mTaskInfoDao.delete(taskInfo);
-    }
-
-    public Map<String, TaskInfo> getAllTask() {
-        return null;
+        delete(taskInfo.getResKey());
     }
 
     public TaskInfo getTaskInfoByKey(String resKey) {
-        return null;
+        return mTaskInfoMap.get(resKey);
     }
 }
 

@@ -16,7 +16,6 @@ import java.io.FileOutputStream;
 
 class SingleFileWriteTask implements FileWrite {
 
-
     private String filePath;
 
     private long startPosition;
@@ -24,7 +23,6 @@ class SingleFileWriteTask implements FileWrite {
     private final long endPosition;
 
     private volatile boolean stop;
-
 
     SingleFileWriteTask(String filePath, long startPosition, long endPosition) {
         this.filePath = filePath;
@@ -56,6 +54,7 @@ class SingleFileWriteTask implements FileWrite {
         } finally {
             StreamUtil.close(bos, response);
         }
+        StreamUtil.close(bos, response);
         if (startPosition == endPosition) {
             listener.onWriteFinish();
         } else if (endPosition == -1 && !isException && !stop) {

@@ -381,7 +381,7 @@ class MultiHttpCallbackImpl extends AbstractHttpCallback {
                 }
 
                 long oldStartPosition = rangeInfo.getStartPosition();
-                long curStartPosition = fixStartPosition();
+                long curStartPosition = fixStartPosition(oldStartPosition);
                 addCurrentSize(curStartPosition - oldStartPosition);
 
                 HttpCall call = client.newCall(taskInfo.getResKey().concat("-").concat(String.valueOf(rangeInfo.getRangeId())),
@@ -415,11 +415,12 @@ class MultiHttpCallbackImpl extends AbstractHttpCallback {
 
         private boolean isSuitableNetworkType() {
             return NetworkHelper.isWifiEnv(context)
-                    || taskInfo.isPermitMobileDataRetry() && NetworkHelper.isNetEnv(context);
+                    || taskInfo.isPermitRetryInMobileData() && NetworkHelper.isNetEnv(context);
         }
 
-        private long fixStartPosition() {
-            return 0;
+        private long fixStartPosition(long oldStartPosition) {
+
+            return oldStartPosition;
         }
     }
 
@@ -440,16 +441,10 @@ class MultiHttpCallbackImpl extends AbstractHttpCallback {
 
         @Override
         public void run() {
-            long currentSize = taskInfo.getCurrentSize();
-            if (currentSize == 0) {
-                if (!pause && !delete) {
-                    downloadCallback.onFirstFileWrite(taskInfo);
-                }
-            }
 
             int oldProgress = taskInfo.getProgress();
 
-            currentSize = addCurrentSize(writeLength);
+            long currentSize = addCurrentSize(writeLength);
 
             int progress = ProgressHelper.computeProgress(currentSize, totalSize);
 

@@ -12,8 +12,6 @@ public class Constants {
 
     public static final String REQUEST_INFO = "request_info";
 
-    public static final String MAX_SYNCHRONOUS_DOWNLOAD_NUM = "max_synchronous_download_num";
-
     public static final int MEMORY_SIZE_ERROR = -1;
 
     public static class ResponseCode {

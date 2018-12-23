@@ -16,7 +16,9 @@ public class DownloaderConfig {
 
     private String defaultFileDir;
 
-    DownloaderConfig() {
+    private FileChecker globalFileChecker;
+
+    public DownloaderConfig() {
     }
 
     public DownloaderConfig(boolean byService, boolean isIndependentProcess, int maxSyncDownloadNum, String defaultFileDir) {
@@ -40,5 +42,9 @@ public class DownloaderConfig {
 
     public String getDefaultFileDir() {
         return defaultFileDir;
+    }
+
+    public FileChecker getGlobalFileChecker() {
+        return globalFileChecker;
     }
 }

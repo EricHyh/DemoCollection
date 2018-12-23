@@ -11,5 +11,4 @@ interface IFileChecker {
      */
     boolean isValidFile(in DownloadInfo downloadInfo);
 
-    boolean isRetryDownload();
 }

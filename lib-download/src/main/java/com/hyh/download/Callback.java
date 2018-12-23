@@ -14,13 +14,6 @@ public interface Callback {
     void onPrepare(DownloadInfo downloadInfo);
 
     /**
-     * 从网络中获取到输入流并开始往文件中写数据
-     *
-     * @param downloadInfo 下载任务信息
-     */
-    void onFirstFileWrite(DownloadInfo downloadInfo);
-
-    /**
      * 下载过程
      *
      * @param downloadInfo 下载任务信息
@@ -68,7 +61,7 @@ public interface Callback {
      *
      * @param downloadInfo 下载任务信息
      */
-    void onNoEnoughSpace(DownloadInfo downloadInfo);
+    void onLowDiskSpace(DownloadInfo downloadInfo);
 
     /**
      * 下载失败

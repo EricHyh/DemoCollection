@@ -9,14 +9,14 @@ import android.os.Process;
 import android.os.RemoteException;
 
 import com.hyh.download.Callback;
-import com.hyh.download.FileChecker;
+import com.hyh.download.DownloadInfo;
+import com.hyh.download.DownloaderConfig;
 import com.hyh.download.IClient;
 import com.hyh.download.IFileChecker;
 import com.hyh.download.IRequest;
 import com.hyh.download.State;
-import com.hyh.download.DownloadInfo;
-import com.hyh.download.db.bean.TaskInfo;
 import com.hyh.download.core.service.FDLService;
+import com.hyh.download.db.bean.TaskInfo;
 
 import java.util.Collection;
 import java.util.LinkedHashMap;
@@ -66,14 +66,15 @@ public class ServiceBridge implements IDownloadProxy {
     private Callback mCallback;
     private Map<String, TaskCache> mCacheTasks = new LinkedHashMap<>();
 
-    private int mMaxSynchronousDownloadNum;
+    private DownloaderConfig mDownloaderConfig;
     private final int mPid;
     private Class mServiceClass;
 
-    public ServiceBridge(Context context, boolean isIndependentProcess, int maxSynchronousDownloadNum, Callback callback) {
+    public ServiceBridge(Context context, DownloaderConfig downloaderConfig, Callback callback) {
         this.mContext = context.getApplicationContext();
-        this.mServiceClass = isIndependentProcess ? FDLService.IndependentProcessService.class : FDLService.MainProcessService.class;
-        this.mMaxSynchronousDownloadNum = maxSynchronousDownloadNum;
+        this.mServiceClass = downloaderConfig.isIndependentProcess() ?
+                FDLService.IndependentProcessService.class : FDLService.MainProcessService.class;
+        this.mDownloaderConfig = downloaderConfig;
         this.mCallback = callback;
         this.mPid = Process.myPid();
     }
@@ -82,7 +83,8 @@ public class ServiceBridge implements IDownloadProxy {
     public void initProxy(Runnable afterInit) {
         waitingForService();
         try {
-            mServiceAgent.initDownloadProxy(mMaxSynchronousDownloadNum);
+            mServiceAgent.initDownloadProxy(new DownloadProxyConfig(mDownloaderConfig.getMaxSyncDownloadNum()),
+                    mDownloaderConfig.getGlobalFileChecker());
             afterInit.run();
         } catch (Exception e) {
             //
@@ -101,52 +103,17 @@ public class ServiceBridge implements IDownloadProxy {
             mConnection = getConnection();
         }
         Intent intent = new Intent(mContext, mServiceClass);
-        intent.putExtra(Constants.MAX_SYNCHRONOUS_DOWNLOAD_NUM, mMaxSynchronousDownloadNum);
         mContext.bindService(intent, mConnection, Context.BIND_AUTO_CREATE);
         mContext.startService(intent);
     }
 
     @Override
-    public void onReceiveStartCommand(String resKey) {
-        waitingForService();
-        try {
-            mServiceAgent.onReceiveStartCommand(resKey);
-        } catch (Exception e) {
-            //
-        }
-    }
-
-    @Override
-    public void onReceivePauseCommand(String resKey) {
-        waitingForService();
-        try {
-            mServiceAgent.onReceivePauseCommand(resKey);
-        } catch (Exception e) {
-            //
-        }
-    }
-
-    @Override
-    public void onReceiveDeleteCommand(String resKey) {
-        waitingForService();
-        try {
-            mServiceAgent.onReceiveDeleteCommand(resKey);
-        } catch (Exception e) {
-            //
-        }
-    }
-
-    @Override
-    public synchronized void startTask(TaskInfo taskInfo, FileChecker fileChecker) {
+    public synchronized void startTask(TaskInfo taskInfo, IFileChecker fileChecker) {
         waitingForService();
         try {
             String resKey = taskInfo.getResKey();
             mCacheTasks.put(resKey, new TaskCache(Command.START, taskInfo, fileChecker));
-            IFileChecker iFileChecker = null;
-            if (fileChecker != null) {
-                iFileChecker = new FileCheckerStub(fileChecker);
-            }
-            mServiceAgent.startTask(taskInfo, iFileChecker);
+            mServiceAgent.startTask(taskInfo, fileChecker);
             mCacheTasks.remove(resKey);
         } catch (Exception e) {
             //
@@ -181,10 +148,10 @@ public class ServiceBridge implements IDownloadProxy {
     }
 
     @Override
-    public boolean isFileDownloaded(String resKey) {
+    public boolean isFileDownloaded(String resKey, IFileChecker fileChecker) {
         waitingForService();
         try {
-            return mServiceAgent.isFileDownloaded(resKey);
+            return mServiceAgent.isFileDownloaded(resKey, fileChecker);
         } catch (Exception e) {
             return false;
         }
@@ -254,51 +221,60 @@ public class ServiceBridge implements IDownloadProxy {
                 return;
             }
             switch (downloadInfo.getCurrentStatus()) {
-                case State.PREPARE:
+                case State.PREPARE: {
                     if (mCallback != null) {
                         mCallback.onPrepare(downloadInfo);
                     }
                     break;
-                case State.START_WRITE:
-                    if (mCallback != null) {
-                        mCallback.onFirstFileWrite(downloadInfo);
-                    }
-                    break;
-                case State.DOWNLOADING:
-                    if (mCallback != null) {
-                        mCallback.onDownloading(downloadInfo);
-                    }
-                    break;
-                case State.WAITING_IN_QUEUE:
+                }
+                case State.WAITING_IN_QUEUE: {
                     if (mCallback != null) {
                         mCallback.onWaitingInQueue(downloadInfo);
                     }
                     break;
-                case State.WAITING_FOR_WIFI:
+                }
+                case State.DOWNLOADING: {
                     if (mCallback != null) {
-                        mCallback.onWaitingForWifi(downloadInfo);
+                        mCallback.onDownloading(downloadInfo);
                     }
                     break;
-                case State.PAUSE:
+                }
+                case State.PAUSE: {
                     if (mCallback != null) {
                         mCallback.onPause(downloadInfo);
                     }
                     break;
-                case State.DELETE:
+                }
+                case State.DELETE: {
                     if (mCallback != null) {
                         mCallback.onDelete(downloadInfo);
                     }
                     break;
-                case State.SUCCESS:
+                }
+                case State.SUCCESS: {
                     if (mCallback != null) {
                         mCallback.onSuccess(downloadInfo);
                     }
                     break;
-                case State.FAILURE:
+                }
+                case State.WAITING_FOR_WIFI: {
+                    if (mCallback != null) {
+                        mCallback.onWaitingForWifi(downloadInfo);
+                    }
+                    break;
+                }
+                case State.LOW_DISK_SPACE: {
+                    if (mCallback != null) {
+                        mCallback.onLowDiskSpace(downloadInfo);
+                    }
+                    break;
+                }
+                case State.FAILURE: {
                     if (mCallback != null) {
                         mCallback.onFailure(downloadInfo);
                     }
                     break;
+                }
             }
         }
 
@@ -366,24 +342,5 @@ public class ServiceBridge implements IDownloadProxy {
                 bindService();
             }
         };
-    }
-
-    private static class FileCheckerStub extends IFileChecker.Stub {
-
-        private FileChecker fileChecker;
-
-        private FileCheckerStub(FileChecker fileChecker) {
-            this.fileChecker = fileChecker;
-        }
-
-        @Override
-        public boolean isValidFile(DownloadInfo downloadInfo) throws RemoteException {
-            return fileChecker == null || fileChecker.isValidFile(downloadInfo);
-        }
-
-        @Override
-        public boolean isRetryDownload() throws RemoteException {
-            return fileChecker != null && fileChecker.isRetryDownload();
-        }
     }
 }

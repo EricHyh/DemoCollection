@@ -30,7 +30,7 @@ public class NativeHttpClient implements HttpClient {
                 new SynchronousQueue<Runnable>(), new ThreadFactory() {
             @Override
             public Thread newThread(Runnable r) {
-                Thread thread = new Thread(r, "download thread");
+                Thread thread = new Thread(r, "NativeHttpClient");
                 thread.setDaemon(true);
                 return thread;
             }
