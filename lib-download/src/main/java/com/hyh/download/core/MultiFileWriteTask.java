@@ -5,7 +5,6 @@ import com.hyh.download.utils.L;
 import com.hyh.download.utils.StreamUtil;
 
 import java.io.BufferedInputStream;
-import java.io.IOException;
 import java.io.RandomAccessFile;
 
 /**
@@ -61,6 +60,7 @@ class MultiFileWriteTask implements FileWrite {
         } finally {
             StreamUtil.close(fileRaf, tempRaf, response);
         }
+        StreamUtil.close(fileRaf, tempRaf, response);
         if (startPosition == endPosition + 1) {
             listener.onWriteFinish();
         } else if (isException) {
