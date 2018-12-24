@@ -287,9 +287,7 @@ class MultiHttpCallbackImpl extends AbstractHttpCallback {
         private void handleDownload(HttpResponse response, final TaskInfo taskInfo) throws IOException {
             String filePath = taskInfo.getFilePath();
 
-            String tempPath = rangeInfo.getRangeFilePath();
             long totalSize = taskInfo.getTotalSize();
-
 
             File downLoadFile = new File(taskInfo.getFilePath());
             if (!downLoadFile.exists() || downLoadFile.length() < totalSize) {
@@ -298,7 +296,7 @@ class MultiHttpCallbackImpl extends AbstractHttpCallback {
                 raf.close();
             }
 
-            mFileWrite = new MultiFileWriteTask(filePath, tempPath, rangeInfo.getStartPosition(), rangeInfo.getEndPosition());
+            mFileWrite = new MultiFileWriteTask(filePath, rangeInfo);
             mFileWrite.write(response, new MultiFileWriteListener());
         }
 
@@ -384,7 +382,7 @@ class MultiHttpCallbackImpl extends AbstractHttpCallback {
                 long curStartPosition = fixStartPosition(oldStartPosition);
                 addCurrentSize(curStartPosition - oldStartPosition);
 
-                HttpCall call = client.newCall(taskInfo.getResKey().concat("-").concat(String.valueOf(rangeInfo.getRangeId())),
+                HttpCall call = client.newCall(taskInfo.getResKey().concat("-").concat(String.valueOf(rangeInfo.getRangeIndex())),
                         taskInfo.getRequestUrl(),
                         curStartPosition,
                         rangeInfo.getEndPosition());

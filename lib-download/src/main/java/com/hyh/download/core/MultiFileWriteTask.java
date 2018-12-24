@@ -1,7 +1,6 @@
 package com.hyh.download.core;
 
 import com.hyh.download.net.HttpResponse;
-import com.hyh.download.utils.L;
 import com.hyh.download.utils.StreamUtil;
 
 import java.io.BufferedInputStream;
@@ -16,7 +15,9 @@ class MultiFileWriteTask implements FileWrite {
 
     private String filePath;
 
-    private String tempPath;
+    private int rangeIndex;
+
+    private String rangeFilePath;
 
     private long startPosition;
 
@@ -24,23 +25,24 @@ class MultiFileWriteTask implements FileWrite {
 
     private boolean stop;
 
-    MultiFileWriteTask(String filePath, String tempPath, long startPosition, long endPosition) {
+    MultiFileWriteTask(String filePath, RangeInfo rangeInfo) {
         this.filePath = filePath;
-        this.tempPath = tempPath;
-        this.startPosition = startPosition;
-        this.endPosition = endPosition;
+        this.rangeIndex = rangeInfo.getRangeIndex();
+        this.rangeFilePath = rangeInfo.getRangeFilePath();
+        this.startPosition = rangeInfo.getStartPosition();
+        this.endPosition = rangeInfo.getEndPosition();
     }
 
     @Override
     public void write(HttpResponse response, FileWriteListener listener) {
         stop = false;
         RandomAccessFile fileRaf = null;
-        RandomAccessFile tempRaf = null;
+        RandomAccessFile rangeFileRaf = null;
         boolean isException = false;
         try {
             BufferedInputStream bis = new BufferedInputStream(response.inputStream());
             fileRaf = new RandomAccessFile(filePath, "rw");
-            tempRaf = new RandomAccessFile(tempPath, "rws");
+            rangeFileRaf = new RandomAccessFile(rangeFilePath, "rws");
 
             fileRaf.seek(startPosition);
             byte[] buffer = new byte[8 * 1024];
@@ -48,8 +50,8 @@ class MultiFileWriteTask implements FileWrite {
             while ((len = bis.read(buffer)) != -1) {
                 fileRaf.write(buffer, 0, len);
                 startPosition += len;
-                tempRaf.seek(0);
-                tempRaf.writeLong(startPosition);
+                rangeFileRaf.seek(rangeIndex * 8);
+                rangeFileRaf.writeLong(startPosition);
                 listener.onWriteFile(len);
                 if (stop) {
                     break;
@@ -58,9 +60,9 @@ class MultiFileWriteTask implements FileWrite {
         } catch (Exception e) {
             isException = true;
         } finally {
-            StreamUtil.close(fileRaf, tempRaf, response);
+            StreamUtil.close(fileRaf, rangeFileRaf, response);
         }
-        StreamUtil.close(fileRaf, tempRaf, response);
+        StreamUtil.close(fileRaf, rangeFileRaf, response);
         if (startPosition == endPosition + 1) {
             listener.onWriteFinish();
         } else if (isException) {
@@ -70,7 +72,6 @@ class MultiFileWriteTask implements FileWrite {
 
     @Override
     public void stop() {
-        L.d("MultiFileWriteTask stop");
         this.stop = true;
     }
 }

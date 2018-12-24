@@ -126,7 +126,7 @@ class HttpCallFactory {
             long[] startPositions = computeStartPositions(totalSize, rangeNum);
             long[] endPositions = computeEndPositions(totalSize, rangeNum);
             for (int index = 0; index < rangeNum; index++) {
-                String rangeFilePath = DownloadFileHelper.getRangeFilePath(filePath, index);
+                String rangeFilePath = DownloadFileHelper.getRangeFilePath(filePath, rangeNum);
                 rangeInfoList.add(new RangeInfo(index, rangeFilePath, startPositions[index], endPositions[index]));
             }
         } else {

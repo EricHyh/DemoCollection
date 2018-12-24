@@ -8,7 +8,7 @@ package com.hyh.download.core;
 
 public class RangeInfo {
 
-    private int rangeId;
+    private int rangeIndex;
 
     private String rangeFilePath;
 
@@ -16,19 +16,19 @@ public class RangeInfo {
 
     private volatile long endPosition;
 
-    RangeInfo(int rangeId, String rangeFilePath, long startPosition, long endPosition) {
-        this.rangeId = rangeId;
+    RangeInfo(int rangeIndex, String rangeFilePath, long startPosition, long endPosition) {
+        this.rangeIndex = rangeIndex;
         this.rangeFilePath = rangeFilePath;
         this.startPosition = startPosition;
         this.endPosition = endPosition;
     }
 
-    public int getRangeId() {
-        return rangeId;
+    public int getRangeIndex() {
+        return rangeIndex;
     }
 
-    public void setRangeId(int rangeId) {
-        this.rangeId = rangeId;
+    public void setRangeIndex(int rangeIndex) {
+        this.rangeIndex = rangeIndex;
     }
 
     public String getRangeFilePath() {

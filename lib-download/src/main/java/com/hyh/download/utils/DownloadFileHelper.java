@@ -150,8 +150,8 @@ public class DownloadFileHelper {
         return false;
     }
 
-    public static String getRangeFilePath(String filePath, int rangeIndex) {
-        return filePath + "-range-" + rangeIndex;
+    public static String getRangeFilePath(String filePath, int rangeNum) {
+        return filePath + "-range-" + rangeNum;
     }
 
     public static String getDefaultFileDir(Context context) {
