@@ -10,8 +10,8 @@ import java.io.IOException;
 
 public interface HttpCallback {
 
-    void onFailure(HttpCall httpCall, Exception e);
-
     void onResponse(HttpCall httpCall, HttpResponse httpResponse) throws IOException;
+
+    void onFailure(HttpCall httpCall, Exception e);
 
 }

@@ -27,6 +27,8 @@ public class NativeHttpCall implements HttpCall {
 
     private static final int READ_TIME_OUT = 15_000;
 
+    private final Object mLock = new Object();
+
     private String url;
     private String userAgent;
     private long startPosition;
@@ -49,56 +51,64 @@ public class NativeHttpCall implements HttpCall {
     }
 
     public HttpResponse execute() throws Exception {
-        synchronized (this) {
+        synchronized (mLock) {
             if (isExecuted) {
                 throw new IllegalStateException("Already Executed");
             }
             isExecuted = true;
+
+            if (isCanceled) {
+                return null;
+            }
+            HttpURLConnection connection = getConnection(url, startPosition, endPosition);
+            return new NativeHttpResponse(connection);
         }
-        if (isCanceled) {
-            return null;
-        }
-        HttpURLConnection connection = getConnection(url, startPosition, endPosition);
-        return new NativeHttpResponse(connection);
     }
 
     @Override
     public void enqueue(final HttpCallback httpCallback) {
-        synchronized (this) {
+        synchronized (mLock) {
             if (isExecuted) {
                 throw new IllegalStateException("Already Executed");
             }
             isExecuted = true;
-        }
-        if (isCanceled) {
-            httpCallback.onFailure(this, new IOException("Canceled"));
-        } else {
-            this.mHttpCallback = httpCallback;
-            this.mRequestTask = new RequestTask();
-            executor.execute(mRequestTask);
+
+            if (isCanceled) {
+                httpCallback.onFailure(this, new IOException("Canceled"));
+            } else {
+                this.mHttpCallback = httpCallback;
+                this.mRequestTask = new RequestTask();
+                executor.execute(mRequestTask);
+            }
         }
     }
 
     @Override
     public void cancel() {
-        isCanceled = true;
-        if (isExecuted) {
-            if (mRequestTask.isRunning) {
-                mRequestTask.stop();
-            } else {
-                executor.remove(mRequestTask);
+        synchronized (mLock) {
+            isCanceled = true;
+            if (isExecuted) {
+                if (mRequestTask.isRunning) {
+                    mRequestTask.stop();
+                } else {
+                    executor.remove(mRequestTask);
+                }
             }
         }
     }
 
     @Override
-    public synchronized boolean isExecuted() {
-        return isExecuted;
+    public boolean isExecuted() {
+        synchronized (mLock) {
+            return isExecuted;
+        }
     }
 
     @Override
     public boolean isCanceled() {
-        return isCanceled;
+        synchronized (mLock) {
+            return isCanceled;
+        }
     }
 
 
@@ -142,14 +152,12 @@ public class NativeHttpCall implements HttpCall {
         @Override
         public void run() {
             isRunning = true;
-            Integer responseCode = null;
             Exception exception = null;
             try {
                 synchronized (this) {
                     connection = getConnection(url, startPosition, endPosition);
                     inputStream = connection.getInputStream();
                 }
-                responseCode = connection.getResponseCode();
             } catch (Exception e) {
                 exception = e;
             }
