@@ -1,1 +1,1 @@
-include ':sample', ':library-download', ':greendao-generator', ':library-ui', ':lib-download'
+include ':sample', ':library-download', ':greendao-generator', ':library-ui', ':lib-download', ':DownloadSample'

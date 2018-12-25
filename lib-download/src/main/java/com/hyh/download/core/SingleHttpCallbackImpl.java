@@ -130,10 +130,12 @@ class SingleHttpCallbackImpl extends AbstractHttpCallback {
         }
 
         final String acceptRanges = response.header(NetworkHelper.ACCEPT_RANGES);
+
         return "bytes".equals(acceptRanges);
     }
 
     private void handleDownload(HttpResponse response, TaskInfo taskInfo) {
+        taskInfo.setTargetUrl(response.url());
         taskInfo.setCacheRequestUrl(taskInfo.getRequestUrl());
         taskInfo.setCacheTargetUrl(response.url());
         String filePath = fixFilePath(response, taskInfo);

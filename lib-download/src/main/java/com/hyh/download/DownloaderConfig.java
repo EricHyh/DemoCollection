@@ -8,24 +8,17 @@ package com.hyh.download;
 
 public class DownloaderConfig {
 
-    private boolean byService = false;
+    private boolean byService;
 
-    private boolean isIndependentProcess = false;
+    private boolean independentProcess;
 
-    private int maxSyncDownloadNum = 4;
+    private int maxSyncDownloadNum;
 
     private String defaultFileDir;
 
     private FileChecker globalFileChecker;
 
-    public DownloaderConfig() {
-    }
-
-    public DownloaderConfig(boolean byService, boolean isIndependentProcess, int maxSyncDownloadNum, String defaultFileDir) {
-        this.byService = byService;
-        this.isIndependentProcess = isIndependentProcess;
-        this.maxSyncDownloadNum = maxSyncDownloadNum;
-        this.defaultFileDir = defaultFileDir;
+    private DownloaderConfig() {
     }
 
     public boolean isByService() {
@@ -33,7 +26,7 @@ public class DownloaderConfig {
     }
 
     public boolean isIndependentProcess() {
-        return isIndependentProcess;
+        return independentProcess;
     }
 
     public int getMaxSyncDownloadNum() {
@@ -46,5 +39,57 @@ public class DownloaderConfig {
 
     public FileChecker getGlobalFileChecker() {
         return globalFileChecker;
+    }
+
+    public static class Builder {
+
+        private boolean byService = false;
+
+        private boolean independentProcess = false;
+
+        private int maxSyncDownloadNum = 4;
+
+        private String defaultFileDir;
+
+        private FileChecker globalFileChecker;
+
+        public Builder() {
+        }
+
+        public Builder byService(boolean byService) {
+            this.byService = byService;
+            return this;
+        }
+
+        public Builder independentProcess(boolean independentProcess) {
+            this.independentProcess = independentProcess;
+            return this;
+        }
+
+        public Builder maxSyncDownloadNum(int maxSyncDownloadNum) {
+            this.maxSyncDownloadNum = maxSyncDownloadNum;
+            return this;
+        }
+
+        public Builder defaultFileDir(String defaultFileDir) {
+            this.defaultFileDir = defaultFileDir;
+            return this;
+        }
+
+        public Builder globalFileChecker(FileChecker globalFileChecker) {
+            this.globalFileChecker = globalFileChecker;
+            return this;
+        }
+
+        public DownloaderConfig build() {
+            DownloaderConfig downloaderConfig = new DownloaderConfig();
+            downloaderConfig.byService = this.byService;
+            downloaderConfig.independentProcess = this.independentProcess;
+            downloaderConfig.maxSyncDownloadNum = this.maxSyncDownloadNum;
+            downloaderConfig.defaultFileDir = this.defaultFileDir;
+            downloaderConfig.globalFileChecker = this.globalFileChecker;
+            return downloaderConfig;
+        }
+
     }
 }

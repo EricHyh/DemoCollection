@@ -4,7 +4,6 @@ import android.annotation.SuppressLint;
 import android.content.Context;
 import android.text.TextUtils;
 
-import com.hyh.download.core.DownloadProxyConfig;
 import com.hyh.download.core.IDownloadProxy;
 import com.hyh.download.core.LocalDownloadProxyImpl;
 import com.hyh.download.core.ServiceBridge;
@@ -52,7 +51,7 @@ public class FileDownloader {
         }
         mContext = context.getApplicationContext();
         if (downloaderConfig == null) {
-            mDownloaderConfig = new DownloaderConfig();
+            mDownloaderConfig = new DownloaderConfig.Builder().build();
         } else {
             mDownloaderConfig = downloaderConfig;
         }
@@ -146,6 +145,16 @@ public class FileDownloader {
     public boolean isFileDownloaded(String resKey, FileChecker fileChecker) {
         waitingForInitProxyFinish();
         return mDownloadProxy.isFileDownloaded(resKey, fileChecker);
+    }
+
+
+    public String getFilePath(String resKey) {
+        waitingForInitProxyFinish();
+        TaskInfo taskInfo = mDownloadProxy.getTaskInfoByKey(resKey);
+        if (taskInfo != null) {
+            return taskInfo.getFilePath();
+        }
+        return null;
     }
 
     private IDownloadProxy createDownloadProxy() {

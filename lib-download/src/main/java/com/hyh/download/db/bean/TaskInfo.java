@@ -24,9 +24,9 @@ public class TaskInfo implements Parcelable {
     @Column(nameInDb = "resKey")
     private String resKey;
 
-    @NotNull
-    @Column(nameInDb = "requestUrl")
     private String requestUrl;
+
+    private String targetUrl;
 
     @Column(nameInDb = "cacheRequestUrl")
     private String cacheRequestUrl;
@@ -57,7 +57,7 @@ public class TaskInfo implements Parcelable {
     private long totalSize;
 
     @Column(nameInDb = "currentSize")
-    private long currentSize;
+    private volatile long currentSize;
 
     @Column(nameInDb = "progress")
     private int progress;
@@ -86,6 +86,9 @@ public class TaskInfo implements Parcelable {
     @Column(nameInDb = "eTag")
     private String eTag;
 
+    @Column(nameInDb = "lastModified")
+    private String lastModified;
+
     @Column(nameInDb = "updateTimeMillis")
     private long updateTimeMillis;
 
@@ -100,6 +103,7 @@ public class TaskInfo implements Parcelable {
         id = in.readLong();
         resKey = in.readString();
         requestUrl = in.readString();
+        targetUrl = in.readString();
         cacheRequestUrl = in.readString();
         cacheTargetUrl = in.readString();
         versionCode = in.readInt();
@@ -119,6 +123,7 @@ public class TaskInfo implements Parcelable {
         responseCode = in.readInt();
         failureCode = in.readInt();
         eTag = in.readString();
+        lastModified = in.readString();
         updateTimeMillis = in.readLong();
         tag = in.readString();
     }
@@ -153,6 +158,7 @@ public class TaskInfo implements Parcelable {
         dest.writeLong(id);
         dest.writeString(resKey);
         dest.writeString(requestUrl);
+        dest.writeString(targetUrl);
         dest.writeString(cacheRequestUrl);
         dest.writeString(cacheTargetUrl);
         dest.writeInt(versionCode);
@@ -172,6 +178,7 @@ public class TaskInfo implements Parcelable {
         dest.writeInt(responseCode);
         dest.writeInt(failureCode);
         dest.writeString(eTag);
+        dest.writeString(lastModified);
         dest.writeLong(updateTimeMillis);
         dest.writeString(tag);
     }
@@ -199,6 +206,14 @@ public class TaskInfo implements Parcelable {
 
     public void setRequestUrl(String requestUrl) {
         this.requestUrl = requestUrl;
+    }
+
+    public String getTargetUrl() {
+        return targetUrl;
+    }
+
+    public void setTargetUrl(String targetUrl) {
+        this.targetUrl = targetUrl;
     }
 
     public String getCacheRequestUrl() {
@@ -353,6 +368,14 @@ public class TaskInfo implements Parcelable {
         this.eTag = eTag;
     }
 
+    public String getLastModified() {
+        return lastModified;
+    }
+
+    public void setLastModified(String lastModified) {
+        this.lastModified = lastModified;
+    }
+
     public long getUpdateTimeMillis() {
         return updateTimeMillis;
     }
@@ -370,6 +393,36 @@ public class TaskInfo implements Parcelable {
     }
 
     public DownloadInfo toDownloadInfo() {
-        return new DownloadInfo();
+        DownloadInfo downloadInfo = new DownloadInfo();
+        downloadInfo.setResKey(this.resKey);
+        downloadInfo.setRequestUrl(this.requestUrl);
+        downloadInfo.setTargetUrl(this.cacheTargetUrl);
+        downloadInfo.setVersionCode(this.versionCode);
+        downloadInfo.setPriority(this.priority);
+        downloadInfo.setFilePath(this.filePath);
+        downloadInfo.setCurrentStatus(this.currentStatus);
+        downloadInfo.setTotalSize(this.totalSize);
+        downloadInfo.setCurrentSize(this.currentSize);
+        downloadInfo.setProgress(this.progress);
+        downloadInfo.setSpeed(0);
+        downloadInfo.setTag(this.tag);
+        return downloadInfo;
+    }
+
+    public DownloadInfo toDownloadInfo(float speed) {
+        DownloadInfo downloadInfo = new DownloadInfo();
+        downloadInfo.setResKey(this.resKey);
+        downloadInfo.setRequestUrl(this.requestUrl);
+        downloadInfo.setTargetUrl(this.cacheTargetUrl);
+        downloadInfo.setVersionCode(this.versionCode);
+        downloadInfo.setPriority(this.priority);
+        downloadInfo.setFilePath(this.filePath);
+        downloadInfo.setCurrentStatus(this.currentStatus);
+        downloadInfo.setTotalSize(this.totalSize);
+        downloadInfo.setCurrentSize(this.currentSize);
+        downloadInfo.setProgress(this.progress);
+        downloadInfo.setSpeed(speed);
+        downloadInfo.setTag(this.tag);
+        return downloadInfo;
     }
 }

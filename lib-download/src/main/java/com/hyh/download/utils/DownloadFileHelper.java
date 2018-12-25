@@ -104,13 +104,7 @@ public class DownloadFileHelper {
     public static void deleteDownloadFile(TaskInfo taskInfo) {
         String filePath = taskInfo.getFilePath();
         deleteFile(filePath);
-        int rangeNum = taskInfo.getRangeNum();
-        if (rangeNum > 1) {
-            for (int index = 0; index < rangeNum; index++) {
-                File tempFile = new File(filePath + "-" + index);
-                deleteFile(tempFile);
-            }
-        }
+        deleteFile(getTempFilePath(filePath));
     }
 
     public static boolean deleteFile(String filePath) {
@@ -150,8 +144,8 @@ public class DownloadFileHelper {
         return false;
     }
 
-    public static String getRangeFilePath(String filePath, int rangeNum) {
-        return filePath + "-range-" + rangeNum;
+    public static String getTempFilePath(String filePath) {
+        return filePath + "-rangeSize.temp";
     }
 
     public static String getDefaultFileDir(Context context) {

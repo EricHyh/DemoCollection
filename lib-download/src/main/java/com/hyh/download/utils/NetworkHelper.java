@@ -33,6 +33,7 @@ public class NetworkHelper {
     public static final String CONTENT_DISPOSITION = "Content-Disposition";
     public static final String CONTENT_TYPE = "Content-Type";
     public static final String ETAG = "ETag";
+    public static final String LAST_MODIFIED = "Last-Modified";
 
 
     private static final Pattern CONTENT_DISPOSITION_QUOTED_PATTERN = Pattern.compile("attachment;\\s*filename\\s*=\\s*\"([^\"]*)\"");

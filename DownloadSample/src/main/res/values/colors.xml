@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="colorPrimary">#3F51B5</color>
+    <color name="colorPrimaryDark">#303F9F</color>
+    <color name="colorAccent">#FF4081</color>
+
+    <!--<color name="all_blue">#1EA7EB</color>
+    <color name="all_blue_dark">#1886BC</color>-->
+    <color name="progress_btn_foreground_nor">#FE9621</color>
+    <color name="progress_btn_foreground_pre">#CB781A</color>
+    <color name="progress_btn_foreground_dis">#D5B28C</color>
+
+    <color name="progress_btn_background_nor">#D6D7D7</color>
+    <color name="progress_btn_background_pre">#B8B8BD</color>
+    <color name="progress_btn_background_dis">#D6D7D7</color>
+
+    <color name="progress_btn_text_foreground">#FFFFFF</color>
+    <color name="progress_btn_text_background">#000000</color>
+    <color name="progress_background">#70000000</color>
+
+</resources>

@@ -18,6 +18,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.RejectedExecutionHandler;
 import java.util.concurrent.ThreadFactory;
@@ -95,12 +96,12 @@ public abstract class SuperDownloadProxy implements IDownloadProxy {
         mExecutor.execute(new Runnable() {
             @Override
             public void run() {
-                List<TaskInfo> interruptTasks = TaskDatabaseHelper
+                List<TaskInfo> interruptedTasks = TaskDatabaseHelper
                         .getInstance()
-                        .fixDatabaseErrorStatus(mGlobalFileChecker);
-                if (interruptTasks != null && !interruptTasks.isEmpty()) {
-                    for (TaskInfo interruptTask : interruptTasks) {
-                        startTask(interruptTask, null);
+                        .getInterruptedTasks();
+                if (interruptedTasks != null && !interruptedTasks.isEmpty()) {
+                    for (TaskInfo interruptedTask : interruptedTasks) {
+                        startTask(interruptedTask, null);
                     }
                 }
                 afterInit.run();
@@ -379,16 +380,27 @@ public abstract class SuperDownloadProxy implements IDownloadProxy {
         startNextTask();
     }
 
-
     protected abstract void handleHaveNoTask();
 
     protected abstract void handleCallback(TaskInfo taskInfo);
 
+    private List<String> mDownloadingStatusTasks = new CopyOnWriteArrayList<>();
+
     private void handleDatabase(TaskInfo taskInfo) {
+        String resKey = taskInfo.getResKey();
         int currentStatus = taskInfo.getCurrentStatus();
-        if (currentStatus == State.DELETE) {
+        if (currentStatus == State.DOWNLOADING) {
+            if (mDownloadingStatusTasks.contains(resKey)) {
+                TaskDatabaseHelper.getInstance().updateCacheOnly(taskInfo);
+            } else {
+                TaskDatabaseHelper.getInstance().insertOrUpdate(taskInfo);
+            }
+            mDownloadingStatusTasks.add(resKey);
+        } else if (currentStatus == State.DELETE) {
+            mDownloadingStatusTasks.remove(resKey);
             TaskDatabaseHelper.getInstance().delete(taskInfo);
         } else {
+            mDownloadingStatusTasks.remove(resKey);
             TaskDatabaseHelper.getInstance().insertOrUpdate(taskInfo);
         }
     }

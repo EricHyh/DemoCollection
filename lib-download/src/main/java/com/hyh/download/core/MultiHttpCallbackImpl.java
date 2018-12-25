@@ -11,6 +11,7 @@ import com.hyh.download.net.HttpResponse;
 import com.hyh.download.utils.L;
 import com.hyh.download.utils.NetworkHelper;
 import com.hyh.download.utils.ProgressHelper;
+import com.hyh.download.utils.StreamUtil;
 
 import java.io.File;
 import java.io.IOException;
@@ -286,9 +287,7 @@ class MultiHttpCallbackImpl extends AbstractHttpCallback {
 
         private void handleDownload(HttpResponse response, final TaskInfo taskInfo) throws IOException {
             String filePath = taskInfo.getFilePath();
-
             long totalSize = taskInfo.getTotalSize();
-
             File downLoadFile = new File(taskInfo.getFilePath());
             if (!downLoadFile.exists() || downLoadFile.length() < totalSize) {
                 RandomAccessFile raf = new RandomAccessFile(downLoadFile, "rw");
@@ -378,8 +377,10 @@ class MultiHttpCallbackImpl extends AbstractHttpCallback {
                     return false;
                 }
 
+
                 long oldStartPosition = rangeInfo.getStartPosition();
                 long curStartPosition = fixStartPosition(oldStartPosition);
+
                 addCurrentSize(curStartPosition - oldStartPosition);
 
                 HttpCall call = client.newCall(taskInfo.getResKey().concat("-").concat(String.valueOf(rangeInfo.getRangeIndex())),
@@ -417,7 +418,25 @@ class MultiHttpCallbackImpl extends AbstractHttpCallback {
         }
 
         private long fixStartPosition(long oldStartPosition) {
-
+            RandomAccessFile raf = null;
+            try {
+                raf = new RandomAccessFile(taskInfo.getFilePath(), "rw");
+                for (; ; ) {
+                    raf.seek(oldStartPosition);
+                    if (raf.readByte() == 0) {
+                        oldStartPosition--;
+                        if (oldStartPosition <= rangeInfo.getOriginalStartPosition()) {
+                            oldStartPosition = rangeInfo.getOriginalStartPosition();
+                            break;
+                        }
+                    } else {
+                        break;
+                    }
+                }
+            } catch (Exception e) {
+                //
+            }
+            StreamUtil.close(raf);
             return oldStartPosition;
         }
     }

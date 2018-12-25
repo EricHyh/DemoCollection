@@ -17,7 +17,7 @@ class MultiFileWriteTask implements FileWrite {
 
     private int rangeIndex;
 
-    private String rangeFilePath;
+    private String tempFilePath;
 
     private long startPosition;
 
@@ -28,7 +28,7 @@ class MultiFileWriteTask implements FileWrite {
     MultiFileWriteTask(String filePath, RangeInfo rangeInfo) {
         this.filePath = filePath;
         this.rangeIndex = rangeInfo.getRangeIndex();
-        this.rangeFilePath = rangeInfo.getRangeFilePath();
+        this.tempFilePath = rangeInfo.getTempFilePath();
         this.startPosition = rangeInfo.getStartPosition();
         this.endPosition = rangeInfo.getEndPosition();
     }
@@ -37,12 +37,12 @@ class MultiFileWriteTask implements FileWrite {
     public void write(HttpResponse response, FileWriteListener listener) {
         stop = false;
         RandomAccessFile fileRaf = null;
-        RandomAccessFile rangeFileRaf = null;
+        RandomAccessFile tempFileRaf = null;
         boolean isException = false;
         try {
             BufferedInputStream bis = new BufferedInputStream(response.inputStream());
             fileRaf = new RandomAccessFile(filePath, "rw");
-            rangeFileRaf = new RandomAccessFile(rangeFilePath, "rws");
+            tempFileRaf = new RandomAccessFile(tempFilePath, "rws");
 
             fileRaf.seek(startPosition);
             byte[] buffer = new byte[8 * 1024];
@@ -50,19 +50,17 @@ class MultiFileWriteTask implements FileWrite {
             while ((len = bis.read(buffer)) != -1) {
                 fileRaf.write(buffer, 0, len);
                 startPosition += len;
-                rangeFileRaf.seek(rangeIndex * 8);
-                rangeFileRaf.writeLong(startPosition);
                 listener.onWriteFile(len);
+                tempFileRaf.seek(rangeIndex * 8);
+                tempFileRaf.writeLong(startPosition);
                 if (stop) {
                     break;
                 }
             }
         } catch (Exception e) {
             isException = true;
-        } finally {
-            StreamUtil.close(fileRaf, rangeFileRaf, response);
         }
-        StreamUtil.close(fileRaf, rangeFileRaf, response);
+        StreamUtil.close(fileRaf, tempFileRaf, response);
         if (startPosition == endPosition + 1) {
             listener.onWriteFinish();
         } else if (isException) {

@@ -1,5 +1,7 @@
 package com.hyh.download.core;
 
+import java.util.concurrent.atomic.AtomicLong;
+
 /**
  * @author Administrator
  * @description
@@ -10,16 +12,19 @@ public class RangeInfo {
 
     private int rangeIndex;
 
-    private String rangeFilePath;
+    private String tempFilePath;
 
-    private volatile long startPosition;
+    private volatile long originalStartPosition;
+
+    private volatile AtomicLong startPosition;
 
     private volatile long endPosition;
 
-    RangeInfo(int rangeIndex, String rangeFilePath, long startPosition, long endPosition) {
+    RangeInfo(int rangeIndex, String tempFilePath, long originalStartPosition, long startPosition, long endPosition) {
         this.rangeIndex = rangeIndex;
-        this.rangeFilePath = rangeFilePath;
-        this.startPosition = startPosition;
+        this.tempFilePath = tempFilePath;
+        this.originalStartPosition = originalStartPosition;
+        this.startPosition = new AtomicLong(startPosition);
         this.endPosition = endPosition;
     }
 
@@ -27,32 +32,23 @@ public class RangeInfo {
         return rangeIndex;
     }
 
-    public void setRangeIndex(int rangeIndex) {
-        this.rangeIndex = rangeIndex;
+    public String getTempFilePath() {
+        return tempFilePath;
     }
 
-    public String getRangeFilePath() {
-        return rangeFilePath;
-    }
-
-    public void setRangeFilePath(String rangeFilePath) {
-        this.rangeFilePath = rangeFilePath;
+    public long getOriginalStartPosition() {
+        return originalStartPosition;
     }
 
     public long getStartPosition() {
-        return startPosition;
-    }
-
-    public void setStartPosition(long startPosition) {
-        this.startPosition = startPosition;
+        return startPosition.get();
     }
 
     public long getEndPosition() {
         return endPosition;
     }
 
-
     public void addStartPosition(long length) {
-        startPosition += length;
+        startPosition.addAndGet(length);
     }
 }

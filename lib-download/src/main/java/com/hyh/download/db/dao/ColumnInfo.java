@@ -22,7 +22,6 @@ public class ColumnInfo {
 
     boolean notNull;
 
-
     public ColumnInfo(Field field, Class<?> type, String columnName, boolean primaryKey, boolean notNull, boolean unique) {
         this.field = field;
         this.type = type;

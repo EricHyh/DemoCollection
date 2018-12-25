@@ -5,6 +5,7 @@ import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 
+import com.hyh.download.State;
 import com.hyh.download.db.annotation.Column;
 import com.hyh.download.db.annotation.Id;
 import com.hyh.download.db.annotation.NotNull;
@@ -30,11 +31,11 @@ public class TaskInfoDao {
 
     private static Map<String, ColumnInfo> sColumns = new LinkedHashMap<>();
 
-    private static String[] sColumnNames = {"_id", "resKey", "requestUrl", "cacheRequestUrl", "cacheTargetUrl",
+    private static String[] sColumnNames = {"_id", "resKey", "cacheRequestUrl", "cacheTargetUrl",
             "versionCode", "priority", "fileDir", "filePath", "byMultiThread",
             "rangeNum", "totalSize", "currentSize", "progress", "currentStatus",
             "wifiAutoRetry", "permitRetryInMobileData", "permitRetryInvalidFileTask", "permitRecoverTask", "responseCode",
-            "failureCode", "eTag", "updateTimeMillis", "tag"};
+            "failureCode", "eTag", "lastModified", "updateTimeMillis", "tag"};
 
     static {
         loadColumns();
@@ -166,7 +167,32 @@ public class TaskInfoDao {
         return taskInfo;
     }
 
-    public synchronized List<TaskInfo> loadAll() {
+
+    public synchronized List<TaskInfo> queryInterruptedTask() {
+        List<TaskInfo> taskInfoList = null;
+        SQLiteDatabase db = mSqLiteHelper.getReadableDatabase();
+        String[] columns = sColumnNames;
+        String selection = "currentStatus in (?, ?, ?)";
+        String[] selectionArgs = {String.valueOf(State.PREPARE), String.valueOf(State.WAITING_IN_QUEUE), String.valueOf(State.DOWNLOADING)};
+        String groupBy = null;
+        String having = null;
+        String orderBy = null;
+        Cursor cursor = db.query(TABLE_NAME, columns, selection, selectionArgs, groupBy, having, orderBy);
+        if (null != cursor) {
+            int count = cursor.getCount();
+            if (count > 0 && cursor.moveToFirst()) {
+                taskInfoList = new ArrayList<>();
+                do {
+                    taskInfoList.add(readTaskInfo(cursor));
+                } while (cursor.moveToNext());
+            }
+            cursor.close();
+        }
+        db.close();
+        return taskInfoList;
+    }
+
+    public synchronized List<TaskInfo> queryAllTask() {
         List<TaskInfo> taskInfoList = null;
         SQLiteDatabase db = mSqLiteHelper.getReadableDatabase();
         String[] columns = sColumnNames;
@@ -233,26 +259,26 @@ public class TaskInfoDao {
         TaskInfo taskInfo = new TaskInfo();
         taskInfo.setId(cursor.getLong(0));
         taskInfo.setResKey(cursor.getString(1));
-        taskInfo.setRequestUrl(cursor.getString(2));
-        taskInfo.setCacheRequestUrl(cursor.getString(3));
-        taskInfo.setCacheTargetUrl(cursor.getString(4));
-        taskInfo.setVersionCode(cursor.getInt(5));
-        taskInfo.setPriority(cursor.getInt(6));
-        taskInfo.setFileDir(cursor.getString(7));
-        taskInfo.setFilePath(cursor.getString(8));
-        taskInfo.setProgress(cursor.getInt(9));
-        taskInfo.setByMultiThread(cursor.getInt(10) == 1);
-        taskInfo.setRangeNum(cursor.getInt(11));
-        taskInfo.setCurrentSize(cursor.getLong(12));
-        taskInfo.setTotalSize(cursor.getLong(13));
-        taskInfo.setCurrentStatus(cursor.getInt(14));
-        taskInfo.setWifiAutoRetry(cursor.getInt(15) == 1);
-        taskInfo.setPermitRetryInMobileData(cursor.getInt(16) == 1);
-        taskInfo.setPermitRetryInvalidFileTask(cursor.getInt(17) == 1);
-        taskInfo.setPermitRecoverTask(cursor.getInt(18) == 1);
-        taskInfo.setResponseCode(cursor.getInt(19));
-        taskInfo.setFailureCode(cursor.getInt(20));
-        taskInfo.setETag(cursor.getString(21));
+        taskInfo.setCacheRequestUrl(cursor.getString(2));
+        taskInfo.setCacheTargetUrl(cursor.getString(3));
+        taskInfo.setVersionCode(cursor.getInt(4));
+        taskInfo.setPriority(cursor.getInt(5));
+        taskInfo.setFileDir(cursor.getString(6));
+        taskInfo.setFilePath(cursor.getString(7));
+        taskInfo.setProgress(cursor.getInt(8));
+        taskInfo.setByMultiThread(cursor.getInt(9) == 1);
+        taskInfo.setRangeNum(cursor.getInt(10));
+        taskInfo.setCurrentSize(cursor.getLong(11));
+        taskInfo.setTotalSize(cursor.getLong(12));
+        taskInfo.setCurrentStatus(cursor.getInt(13));
+        taskInfo.setWifiAutoRetry(cursor.getInt(14) == 1);
+        taskInfo.setPermitRetryInMobileData(cursor.getInt(15) == 1);
+        taskInfo.setPermitRetryInvalidFileTask(cursor.getInt(16) == 1);
+        taskInfo.setPermitRecoverTask(cursor.getInt(17) == 1);
+        taskInfo.setResponseCode(cursor.getInt(18));
+        taskInfo.setFailureCode(cursor.getInt(19));
+        taskInfo.setETag(cursor.getString(20));
+        taskInfo.setLastModified(cursor.getString(21));
         taskInfo.setUpdateTimeMillis(cursor.getLong(22));
         taskInfo.setTag(cursor.getString(23));
         return taskInfo;
@@ -265,7 +291,6 @@ public class TaskInfoDao {
             contentValues.put("_id", id);
         }
         contentValues.put("resKey", taskInfo.getResKey());
-        contentValues.put("requestUrl", taskInfo.getRequestUrl());
         contentValues.put("cacheRequestUrl", taskInfo.getCacheRequestUrl());
         contentValues.put("cacheTargetUrl", taskInfo.getCacheTargetUrl());
         contentValues.put("versionCode", taskInfo.getVersionCode());
@@ -285,6 +310,7 @@ public class TaskInfoDao {
         contentValues.put("responseCode", taskInfo.getResponseCode());
         contentValues.put("failureCode", taskInfo.getFailureCode());
         contentValues.put("eTag", taskInfo.getETag());
+        contentValues.put("lastModified", taskInfo.getLastModified());
         contentValues.put("updateTimeMillis", taskInfo.getUpdateTimeMillis());
         contentValues.put("tag", taskInfo.getTag());
         return contentValues;

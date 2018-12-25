@@ -9,13 +9,13 @@ import android.os.Parcelable;
  * @data 2018/12/17
  */
 
-public class DownloadInfo implements Parcelable{
+public class DownloadInfo implements Parcelable {
 
     private String resKey;
 
     private String requestUrl;
 
-    private String locationUrl;
+    private String targetUrl;
 
     private int versionCode;
 
@@ -31,15 +31,118 @@ public class DownloadInfo implements Parcelable{
 
     private int progress;
 
+    private float speed;//单位 K/s
+
     private String tag;
 
     public DownloadInfo() {
     }
 
+    public String getResKey() {
+        return resKey;
+    }
+
+    public void setResKey(String resKey) {
+        this.resKey = resKey;
+    }
+
+    public String getRequestUrl() {
+        return requestUrl;
+    }
+
+    public void setRequestUrl(String requestUrl) {
+        this.requestUrl = requestUrl;
+    }
+
+    public String getTargetUrl() {
+        return targetUrl;
+    }
+
+    public void setTargetUrl(String targetUrl) {
+        this.targetUrl = targetUrl;
+    }
+
+    public int getVersionCode() {
+        return versionCode;
+    }
+
+    public void setVersionCode(int versionCode) {
+        this.versionCode = versionCode;
+    }
+
+    public int getPriority() {
+        return priority;
+    }
+
+    public void setPriority(int priority) {
+        this.priority = priority;
+    }
+
+    public String getFilePath() {
+        return filePath;
+    }
+
+    public void setFilePath(String filePath) {
+        this.filePath = filePath;
+    }
+
+    public int getCurrentStatus() {
+        return currentStatus;
+    }
+
+    public void setCurrentStatus(int currentStatus) {
+        this.currentStatus = currentStatus;
+    }
+
+    public long getCurrentSize() {
+        return currentSize;
+    }
+
+    public void setCurrentSize(long currentSize) {
+        this.currentSize = currentSize;
+    }
+
+    public long getTotalSize() {
+        return totalSize;
+    }
+
+    public void setTotalSize(long totalSize) {
+        this.totalSize = totalSize;
+    }
+
+    public int getProgress() {
+        return progress;
+    }
+
+    public void setProgress(int progress) {
+        this.progress = progress;
+    }
+
+    public float getSpeed() {
+        return speed;
+    }
+
+    public void setSpeed(float speed) {
+        this.speed = speed;
+    }
+
+    public String getTag() {
+        return tag;
+    }
+
+    public void setTag(String tag) {
+        this.tag = tag;
+    }
+
+    @Override
+    public int describeContents() {
+        return 0;
+    }
+
     protected DownloadInfo(Parcel in) {
         resKey = in.readString();
         requestUrl = in.readString();
-        locationUrl = in.readString();
+        targetUrl = in.readString();
         versionCode = in.readInt();
         priority = in.readInt();
         filePath = in.readString();
@@ -47,6 +150,7 @@ public class DownloadInfo implements Parcelable{
         currentSize = in.readLong();
         totalSize = in.readLong();
         progress = in.readInt();
+        speed = in.readFloat();
         tag = in.readString();
     }
 
@@ -62,64 +166,11 @@ public class DownloadInfo implements Parcelable{
         }
     };
 
-    public String getResKey() {
-        return resKey;
-    }
-
-    public String getRequestUrl() {
-        return requestUrl;
-    }
-
-    public String getLocationUrl() {
-        return locationUrl;
-    }
-
-    public int getVersionCode() {
-        return versionCode;
-    }
-
-    public int getPriority() {
-        return priority;
-    }
-
-    public void setPriority(int priority) {
-        this.priority = priority;
-    }
-
-    public String getFilePath() {
-        return filePath;
-    }
-
-    public int getCurrentStatus() {
-        return currentStatus;
-    }
-
-    public long getCurrentSize() {
-        return currentSize;
-    }
-
-    public long getTotalSize() {
-        return totalSize;
-    }
-
-    public int getProgress() {
-        return progress;
-    }
-
-    public String getTag() {
-        return tag;
-    }
-
-    @Override
-    public int describeContents() {
-        return 0;
-    }
-
     @Override
     public void writeToParcel(Parcel dest, int flags) {
         dest.writeString(resKey);
         dest.writeString(requestUrl);
-        dest.writeString(locationUrl);
+        dest.writeString(targetUrl);
         dest.writeInt(versionCode);
         dest.writeInt(priority);
         dest.writeString(filePath);
@@ -127,6 +178,7 @@ public class DownloadInfo implements Parcelable{
         dest.writeLong(currentSize);
         dest.writeLong(totalSize);
         dest.writeInt(progress);
+        dest.writeFloat(speed);
         dest.writeString(tag);
     }
 }

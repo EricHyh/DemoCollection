@@ -65,16 +65,29 @@ class HttpCallFactory {
         if (taskInfo.isByMultiThread()) {
             int rangeNum = taskInfo.getRangeNum();
             if (rangeNum == 0) {//表示是一个新的下载
-                Long curTotalSize = requestFileInfo(client, taskInfo);
-                if (curTotalSize == null) {
+                HttpResponse response = requestFileInfo(client, taskInfo);
+                if (response == null) {
                     return null;
                 }
+                int code = response.code();
+                if (code != Constants.ResponseCode.OK) {
+                    return null;
+                }
+                fixFilePath(response, taskInfo);
+                taskInfo.setCacheRequestUrl(taskInfo.getRequestUrl());
+                taskInfo.setCacheTargetUrl(response.url());
+
+                long curTotalSize = response.contentLength();
                 rangeNum = computeRangeNum(curTotalSize);
                 taskInfo.setRangeNum(rangeNum);
                 taskInfo.setTotalSize(curTotalSize);
-
-                List<RangeInfo> rangeInfoList = getRangeInfoList(taskInfo, true);
-                return getMultiHttpCall(client, taskInfo, rangeInfoList);
+                taskInfo.setETag(response.header(NetworkHelper.ETAG));
+                if (rangeNum <= 1) {
+                    return client.newCall(resKey, url, taskInfo.getCurrentSize());
+                } else {
+                    List<RangeInfo> rangeInfoList = getRangeInfoList(taskInfo, true);
+                    return getMultiHttpCall(client, taskInfo, rangeInfoList);
+                }
             } else if (rangeNum == 1) {//表示之前是使用一个线程下载
                 String filePath = taskInfo.getFilePath();
                 long fileLength = DownloadFileHelper.getFileLength(filePath);
@@ -83,13 +96,22 @@ class HttpCallFactory {
                 return client.newCall(resKey, url, taskInfo.getCurrentSize());
             } else {
                 long cacheTotalSize = taskInfo.getTotalSize();
-                Long curTotalSize = requestFileInfo(client, taskInfo);
-                if (curTotalSize == null) {
+                HttpResponse response = requestFileInfo(client, taskInfo);
+                if (response == null) {
                     return null;
                 }
-                String filePath = taskInfo.getFilePath();
-                long fileLength = DownloadFileHelper.getFileLength(filePath);
-                if (cacheTotalSize == curTotalSize && fileLength == curTotalSize) {
+                int code = response.code();
+                if (code != Constants.ResponseCode.OK) {
+                    return null;
+                }
+                fixFilePath(response, taskInfo);
+                taskInfo.setCacheRequestUrl(taskInfo.getRequestUrl());
+                taskInfo.setCacheTargetUrl(response.url());
+
+                long curTotalSize = response.contentLength();
+                String curETag = response.header(NetworkHelper.ETAG);
+
+                if (cacheTotalSize == curTotalSize && (taskInfo.getETag() == null || TextUtils.equals(taskInfo.getETag(), curETag))) {
                     List<RangeInfo> rangeInfoList = getRangeInfoList(taskInfo, false);
                     return getMultiHttpCall(client, taskInfo, rangeInfoList);
                 } else {
@@ -97,7 +119,7 @@ class HttpCallFactory {
                     taskInfo.setTotalSize(curTotalSize);
                     taskInfo.setCurrentSize(0);
                     taskInfo.setProgress(0);
-                    taskInfo.setETag(null);
+                    taskInfo.setETag(response.header(NetworkHelper.ETAG));
                     if (curTotalSize > 0) {
                         //重新计算下载区间数
                         rangeNum = computeRangeNum(curTotalSize);
@@ -126,8 +148,8 @@ class HttpCallFactory {
             long[] startPositions = computeStartPositions(totalSize, rangeNum);
             long[] endPositions = computeEndPositions(totalSize, rangeNum);
             for (int index = 0; index < rangeNum; index++) {
-                String rangeFilePath = DownloadFileHelper.getRangeFilePath(filePath, rangeNum);
-                rangeInfoList.add(new RangeInfo(index, rangeFilePath, startPositions[index], endPositions[index]));
+                String tempFilePath = DownloadFileHelper.getTempFilePath(filePath);
+                rangeInfoList.add(new RangeInfo(index, tempFilePath, startPositions[index], startPositions[index], endPositions[index]));
             }
         } else {
             long[] originalStartPositions = computeStartPositions(totalSize, rangeNum);
@@ -138,10 +160,10 @@ class HttpCallFactory {
             long currentSize = 0;
             long[] endPositions = computeEndPositions(totalSize, rangeNum);
             for (int index = 0; index < rangeNum; index++) {
-                String rangeFilePath = DownloadFileHelper.getRangeFilePath(filePath, index);
+                String tempFilePath = DownloadFileHelper.getTempFilePath(filePath);
                 long startPosition = startPositions[index];
                 long endPosition = endPositions[index];
-                rangeInfoList.add(new RangeInfo(index, rangeFilePath, startPosition, endPosition));
+                rangeInfoList.add(new RangeInfo(index, tempFilePath, originalStartPositions[index], startPosition, endPosition));
                 long rangeSize = startPosition - originalStartPositions[index];
                 currentSize += rangeSize;
             }
@@ -169,7 +191,7 @@ class HttpCallFactory {
 
     private int computeRangeNum(long curTotalSize) {
         long rangeNum = curTotalSize / 30 * 1024 * 1024;
-        if (rangeNum == 0) {
+        if (rangeNum <= 0) {
             rangeNum = 1;
         }
         if (rangeNum > 3) {
@@ -178,13 +200,10 @@ class HttpCallFactory {
         return (int) rangeNum;
     }
 
-    private Long requestFileInfo(HttpClient client, TaskInfo taskInfo) {
+    private HttpResponse requestFileInfo(HttpClient client, TaskInfo taskInfo) {
         try {
-            HttpResponse httpResponse = client.getHttpResponse(taskInfo.getRequestUrl());
-            if (httpResponse.code() == Constants.ResponseCode.OK) {
-                fixFilePath(httpResponse, taskInfo);
-                return httpResponse.contentLength();
-            }
+            HttpResponse response = client.getHttpResponse(taskInfo.getRequestUrl());
+            return response;
         } catch (Exception e) {
             //
         }
@@ -248,8 +267,8 @@ class HttpCallFactory {
             fileRaf = new RandomAccessFile(filePath, "rw");
             long[] startPositions = new long[originalStartPositions.length];
             for (int index = 0; index < originalStartPositions.length; index++) {
-                String rangeFilePath = DownloadFileHelper.getRangeFilePath(filePath, index);
-                startPositions[index] = readStartPosition(fileRaf, rangeFilePath, originalStartPositions[index]);
+                String tempFilePath = DownloadFileHelper.getTempFilePath(filePath);
+                startPositions[index] = readStartPosition(fileRaf, tempFilePath, index, originalStartPositions[index]);
             }
             return startPositions;
         } catch (Exception e) {
@@ -260,13 +279,14 @@ class HttpCallFactory {
         return null;
     }
 
-    private long readStartPosition(RandomAccessFile fileRaf, String rangeFilePath, long originalStartPosition) {
+    private long readStartPosition(RandomAccessFile fileRaf, String rangeFilePath, int index, long originalStartPosition) {
         RandomAccessFile raf = null;
         try {
             if (!DownloadFileHelper.isFileExists(rangeFilePath)) {
                 return 0;
             }
             raf = new RandomAccessFile(rangeFilePath, "rw");
+            raf.seek(index * 8);
             long startPosition = raf.readLong();
             raf.close();
             startPosition = fixStartPosition(fileRaf, startPosition, originalStartPosition);
