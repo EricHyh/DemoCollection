@@ -165,15 +165,12 @@ class SingleHttpCallbackImpl extends AbstractHttpCallback {
 
         long currentSize;
 
-        int currentProgress;
+        int oldProgress;
 
         SingleFileWriteListener(long totalSize, long currentSize) {
             this.totalSize = totalSize;
             this.currentSize = currentSize;
-            this.currentProgress = ProgressHelper.computeProgress(currentSize, totalSize);
         }
-
-
 
 
         @Override
@@ -182,11 +179,14 @@ class SingleHttpCallbackImpl extends AbstractHttpCallback {
                 currentRetryTimes = 0;
                 currentSize += writeLength;
                 taskInfo.setCurrentSize(currentSize);
-                taskInfo.setProgress(ProgressHelper.computeProgress(currentSize, totalSize));
+                int progress = ProgressHelper.computeProgress(currentSize, totalSize);
+                taskInfo.setProgress(progress);
                 if (!cancel) {
-
-                    downloadCallback.onDownloading(taskInfo);
+                    if (progress != oldProgress) {
+                        downloadCallback.onDownloading(taskInfo);
+                    }
                 }
+                oldProgress = progress;
             }
         }
 

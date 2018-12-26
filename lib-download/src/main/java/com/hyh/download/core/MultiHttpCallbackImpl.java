@@ -455,6 +455,8 @@ class MultiHttpCallbackImpl extends AbstractHttpCallback {
 
         private volatile long writeLength;
 
+        private volatile int oldProgress;
+
         OnWriteFileTask(long writeLength) {
             this.writeLength = writeLength;
         }
@@ -470,7 +472,11 @@ class MultiHttpCallbackImpl extends AbstractHttpCallback {
                     return;
                 }
                 addCurrentSize(writeLength);
-                downloadCallback.onDownloading(taskInfo);
+                int progress = taskInfo.getProgress();
+                if (progress != oldProgress) {
+                    downloadCallback.onDownloading(taskInfo);
+                }
+                oldProgress = progress;
             }
         }
     }

@@ -396,7 +396,7 @@ public class TaskInfo implements Parcelable {
         DownloadInfo downloadInfo = new DownloadInfo();
         downloadInfo.setResKey(this.resKey);
         downloadInfo.setRequestUrl(this.requestUrl);
-        downloadInfo.setTargetUrl(this.cacheTargetUrl);
+        downloadInfo.setTargetUrl(this.targetUrl);
         downloadInfo.setVersionCode(this.versionCode);
         downloadInfo.setPriority(this.priority);
         downloadInfo.setFilePath(this.filePath);
@@ -405,23 +405,6 @@ public class TaskInfo implements Parcelable {
         downloadInfo.setCurrentSize(this.currentSize);
         downloadInfo.setProgress(this.progress);
         downloadInfo.setSpeed(0);
-        downloadInfo.setTag(this.tag);
-        return downloadInfo;
-    }
-
-    public DownloadInfo toDownloadInfo(float speed) {
-        DownloadInfo downloadInfo = new DownloadInfo();
-        downloadInfo.setResKey(this.resKey);
-        downloadInfo.setRequestUrl(this.requestUrl);
-        downloadInfo.setTargetUrl(this.cacheTargetUrl);
-        downloadInfo.setVersionCode(this.versionCode);
-        downloadInfo.setPriority(this.priority);
-        downloadInfo.setFilePath(this.filePath);
-        downloadInfo.setCurrentStatus(this.currentStatus);
-        downloadInfo.setTotalSize(this.totalSize);
-        downloadInfo.setCurrentSize(this.currentSize);
-        downloadInfo.setProgress(this.progress);
-        downloadInfo.setSpeed(speed);
         downloadInfo.setTag(this.tag);
         return downloadInfo;
     }

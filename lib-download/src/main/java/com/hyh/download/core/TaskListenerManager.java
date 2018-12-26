@@ -32,6 +32,8 @@ public class TaskListenerManager extends CallbackAdapter {
 
     private final Handler mUiHandler = new Handler(Looper.getMainLooper());
 
+    private boolean mIsPostUiThread;
+
     private final ThreadPoolExecutor mBackExecutor;
 
     {
@@ -82,7 +84,7 @@ public class TaskListenerManager extends CallbackAdapter {
 
     @Override
     public void onPrepare(final DownloadInfo downloadInfo) {
-        postUiThread(new Runnable() {
+        post(new Runnable() {
             @Override
             public void run() {
                 String resKey = downloadInfo.getResKey();
@@ -98,7 +100,7 @@ public class TaskListenerManager extends CallbackAdapter {
 
     @Override
     public void onWaitingInQueue(final DownloadInfo downloadInfo) {
-        postUiThread(new Runnable() {
+        post(new Runnable() {
             @Override
             public void run() {
                 String resKey = downloadInfo.getResKey();
@@ -115,9 +117,13 @@ public class TaskListenerManager extends CallbackAdapter {
     @Override
     public void onDownloading(final DownloadInfo downloadInfo) {
         final String resKey = downloadInfo.getResKey();
-        float speed = mSpeedMap.get(resKey).computeSpeed(downloadInfo.getCurrentSize());
-        downloadInfo.setSpeed(speed);
-        postUiThread(new Runnable() {
+        Speed speed = mSpeedMap.get(resKey);
+        if (speed == null) {
+            speed = new Speed();
+            mSpeedMap.put(resKey, speed);
+        }
+        downloadInfo.setSpeed(speed.computeSpeed(downloadInfo.getCurrentSize()));
+        post(new Runnable() {
             @Override
             public void run() {
                 List<Callback> singleCallbacks = getSingleCallbacks(resKey);
@@ -133,8 +139,9 @@ public class TaskListenerManager extends CallbackAdapter {
     @Override
     public void onPause(final DownloadInfo downloadInfo) {
         final String resKey = downloadInfo.getResKey();
+        mSpeedMap.remove(resKey);
         final List<Callback> singleCallbacks = getSingleCallbacks(resKey);
-        postUiThread(new Runnable() {
+        post(new Runnable() {
             @Override
             public void run() {
                 if (singleCallbacks != null) {
@@ -152,8 +159,9 @@ public class TaskListenerManager extends CallbackAdapter {
     @Override
     public void onDelete(final DownloadInfo downloadInfo) {
         final String resKey = downloadInfo.getResKey();
+        mSpeedMap.remove(resKey);
         final List<Callback> singleCallbacks = getSingleCallbacks(resKey);
-        postUiThread(new Runnable() {
+        post(new Runnable() {
             @Override
             public void run() {
                 if (singleCallbacks != null) {
@@ -171,8 +179,9 @@ public class TaskListenerManager extends CallbackAdapter {
     @Override
     public void onSuccess(final DownloadInfo downloadInfo) {
         final String resKey = downloadInfo.getResKey();
+        mSpeedMap.remove(resKey);
         final List<Callback> singleCallbacks = getSingleCallbacks(resKey);
-        postUiThread(new Runnable() {
+        post(new Runnable() {
             @Override
             public void run() {
                 if (singleCallbacks != null) {
@@ -190,8 +199,9 @@ public class TaskListenerManager extends CallbackAdapter {
     @Override
     public void onWaitingForWifi(final DownloadInfo downloadInfo) {
         final String resKey = downloadInfo.getResKey();
+        mSpeedMap.remove(resKey);
         final List<Callback> singleCallbacks = getSingleCallbacks(resKey);
-        postUiThread(new Runnable() {
+        post(new Runnable() {
             @Override
             public void run() {
                 if (singleCallbacks != null) {
@@ -209,8 +219,9 @@ public class TaskListenerManager extends CallbackAdapter {
     @Override
     public void onLowDiskSpace(final DownloadInfo downloadInfo) {
         final String resKey = downloadInfo.getResKey();
+        mSpeedMap.remove(resKey);
         final List<Callback> singleCallbacks = getSingleCallbacks(resKey);
-        postUiThread(new Runnable() {
+        post(new Runnable() {
             @Override
             public void run() {
                 if (singleCallbacks != null) {
@@ -228,8 +239,9 @@ public class TaskListenerManager extends CallbackAdapter {
     @Override
     public void onFailure(final DownloadInfo downloadInfo) {
         final String resKey = downloadInfo.getResKey();
+        mSpeedMap.remove(resKey);
         final List<Callback> singleCallbacks = getSingleCallbacks(resKey);
-        postUiThread(new Runnable() {
+        post(new Runnable() {
             @Override
             public void run() {
                 if (singleCallbacks != null) {
@@ -246,12 +258,20 @@ public class TaskListenerManager extends CallbackAdapter {
 
     @Override
     public void onHaveNoTask() {
-        postUiThread(new Runnable() {
+        post(new Runnable() {
             @Override
             public void run() {
 
             }
         });
+    }
+
+    private void post(Runnable runnable) {
+        if (mIsPostUiThread) {
+            postUiThread(runnable);
+        } else {
+            postBackThread(runnable);
+        }
     }
 
     private void postUiThread(Runnable runnable) {

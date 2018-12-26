@@ -214,7 +214,6 @@ public class ServiceBridge implements IDownloadProxy {
             return true;
         }
 
-        @SuppressWarnings("unchecked")
         @Override
         public void onCallback(DownloadInfo downloadInfo) throws RemoteException {
             if (downloadInfo == null) {
