@@ -1,13 +1,15 @@
 package com.hyh.download.db;
 
 import android.content.Context;
-import android.os.RemoteException;
 
-import com.hyh.download.IFileChecker;
 import com.hyh.download.State;
 import com.hyh.download.db.bean.TaskInfo;
 import com.hyh.download.db.dao.TaskInfoDao;
+import com.hyh.download.utils.DownloadFileHelper;
+import com.hyh.download.utils.ProgressHelper;
+import com.hyh.download.utils.StreamUtil;
 
+import java.io.RandomAccessFile;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -41,6 +43,7 @@ public class TaskDatabaseHelper {
         List<TaskInfo> interruptTasks = null;
         if (taskInfoList != null && !taskInfoList.isEmpty()) {
             for (TaskInfo taskInfo : taskInfoList) {
+                fixCurrentSize(taskInfo);
                 taskInfo.setCurrentStatus(State.FAILURE);
                 insertOrUpdate(taskInfo);
                 if (taskInfo.isPermitRecoverTask()) {
@@ -54,66 +57,46 @@ public class TaskDatabaseHelper {
         return interruptTasks;
     }
 
-    /*public List<TaskInfo> fixDatabaseErrorStatus(IFileChecker globalFileChecker) {
-        List<TaskInfo> taskInfoList = mTaskInfoDao.queryAllTask();
-        List<TaskInfo> interruptTasks = null;
-        if (taskInfoList != null && !taskInfoList.isEmpty()) {
-            for (TaskInfo taskInfo : taskInfoList) {
-                String resKey = taskInfo.getResKey();
-                int currentStatus = taskInfo.getCurrentStatus();
-                if (currentStatus == State.DELETE
-                        || currentStatus == State.PAUSE
-                        || currentStatus == State.NONE
-                        || currentStatus == State.WAITING_FOR_WIFI
-                        || currentStatus == State.FAILURE) {
-                    mTaskInfoMap.put(resKey, taskInfo);
-                    continue;
-                }
-                if (currentStatus == State.SUCCESS) {
-                    String filePath = taskInfo.getFilePath();
-                    long totalSize = taskInfo.getTotalSize();
-                    long fileLength = DownloadFileHelper.getFileLength(filePath);
-                    boolean isRealSuccess = false;
-                    if (fileLength > 0) {
-                        isRealSuccess = totalSize <= 0 || fileLength == totalSize;
-                    }
-                    if (isRealSuccess && globalFileChecker != null) {
-                        if (!checkFile(taskInfo, globalFileChecker)) {
-                            isRealSuccess = false;
-                        }
-                    }
-                    if (!isRealSuccess) {
-                        DownloadFileHelper.deleteDownloadFile(taskInfo);
-                        taskInfo.setTotalSize(0);
-                        taskInfo.setCurrentSize(0);
-                        taskInfo.setProgress(0);
-                        taskInfo.setETag(null);
-                        taskInfo.setCurrentStatus(State.NONE);
-                        insertOrUpdate(taskInfo);
-                    }
-                    mTaskInfoMap.put(resKey, taskInfo);
-                    continue;
-                }
-                taskInfo.setCurrentStatus(State.FAILURE);
-                insertOrUpdate(taskInfo);
-                mTaskInfoMap.put(resKey, taskInfo);
-                if (taskInfo.isPermitRecoverTask()) {
-                    if (interruptTasks == null) {
-                        interruptTasks = new ArrayList<>();
-                    }
-                    interruptTasks.add(taskInfo);
-                }
+    private void fixCurrentSize(TaskInfo taskInfo) {
+        if (taskInfo.getRangeNum() > 1) {
+            String filePath = taskInfo.getFilePath();
+            String tempFilePath = DownloadFileHelper.getTempFilePath(filePath);
+            long currentSize = readCurrentSizeFromTempFile(tempFilePath, taskInfo.getRangeNum());
+            taskInfo.setCurrentSize(currentSize);
+            long totalSize = taskInfo.getTotalSize();
+            if (totalSize > 0) {
+                taskInfo.setProgress(ProgressHelper.computeProgress(currentSize, totalSize));
+            } else {
+                taskInfo.setProgress(-1);
+            }
+        } else {
+            String filePath = taskInfo.getFilePath();
+            long fileLength = DownloadFileHelper.getFileLength(filePath);
+            taskInfo.setCurrentSize(fileLength);
+            long totalSize = taskInfo.getTotalSize();
+            if (totalSize > 0) {
+                taskInfo.setProgress(ProgressHelper.computeProgress(fileLength, totalSize));
+            } else {
+                taskInfo.setProgress(-1);
             }
         }
-        return interruptTasks;
-    }*/
+    }
 
-    private boolean checkFile(TaskInfo taskInfo, IFileChecker globalFileChecker) {
+    private long readCurrentSizeFromTempFile(String tempFilePath, int rangeNum) {
+        long currentSize = 0;
+        RandomAccessFile raf = null;
         try {
-            return globalFileChecker.isValidFile(taskInfo.toDownloadInfo());
-        } catch (RemoteException e) {
-            return true;
+            raf = new RandomAccessFile(tempFilePath, "rw");
+            for (int index = 0; index < rangeNum; index++) {
+                raf.seek(index * 8);
+                currentSize += raf.readLong();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            StreamUtil.close(raf);
         }
+        return currentSize;
     }
 
     public void insertOrUpdate(TaskInfo taskInfo) {
@@ -141,6 +124,7 @@ public class TaskDatabaseHelper {
         if (taskInfo == null) {
             taskInfo = mTaskInfoDao.getTaskInfoByKey(resKey);
             if (taskInfo != null) {
+                fixCurrentSize(taskInfo);
                 mTaskInfoMap.put(taskInfo.getResKey(), taskInfo);
             }
         }

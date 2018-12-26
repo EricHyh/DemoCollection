@@ -143,6 +143,12 @@ public abstract class SuperDownloadProxy implements IDownloadProxy {
                         handleFailure(taskInfo);
                         return;
                     }
+
+                    if (call instanceof MultiHttpCall && ((MultiHttpCall) call).isHttpCallEmpty()) {
+                        handleSuccess(taskInfo);
+                        return;
+                    }
+
                     taskInfo.setCurrentStatus(State.DOWNLOADING);
                     insertOrUpdate(taskInfo);
                     AbstractHttpCallback httpCallbackImpl = getHttpCallbackImpl(taskInfo);
@@ -161,11 +167,10 @@ public abstract class SuperDownloadProxy implements IDownloadProxy {
             mWaitingQueue.remove(resKey);
             AbstractHttpCallback remove = mHttpCallbackMap.remove(resKey);
             if (remove != null) {
-                remove.pause();
+                remove.cancel();
             }
 
             handlePause(taskWrapper.taskInfo);
-
         }
     }
 
@@ -179,7 +184,7 @@ public abstract class SuperDownloadProxy implements IDownloadProxy {
                 mWaitingQueue.remove(resKey);
                 AbstractHttpCallback remove = mHttpCallbackMap.remove(resKey);
                 if (remove != null) {
-                    remove.pause();
+                    remove.cancel();
                 }
             } else {
                 taskInfo = TaskDatabaseHelper.getInstance().getTaskInfoByKey(resKey);

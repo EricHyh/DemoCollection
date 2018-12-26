@@ -1,9 +1,15 @@
 package com.hyh.download.core;
 
+import android.os.SystemClock;
+
 import com.hyh.download.net.HttpResponse;
 import com.hyh.download.utils.StreamUtil;
 
 import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.FileDescriptor;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.RandomAccessFile;
 
 /**
@@ -19,11 +25,15 @@ class MultiFileWriteTask implements FileWrite {
 
     private String tempFilePath;
 
-    private long startPosition;
+    private volatile long startPosition;
 
     private final long endPosition;
 
-    private boolean stop;
+    private volatile long lastSyncPosition;
+
+    private volatile long lastSyncTimeMillis;
+
+    private volatile boolean stop;
 
     MultiFileWriteTask(String filePath, RangeInfo rangeInfo) {
         this.filePath = filePath;
@@ -38,10 +48,13 @@ class MultiFileWriteTask implements FileWrite {
         stop = false;
         RandomAccessFile fileRaf = null;
         RandomAccessFile tempFileRaf = null;
+        BufferedOutputStream bos = null;
         boolean isException = false;
         try {
             BufferedInputStream bis = new BufferedInputStream(response.inputStream());
             fileRaf = new RandomAccessFile(filePath, "rw");
+            FileDescriptor fd = fileRaf.getFD();
+            bos = new BufferedOutputStream(new FileOutputStream(fd));
             tempFileRaf = new RandomAccessFile(tempFilePath, "rws");
 
             fileRaf.seek(startPosition);
@@ -51,21 +64,39 @@ class MultiFileWriteTask implements FileWrite {
                 fileRaf.write(buffer, 0, len);
                 startPosition += len;
                 listener.onWriteFile(len);
-                tempFileRaf.seek(rangeIndex * 8);
-                tempFileRaf.writeLong(startPosition);
+
+                if (isNeedSync()) {
+                    sync(bos, fd, tempFileRaf);
+                }
                 if (stop) {
                     break;
                 }
             }
+            sync(bos, fd, tempFileRaf);
         } catch (Exception e) {
             isException = true;
         }
-        StreamUtil.close(fileRaf, tempFileRaf, response);
+        StreamUtil.close(bos, fileRaf, tempFileRaf, response);
         if (startPosition == endPosition + 1) {
             listener.onWriteFinish();
         } else if (isException) {
             listener.onWriteFailure();
         }
+    }
+
+    private boolean isNeedSync() {
+        long positionDiff = startPosition - lastSyncPosition;
+        long timeMillisDiff = SystemClock.elapsedRealtime() - lastSyncTimeMillis;
+        return positionDiff > 65536 && timeMillisDiff > 2000;
+    }
+
+    private void sync(BufferedOutputStream bos, FileDescriptor fd, RandomAccessFile tempFileRaf) throws IOException {
+        bos.flush();
+        fd.sync();
+        tempFileRaf.seek(rangeIndex * 8);
+        tempFileRaf.writeLong(startPosition);
+        lastSyncPosition = startPosition;
+        lastSyncTimeMillis = SystemClock.elapsedRealtime();
     }
 
     @Override

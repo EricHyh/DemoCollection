@@ -34,9 +34,7 @@ class SingleHttpCallbackImpl extends AbstractHttpCallback {
 
     private DownloadCallback downloadCallback;
 
-    private volatile boolean pause;
-
-    private volatile boolean delete;
+    private volatile boolean cancel;
 
     //总重试的次数
     private int totalRetryTimes = 0;
@@ -63,7 +61,7 @@ class SingleHttpCallbackImpl extends AbstractHttpCallback {
     @Override
     public void onResponse(HttpCall call, HttpResponse response) throws IOException {
         this.call = call;
-        if (delete || pause) {
+        if (cancel) {
             if (this.call != null && !this.call.isCanceled()) {
                 this.call.cancel();
             }
@@ -172,33 +170,22 @@ class SingleHttpCallbackImpl extends AbstractHttpCallback {
         SingleFileWriteListener(long totalSize, long currentSize) {
             this.totalSize = totalSize;
             this.currentSize = currentSize;
-            this.currentProgress = (totalSize == -1) ? 0 : Math.round(this.currentSize * 100.0f / totalSize);
+            this.currentProgress = ProgressHelper.computeProgress(currentSize, totalSize);
         }
+
+
+
 
         @Override
         public void onWriteFile(long writeLength) {
             if (writeLength > 0) {
                 currentRetryTimes = 0;
-
                 currentSize += writeLength;
                 taskInfo.setCurrentSize(currentSize);
+                taskInfo.setProgress(ProgressHelper.computeProgress(currentSize, totalSize));
+                if (!cancel) {
 
-                if (totalSize == -1) {
-                    if (currentProgress != -1) {
-                        taskInfo.setProgress(-1);
-                        downloadCallback.onDownloading(taskInfo);
-                    }
-                    currentProgress = -1;
-                } else {
-                    int progress = ProgressHelper.computeProgress(currentSize, taskInfo.getTotalSize());
-                    if (progress != this.currentProgress) {
-                        currentRetryTimes = 0;
-                        taskInfo.setProgress(progress);
-                        if (!pause && !delete) {
-                            downloadCallback.onDownloading(taskInfo);
-                        }
-                        this.currentProgress = progress;
-                    }
+                    downloadCallback.onDownloading(taskInfo);
                 }
             }
         }
@@ -212,6 +199,7 @@ class SingleHttpCallbackImpl extends AbstractHttpCallback {
         @Override
         public void onWriteFailure() {
             if (!retryDownload()) {
+                fixCurrentSize();
                 downloadCallback.onFailure(taskInfo);
             }
         }
@@ -222,7 +210,7 @@ class SingleHttpCallbackImpl extends AbstractHttpCallback {
         if (call != null && !call.isCanceled()) {
             call.cancel();
         }
-        if (pause || delete) {
+        if (cancel) {
             return false;
         }
         if (currentRetryTimes >= RETRY_MAX_TIMES || totalRetryTimes >= TOTAL_RETRY_MAX_TIMES) {
@@ -239,13 +227,11 @@ class SingleHttpCallbackImpl extends AbstractHttpCallback {
             if (currentRetryTimes == 2) {
                 SystemClock.sleep(2 * RETRY_DELAY);
             }
-            if (pause || delete) {
+            if (cancel) {
                 return false;
             }
-
-            long currentSize = fixCurrentSize();
-            taskInfo.setCurrentSize(currentSize);
-            HttpCall call = client.newCall(taskInfo.getRequestUrl(), taskInfo.getRequestUrl(), currentSize);
+            fixCurrentSize();
+            HttpCall call = client.newCall(taskInfo.getRequestUrl(), taskInfo.getRequestUrl(), taskInfo.getCurrentSize());
             call.enqueue(this);
             return true;
         } else {
@@ -253,19 +239,22 @@ class SingleHttpCallbackImpl extends AbstractHttpCallback {
         }
     }
 
-    private long fixCurrentSize() {
+    private void fixCurrentSize() {
         String filePath = taskInfo.getFilePath();
         File file = new File(filePath);
         if (file.isFile() && file.exists()) {
-            return file.length();
+            long length = file.length();
+            taskInfo.setCurrentSize(length);
+            taskInfo.setProgress(ProgressHelper.computeProgress(length, taskInfo.getTotalSize()));
         }
-        return 0;
+        taskInfo.setCurrentSize(0);
+        taskInfo.setProgress(0);
     }
 
     private boolean waitingSuitableNetworkType() {
         int waitingNumber = 0;
         while (true) {
-            if (pause || delete) {
+            if (cancel) {
                 return false;
             }
             if (isSuitableNetworkType()) {
@@ -285,21 +274,9 @@ class SingleHttpCallbackImpl extends AbstractHttpCallback {
     }
 
     @Override
-    void pause() {
-        L.d("SingleHttpCallbackImpl pause");
-        this.pause = true;
-        if (mFileWrite != null) {
-            mFileWrite.stop();
-        }
-        if (this.call != null && !this.call.isCanceled()) {
-            this.call.cancel();
-        }
-    }
-
-    @Override
-    void delete() {
-        L.d("SingleHttpCallbackImpl delete");
-        this.delete = true;
+    void cancel() {
+        L.d("SingleHttpCallbackImpl cancel");
+        this.cancel = true;
         if (mFileWrite != null) {
             mFileWrite.stop();
         }

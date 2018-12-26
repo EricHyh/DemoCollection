@@ -25,6 +25,10 @@ class MultiHttpCall implements HttpCall {
         this.rangeInfoList = rangeInfoList;
     }
 
+    boolean isHttpCallEmpty() {
+        return httpCallMap == null || httpCallMap.isEmpty();
+    }
+
     @Override
     public void enqueue(HttpCallback httpCallback) {
         MultiHttpCallbackImpl multiHttpCallbackImpl = (MultiHttpCallbackImpl) httpCallback;

@@ -1,5 +1,7 @@
 package com.hyh.download.core;
 
+import android.os.SystemClock;
+
 import com.hyh.download.net.HttpResponse;
 import com.hyh.download.utils.L;
 import com.hyh.download.utils.StreamUtil;
@@ -7,6 +9,7 @@ import com.hyh.download.utils.StreamUtil;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.FileOutputStream;
+import java.io.IOException;
 
 /**
  * @author Administrator
@@ -22,6 +25,10 @@ class SingleFileWriteTask implements FileWrite {
 
     private final long endPosition;
 
+    private volatile long lastSyncPosition;
+
+    private volatile long lastSyncTimeMillis;
+
     private volatile boolean stop;
 
     SingleFileWriteTask(String filePath, long startPosition, long endPosition) {
@@ -33,10 +40,11 @@ class SingleFileWriteTask implements FileWrite {
     @Override
     public void write(HttpResponse response, FileWriteListener listener) {
         stop = false;
+        BufferedInputStream bis = null;
         BufferedOutputStream bos = null;
         boolean isException = false;
         try {
-            BufferedInputStream bis = new BufferedInputStream(response.inputStream());
+            bis = new BufferedInputStream(response.inputStream());
             bos = new BufferedOutputStream(new FileOutputStream(filePath, true));
             byte[] buffer = new byte[8 * 1024];
             int len;
@@ -44,17 +52,18 @@ class SingleFileWriteTask implements FileWrite {
                 bos.write(buffer, 0, len);
                 startPosition += len;
                 listener.onWriteFile(len);
+                if (isNeedSync()) {
+                    sync(bos);
+                }
                 if (stop) {
-                    bos.flush();
                     break;
                 }
             }
+            sync(bos);
         } catch (Exception e) {
             isException = true;
-        } finally {
-            StreamUtil.close(bos, response);
         }
-        StreamUtil.close(bos, response);
+        StreamUtil.close(bos, bis, response);
         if (startPosition == endPosition) {
             listener.onWriteFinish();
         } else if (endPosition == -1 && !isException && !stop) {
@@ -62,6 +71,18 @@ class SingleFileWriteTask implements FileWrite {
         } else if (isException) {
             listener.onWriteFailure();
         }
+    }
+
+    private boolean isNeedSync() {
+        long positionDiff = startPosition - lastSyncPosition;
+        long timeMillisDiff = SystemClock.elapsedRealtime() - lastSyncTimeMillis;
+        return positionDiff > 65536 && timeMillisDiff > 2000;
+    }
+
+    private void sync(BufferedOutputStream bos) throws IOException {
+        bos.flush();
+        lastSyncPosition = startPosition;
+        lastSyncTimeMillis = SystemClock.elapsedRealtime();
     }
 
     @Override

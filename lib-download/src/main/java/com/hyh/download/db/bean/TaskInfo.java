@@ -60,10 +60,10 @@ public class TaskInfo implements Parcelable {
     private volatile long currentSize;
 
     @Column(nameInDb = "progress")
-    private int progress;
+    private volatile int progress;
 
     @Column(nameInDb = "currentStatus")
-    private int currentStatus;
+    private volatile int currentStatus;
 
     @Column(nameInDb = "wifiAutoRetry")
     private boolean wifiAutoRetry;

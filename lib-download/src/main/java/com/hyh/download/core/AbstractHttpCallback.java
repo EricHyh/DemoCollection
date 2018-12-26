@@ -25,7 +25,6 @@ abstract class AbstractHttpCallback implements HttpCallback {
 
     abstract TaskInfo getTaskInfo();
 
-    abstract void pause();
+    abstract void cancel();
 
-    abstract void delete();
 }

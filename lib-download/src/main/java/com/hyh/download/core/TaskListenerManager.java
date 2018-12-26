@@ -2,6 +2,7 @@ package com.hyh.download.core;
 
 import android.os.Handler;
 import android.os.Looper;
+import android.os.SystemClock;
 
 import com.hyh.download.Callback;
 import com.hyh.download.CallbackAdapter;
@@ -9,6 +10,7 @@ import com.hyh.download.DownloadInfo;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
@@ -25,6 +27,8 @@ import java.util.concurrent.TimeUnit;
  */
 @SuppressWarnings("unchecked")
 public class TaskListenerManager extends CallbackAdapter {
+
+    private final Map<String, Speed> mSpeedMap = new ConcurrentHashMap<>();
 
     private final Handler mUiHandler = new Handler(Looper.getMainLooper());
 
@@ -111,6 +115,8 @@ public class TaskListenerManager extends CallbackAdapter {
     @Override
     public void onDownloading(final DownloadInfo downloadInfo) {
         final String resKey = downloadInfo.getResKey();
+        float speed = mSpeedMap.get(resKey).computeSpeed(downloadInfo.getCurrentSize());
+        downloadInfo.setSpeed(speed);
         postUiThread(new Runnable() {
             @Override
             public void run() {
@@ -254,5 +260,31 @@ public class TaskListenerManager extends CallbackAdapter {
 
     private void postBackThread(Runnable runnable) {
         mBackExecutor.execute(runnable);
+    }
+
+
+    private static class Speed {
+
+        private long lastFileSize;
+
+        private long lastTimeMills;
+
+        float computeSpeed(long currentSize) {
+            long elapsedTimeMillis = SystemClock.elapsedRealtime();
+            if (lastTimeMills == 0) {
+                lastFileSize = currentSize;
+                lastTimeMills = elapsedTimeMillis;
+                return 0.0f;
+            } else {
+                long diffSize = currentSize - lastFileSize;
+                long diffTimeMillis = elapsedTimeMillis - lastTimeMills;
+                lastFileSize = currentSize;
+                lastTimeMills = diffTimeMillis;
+                if (diffSize <= 0 || diffTimeMillis <= 0) {
+                    return 0.0f;
+                }
+                return (diffSize * 1000.0f) / (lastTimeMills * 1024.0f);
+            }
+        }
     }
 }

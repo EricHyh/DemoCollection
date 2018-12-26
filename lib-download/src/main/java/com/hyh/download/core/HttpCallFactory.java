@@ -175,14 +175,12 @@ class HttpCallFactory {
 
     private MultiHttpCall getMultiHttpCall(HttpClient client, TaskInfo taskInfo, List<RangeInfo> rangeInfoList) {
         String resKey = taskInfo.getResKey();
-        int rangeNum = taskInfo.getRangeNum();
         Map<String, HttpCall> httpCallMap = new HashMap<>();
-        for (int index = 0; index < rangeNum; index++) {
-            RangeInfo rangeInfo = rangeInfoList.get(index);
+        for (RangeInfo rangeInfo : rangeInfoList) {
             long startPosition = rangeInfo.getStartPosition();
             long endPosition = rangeInfo.getEndPosition();
             if (startPosition < endPosition) {
-                String tag = resKey.concat("-").concat(String.valueOf(index));
+                String tag = resKey.concat("-").concat(String.valueOf(rangeInfo.getRangeIndex()));
                 httpCallMap.put(tag, client.newCall(tag, taskInfo.getRequestUrl(), startPosition, endPosition));
             }
         }

@@ -1,6 +1,10 @@
 package com.eric.hyh.gen;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.RandomAccessFile;
 
 /**
@@ -19,7 +23,7 @@ public class TestClass {
                 }
             }).start();
         }*/
-
+        //writeBuffer();
         read();
     }
 
@@ -39,7 +43,36 @@ public class TestClass {
         System.out.println(num + "-end");
     }
 
+
+    private static void writeBuffer() {
+        try {
+
+            BufferedInputStream bis = new BufferedInputStream(new FileInputStream("changyong.txt"));
+
+            RandomAccessFile raf = new RandomAccessFile("test.txt", "rw");
+            BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream(raf.getFD()));
+
+            raf.seek(5000);
+            byte[] buffer = new byte[1024];
+            int len;
+            while ((len = bis.read(buffer)) != -1) {
+                bos.write(buffer, 0, len);
+            }
+            bos.close();
+            try {
+                raf.close();
+            } catch (Exception e) {
+                //
+            }
+            bis.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+
     private static void read() {
+        long start = System.currentTimeMillis();
         try {
             File testFile = new File("test");
             System.out.println("testFile length = " + testFile.length());
@@ -61,5 +94,7 @@ public class TestClass {
         } catch (Exception e) {
             e.printStackTrace();
         }
+        long end = System.currentTimeMillis();
+        System.out.println("use time = " + (end - start));
     }
 }
