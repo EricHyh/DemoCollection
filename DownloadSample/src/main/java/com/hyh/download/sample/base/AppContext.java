@@ -2,6 +2,9 @@ package com.hyh.download.sample.base;
 
 import android.app.Application;
 
+import com.facebook.stetho.Stetho;
+import com.hyh.download.FileDownloader;
+
 /**
  * @author Administrator
  * @description
@@ -13,6 +16,7 @@ public class AppContext extends Application {
     @Override
     public void onCreate() {
         super.onCreate();
-
+        Stetho.initializeWithDefaults(this);
+        FileDownloader.getInstance().init(this);
     }
 }

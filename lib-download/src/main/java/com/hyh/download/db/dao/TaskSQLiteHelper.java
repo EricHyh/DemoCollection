@@ -14,7 +14,7 @@ public class TaskSQLiteHelper extends SQLiteOpenHelper {
 
     private static final String NAME = "FileDownloader.db";
 
-    private static final int VERSION = 0;
+    private static final int VERSION = 1;
 
     TaskSQLiteHelper(Context context) {
         super(context, NAME, null, VERSION);
@@ -32,7 +32,6 @@ public class TaskSQLiteHelper extends SQLiteOpenHelper {
 
     @Override
     public void onDowngrade(SQLiteDatabase db, int oldVersion, int newVersion) {
-        super.onDowngrade(db, oldVersion, newVersion);
-    }
 
+    }
 }

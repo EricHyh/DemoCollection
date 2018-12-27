@@ -135,7 +135,9 @@ class HttpCallFactory {
                 }
             }
         } else {
-            return client.newCall(resKey, url, taskInfo.getCurrentSize());
+            long fileLength = DownloadFileHelper.getFileLength(taskInfo.getFilePath());
+            taskInfo.setCurrentSize(fileLength);
+            return client.newCall(resKey, url, fileLength);
         }
     }
 

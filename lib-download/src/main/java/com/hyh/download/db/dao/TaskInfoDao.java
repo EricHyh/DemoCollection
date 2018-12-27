@@ -4,6 +4,7 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
+import android.text.TextUtils;
 
 import com.hyh.download.State;
 import com.hyh.download.db.annotation.Column;
@@ -15,9 +16,10 @@ import com.hyh.download.db.bean.TaskInfo;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.LinkedHashMap;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 
 /**
  * @author Administrator
@@ -29,13 +31,21 @@ public class TaskInfoDao {
 
     private static final String TABLE_NAME = "TaskInfo";
 
-    private static Map<String, ColumnInfo> sColumns = new LinkedHashMap<>();
-
-    private static String[] sColumnNames = {"_id", "resKey", "cacheRequestUrl", "cacheTargetUrl",
+    private final static String[] sColumnNames = {"_id", "resKey", "cacheRequestUrl", "cacheTargetUrl",
             "versionCode", "priority", "fileDir", "filePath", "byMultiThread",
             "rangeNum", "totalSize", "currentSize", "progress", "currentStatus",
             "wifiAutoRetry", "permitRetryInMobileData", "permitRetryInvalidFileTask", "permitRecoverTask", "responseCode",
             "failureCode", "eTag", "lastModified", "updateTimeMillis", "tag"};
+
+    private static Map<String, ColumnInfo> sColumns = new TreeMap<>(new Comparator<String>() {
+        @Override
+        public int compare(String o1, String o2) {
+            if (TextUtils.equals(o1, "_id")) {
+                return -1;
+            }
+            return 1;
+        }
+    });
 
     static {
         loadColumns();
@@ -95,8 +105,8 @@ public class TaskInfoDao {
             }
             sb.append(" ,");
         }
-        sb.append(");");
-        String sql = sb.toString();
+        String substring = sb.substring(0, sb.length() - 1);
+        String sql = substring + ");";
         db.execSQL(sql);
     }
 

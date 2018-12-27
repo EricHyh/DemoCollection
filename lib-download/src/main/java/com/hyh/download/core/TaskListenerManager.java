@@ -7,8 +7,8 @@ import android.os.SystemClock;
 import com.hyh.download.Callback;
 import com.hyh.download.CallbackAdapter;
 import com.hyh.download.DownloadInfo;
+import com.hyh.download.utils.L;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -32,7 +32,7 @@ public class TaskListenerManager extends CallbackAdapter {
 
     private final Handler mUiHandler = new Handler(Looper.getMainLooper());
 
-    private boolean mIsPostUiThread;
+    private boolean mIsPostUiThread = true;
 
     private final ThreadPoolExecutor mBackExecutor;
 
@@ -56,34 +56,32 @@ public class TaskListenerManager extends CallbackAdapter {
         mBackExecutor.allowCoreThreadTimeOut(true);
     }
 
-    private ConcurrentHashMap<String, List<Callback>> mCallbacksMap;
+    private final ConcurrentHashMap<String, List<Callback>> mCallbacksMap = new ConcurrentHashMap<>();
 
     public void addSingleTaskCallback(String key, Callback callback) {
         List<Callback> callbackList;
-        if (mCallbacksMap == null) {
-            mCallbacksMap = new ConcurrentHashMap<>();
+        callbackList = mCallbacksMap.get(key);
+        if (callbackList == null) {
             callbackList = new CopyOnWriteArrayList<>();
-            callbackList.add(callback);
-        } else {
-            callbackList = mCallbacksMap.get(key);
-            if (callbackList == null) {
-                callbackList = new ArrayList<>();
-            }
-            callbackList.add(callback);
         }
+        callbackList.add(callback);
         mCallbacksMap.put(key, callbackList);
     }
 
-    private List<Callback> getSingleCallbacks(String key) {
-        List<Callback> callbacks = null;
-        if (mCallbacksMap != null) {
-            callbacks = mCallbacksMap.get(key);
+    public void removeSingleTaskCallback(String resKey, Callback callback) {
+        List<Callback> singleCallbacks = getSingleCallbacks(resKey);
+        if (singleCallbacks != null) {
+            singleCallbacks.remove(callback);
         }
-        return callbacks;
+    }
+
+    private List<Callback> getSingleCallbacks(String key) {
+        return mCallbacksMap.get(key);
     }
 
     @Override
     public void onPrepare(final DownloadInfo downloadInfo) {
+        L.d("onPrepare");
         post(new Runnable() {
             @Override
             public void run() {
@@ -100,6 +98,7 @@ public class TaskListenerManager extends CallbackAdapter {
 
     @Override
     public void onWaitingInQueue(final DownloadInfo downloadInfo) {
+        L.d("onWaitingInQueue");
         post(new Runnable() {
             @Override
             public void run() {
@@ -116,6 +115,7 @@ public class TaskListenerManager extends CallbackAdapter {
 
     @Override
     public void onDownloading(final DownloadInfo downloadInfo) {
+        L.d("onDownloading");
         final String resKey = downloadInfo.getResKey();
         Speed speed = mSpeedMap.get(resKey);
         if (speed == null) {
@@ -138,12 +138,14 @@ public class TaskListenerManager extends CallbackAdapter {
 
     @Override
     public void onPause(final DownloadInfo downloadInfo) {
+        L.d("onPause");
         final String resKey = downloadInfo.getResKey();
         mSpeedMap.remove(resKey);
-        final List<Callback> singleCallbacks = getSingleCallbacks(resKey);
         post(new Runnable() {
             @Override
             public void run() {
+                final List<Callback> singleCallbacks = getSingleCallbacks(resKey);
+                mCallbacksMap.remove(resKey);
                 if (singleCallbacks != null) {
                     for (Callback callback : singleCallbacks) {
                         callback.onPause(downloadInfo);
@@ -151,19 +153,18 @@ public class TaskListenerManager extends CallbackAdapter {
                 }
             }
         });
-        if (mCallbacksMap != null) {
-            mCallbacksMap.remove(resKey);
-        }
     }
 
     @Override
     public void onDelete(final DownloadInfo downloadInfo) {
+        L.d("onDelete");
         final String resKey = downloadInfo.getResKey();
         mSpeedMap.remove(resKey);
-        final List<Callback> singleCallbacks = getSingleCallbacks(resKey);
         post(new Runnable() {
             @Override
             public void run() {
+                List<Callback> singleCallbacks = getSingleCallbacks(resKey);
+                mCallbacksMap.remove(resKey);
                 if (singleCallbacks != null) {
                     for (Callback callback : singleCallbacks) {
                         callback.onDelete(downloadInfo);
@@ -171,19 +172,18 @@ public class TaskListenerManager extends CallbackAdapter {
                 }
             }
         });
-        if (mCallbacksMap != null) {
-            mCallbacksMap.remove(resKey);
-        }
     }
 
     @Override
     public void onSuccess(final DownloadInfo downloadInfo) {
+        L.d("onSuccess");
         final String resKey = downloadInfo.getResKey();
         mSpeedMap.remove(resKey);
-        final List<Callback> singleCallbacks = getSingleCallbacks(resKey);
         post(new Runnable() {
             @Override
             public void run() {
+                List<Callback> singleCallbacks = getSingleCallbacks(resKey);
+                mCallbacksMap.remove(resKey);
                 if (singleCallbacks != null) {
                     for (Callback callback : singleCallbacks) {
                         callback.onSuccess(downloadInfo);
@@ -191,39 +191,39 @@ public class TaskListenerManager extends CallbackAdapter {
                 }
             }
         });
-        if (mCallbacksMap != null) {
-            mCallbacksMap.remove(resKey);
-        }
     }
 
     @Override
     public void onWaitingForWifi(final DownloadInfo downloadInfo) {
+        L.d("onWaitingForWifi");
         final String resKey = downloadInfo.getResKey();
         mSpeedMap.remove(resKey);
-        final List<Callback> singleCallbacks = getSingleCallbacks(resKey);
         post(new Runnable() {
             @Override
             public void run() {
+                List<Callback> singleCallbacks = getSingleCallbacks(resKey);
+                mCallbacksMap.remove(resKey);
                 if (singleCallbacks != null) {
                     for (Callback callback : singleCallbacks) {
                         callback.onWaitingForWifi(downloadInfo);
                     }
                 }
+
             }
         });
-        if (mCallbacksMap != null) {
-            mCallbacksMap.remove(resKey);
-        }
+
     }
 
     @Override
     public void onLowDiskSpace(final DownloadInfo downloadInfo) {
+        L.d("onLowDiskSpace");
         final String resKey = downloadInfo.getResKey();
         mSpeedMap.remove(resKey);
-        final List<Callback> singleCallbacks = getSingleCallbacks(resKey);
         post(new Runnable() {
             @Override
             public void run() {
+                final List<Callback> singleCallbacks = getSingleCallbacks(resKey);
+                mCallbacksMap.remove(resKey);
                 if (singleCallbacks != null) {
                     for (Callback callback : singleCallbacks) {
                         callback.onLowDiskSpace(downloadInfo);
@@ -231,19 +231,19 @@ public class TaskListenerManager extends CallbackAdapter {
                 }
             }
         });
-        if (mCallbacksMap != null) {
-            mCallbacksMap.remove(resKey);
-        }
     }
 
     @Override
     public void onFailure(final DownloadInfo downloadInfo) {
+        L.d("onFailure");
         final String resKey = downloadInfo.getResKey();
         mSpeedMap.remove(resKey);
-        final List<Callback> singleCallbacks = getSingleCallbacks(resKey);
+
         post(new Runnable() {
             @Override
             public void run() {
+                final List<Callback> singleCallbacks = getSingleCallbacks(resKey);
+                mCallbacksMap.remove(resKey);
                 if (singleCallbacks != null) {
                     for (Callback callback : singleCallbacks) {
                         callback.onFailure(downloadInfo);
@@ -251,13 +251,12 @@ public class TaskListenerManager extends CallbackAdapter {
                 }
             }
         });
-        if (mCallbacksMap != null) {
-            mCallbacksMap.remove(resKey);
-        }
+
     }
 
     @Override
     public void onHaveNoTask() {
+        L.d("onHaveNoTask");
         post(new Runnable() {
             @Override
             public void run() {
@@ -281,7 +280,6 @@ public class TaskListenerManager extends CallbackAdapter {
     private void postBackThread(Runnable runnable) {
         mBackExecutor.execute(runnable);
     }
-
 
     private static class Speed {
 

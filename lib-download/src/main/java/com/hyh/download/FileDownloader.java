@@ -32,11 +32,11 @@ public class FileDownloader {
 
     private final Object mInitProxyLock = new Object();
 
+    private final TaskListenerManager mListenerManager = new TaskListenerManager();
+
     private volatile boolean mIsInitProxy;
 
     private IDownloadProxy mDownloadProxy;
-
-    private TaskListenerManager mListenerManager;
 
     private FileDownloader() {
     }
@@ -55,8 +55,9 @@ public class FileDownloader {
         } else {
             mDownloaderConfig = downloaderConfig;
         }
+
         mDownloadProxy = createDownloadProxy();
-        mListenerManager = new TaskListenerManager();
+
         initProxy();
     }
 
@@ -89,6 +90,10 @@ public class FileDownloader {
                 }
             }
         }
+    }
+
+    public synchronized void startTask(String url) {
+        startTask(new FileRequest.Builder().key(url).url(url).build(), null);
     }
 
     public synchronized void startTask(FileRequest request) {
@@ -132,29 +137,46 @@ public class FileDownloader {
         mDownloadProxy.deleteTask(resKey);
     }
 
-    public boolean isTaskAlive(String resKey) {
+    public synchronized boolean isTaskAlive(String resKey) {
         waitingForInitProxyFinish();
         return mDownloadProxy.isTaskAlive(resKey);
     }
 
-    public boolean isFileDownloaded(String resKey) {
+    public synchronized boolean isFileDownloaded(String resKey) {
         waitingForInitProxyFinish();
         return mDownloadProxy.isFileDownloaded(resKey, null);
     }
 
-    public boolean isFileDownloaded(String resKey, FileChecker fileChecker) {
+    public synchronized boolean isFileDownloaded(String resKey, FileChecker fileChecker) {
         waitingForInitProxyFinish();
         return mDownloadProxy.isFileDownloaded(resKey, fileChecker);
     }
 
 
-    public String getFilePath(String resKey) {
+    public synchronized String getFilePath(String resKey) {
         waitingForInitProxyFinish();
         TaskInfo taskInfo = mDownloadProxy.getTaskInfoByKey(resKey);
         if (taskInfo != null) {
             return taskInfo.getFilePath();
         }
         return null;
+    }
+
+    public synchronized DownloadInfo getDownloadInfo(String resKey) {
+        waitingForInitProxyFinish();
+        TaskInfo taskInfo = mDownloadProxy.getTaskInfoByKey(resKey);
+        if (taskInfo == null) {
+            return null;
+        }
+        return taskInfo.toDownloadInfo();
+    }
+
+    public void addDownloadListener(String resKey, Callback callback) {
+        mListenerManager.addSingleTaskCallback(resKey, callback);
+    }
+
+    public void removeDownloadListener(String resKey, Callback callback) {
+        mListenerManager.removeSingleTaskCallback(resKey, callback);
     }
 
     private IDownloadProxy createDownloadProxy() {

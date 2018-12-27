@@ -119,7 +119,8 @@ class SingleHttpCallbackImpl extends AbstractHttpCallback {
     }
 
     private boolean checkIsSupportPartial(HttpResponse response, TaskInfo taskInfo) {
-        if (!TextUtils.equals(response.url(), taskInfo.getCacheTargetUrl())) {
+        String cacheTargetUrl = taskInfo.getCacheTargetUrl();
+        if (!TextUtils.isEmpty(cacheTargetUrl) && !TextUtils.equals(response.url(), cacheTargetUrl)) {
             return false;
         }
 
@@ -146,7 +147,7 @@ class SingleHttpCallbackImpl extends AbstractHttpCallback {
     private String fixFilePath(HttpResponse response, TaskInfo taskInfo) {
         String fileDir = taskInfo.getFileDir();
         String filePath = taskInfo.getFilePath();
-        if (!TextUtils.isEmpty(filePath)) {
+        if (TextUtils.isEmpty(filePath)) {
             String contentDisposition = response.header(NetworkHelper.CONTENT_DISPOSITION);
             String contentType = response.header(NetworkHelper.CONTENT_TYPE);
             String fileName = URLUtil.guessFileName(response.url(), contentDisposition, contentType);
@@ -241,6 +242,9 @@ class SingleHttpCallbackImpl extends AbstractHttpCallback {
 
     private void fixCurrentSize() {
         String filePath = taskInfo.getFilePath();
+        if (TextUtils.isEmpty(filePath)) {
+            return;
+        }
         File file = new File(filePath);
         if (file.isFile() && file.exists()) {
             long length = file.length();

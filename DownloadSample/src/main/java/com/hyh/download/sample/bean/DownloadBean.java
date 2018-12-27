@@ -10,7 +10,7 @@ public class DownloadBean {
 
     public String title;
 
-    private String url;
+    public String url;
 
     public DownloadBean(String title, String url) {
         this.title = title;
