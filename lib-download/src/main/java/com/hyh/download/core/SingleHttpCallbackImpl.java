@@ -75,6 +75,8 @@ class SingleHttpCallbackImpl extends AbstractHttpCallback {
             boolean delete = DownloadFileHelper.deleteFile(taskInfo.getFilePath());
             L.d("not support partial content, delete file " + delete);
             taskInfo.setCurrentSize(0);
+            taskInfo.setProgress(0);
+            taskInfo.setTotalSize(0);
             if (this.call != null && !this.call.isCanceled()) {
                 this.call.cancel();
             }
@@ -87,7 +89,7 @@ class SingleHttpCallbackImpl extends AbstractHttpCallback {
         if (contentLength > 0
                 && (code == Constants.ResponseCode.OK || code == Constants.ResponseCode.PARTIAL_CONTENT)) {//请求数据成功
             long totalSize = taskInfo.getTotalSize();
-            if (totalSize == 0) {
+            if (totalSize <= 0) {
                 taskInfo.setTotalSize(response.contentLength() + taskInfo.getCurrentSize());
             }
             handleDownload(response, taskInfo);
@@ -250,9 +252,10 @@ class SingleHttpCallbackImpl extends AbstractHttpCallback {
             long length = file.length();
             taskInfo.setCurrentSize(length);
             taskInfo.setProgress(ProgressHelper.computeProgress(length, taskInfo.getTotalSize()));
+        }else {
+            taskInfo.setCurrentSize(0);
+            taskInfo.setProgress(0);
         }
-        taskInfo.setCurrentSize(0);
-        taskInfo.setProgress(0);
     }
 
     private boolean waitingSuitableNetworkType() {

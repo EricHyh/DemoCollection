@@ -179,6 +179,10 @@ public class FileDownloader {
         mListenerManager.removeSingleTaskCallback(resKey, callback);
     }
 
+    public void removeDownloadListeners(String resKey) {
+        mListenerManager.removeSingleTaskCallbacks(resKey);
+    }
+
     private IDownloadProxy createDownloadProxy() {
         IDownloadProxy proxy;
         if (mDownloaderConfig.isByService()) {

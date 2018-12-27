@@ -137,6 +137,7 @@ class HttpCallFactory {
         } else {
             long fileLength = DownloadFileHelper.getFileLength(taskInfo.getFilePath());
             taskInfo.setCurrentSize(fileLength);
+            taskInfo.setProgress(ProgressHelper.computeProgress(fileLength, taskInfo.getTotalSize()));
             return client.newCall(resKey, url, fileLength);
         }
     }

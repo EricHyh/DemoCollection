@@ -11,10 +11,10 @@ import com.hyh.download.utils.L;
 
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.RejectedExecutionHandler;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -41,7 +41,7 @@ public class TaskListenerManager extends CallbackAdapter {
         int maximumPoolSize = 1;
         long keepAliveTime = 120L;
         TimeUnit unit = TimeUnit.SECONDS;
-        BlockingQueue<Runnable> workQueue = new ArrayBlockingQueue<Runnable>(2);
+        BlockingQueue<Runnable> workQueue = new LinkedBlockingQueue<>();
         ThreadFactory threadFactory = new ThreadFactory() {
             @Override
             public Thread newThread(Runnable r) {
@@ -73,6 +73,10 @@ public class TaskListenerManager extends CallbackAdapter {
         if (singleCallbacks != null) {
             singleCallbacks.remove(callback);
         }
+    }
+
+    public void removeSingleTaskCallbacks(String resKey) {
+        mCallbacksMap.remove(resKey);
     }
 
     private List<Callback> getSingleCallbacks(String key) {
@@ -145,7 +149,6 @@ public class TaskListenerManager extends CallbackAdapter {
             @Override
             public void run() {
                 final List<Callback> singleCallbacks = getSingleCallbacks(resKey);
-                mCallbacksMap.remove(resKey);
                 if (singleCallbacks != null) {
                     for (Callback callback : singleCallbacks) {
                         callback.onPause(downloadInfo);
@@ -164,7 +167,6 @@ public class TaskListenerManager extends CallbackAdapter {
             @Override
             public void run() {
                 List<Callback> singleCallbacks = getSingleCallbacks(resKey);
-                mCallbacksMap.remove(resKey);
                 if (singleCallbacks != null) {
                     for (Callback callback : singleCallbacks) {
                         callback.onDelete(downloadInfo);
@@ -183,7 +185,6 @@ public class TaskListenerManager extends CallbackAdapter {
             @Override
             public void run() {
                 List<Callback> singleCallbacks = getSingleCallbacks(resKey);
-                mCallbacksMap.remove(resKey);
                 if (singleCallbacks != null) {
                     for (Callback callback : singleCallbacks) {
                         callback.onSuccess(downloadInfo);
@@ -202,13 +203,11 @@ public class TaskListenerManager extends CallbackAdapter {
             @Override
             public void run() {
                 List<Callback> singleCallbacks = getSingleCallbacks(resKey);
-                mCallbacksMap.remove(resKey);
                 if (singleCallbacks != null) {
                     for (Callback callback : singleCallbacks) {
                         callback.onWaitingForWifi(downloadInfo);
                     }
                 }
-
             }
         });
 
@@ -223,7 +222,6 @@ public class TaskListenerManager extends CallbackAdapter {
             @Override
             public void run() {
                 final List<Callback> singleCallbacks = getSingleCallbacks(resKey);
-                mCallbacksMap.remove(resKey);
                 if (singleCallbacks != null) {
                     for (Callback callback : singleCallbacks) {
                         callback.onLowDiskSpace(downloadInfo);
@@ -243,7 +241,6 @@ public class TaskListenerManager extends CallbackAdapter {
             @Override
             public void run() {
                 final List<Callback> singleCallbacks = getSingleCallbacks(resKey);
-                mCallbacksMap.remove(resKey);
                 if (singleCallbacks != null) {
                     for (Callback callback : singleCallbacks) {
                         callback.onFailure(downloadInfo);
@@ -297,11 +294,11 @@ public class TaskListenerManager extends CallbackAdapter {
                 long diffSize = currentSize - lastFileSize;
                 long diffTimeMillis = elapsedTimeMillis - lastTimeMills;
                 lastFileSize = currentSize;
-                lastTimeMills = diffTimeMillis;
+                lastTimeMills = elapsedTimeMillis;
                 if (diffSize <= 0 || diffTimeMillis <= 0) {
                     return 0.0f;
                 }
-                return (diffSize * 1000.0f) / (lastTimeMills * 1024.0f);
+                return (diffSize * 1000.0f) / (diffTimeMillis * 1024.0f);
             }
         }
     }

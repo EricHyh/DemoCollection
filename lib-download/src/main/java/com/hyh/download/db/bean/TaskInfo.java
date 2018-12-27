@@ -8,6 +8,7 @@ import com.hyh.download.db.annotation.Column;
 import com.hyh.download.db.annotation.Id;
 import com.hyh.download.db.annotation.NotNull;
 import com.hyh.download.db.annotation.Unique;
+import com.hyh.download.utils.L;
 
 /**
  * Created by Administrator on 2017/3/14.
@@ -301,6 +302,9 @@ public class TaskInfo implements Parcelable {
     }
 
     public void setCurrentSize(long currentSize) {
+        if(currentSize == 0){
+            L.d("setCurrentSize 0");
+        }
         this.currentSize = currentSize;
     }
 

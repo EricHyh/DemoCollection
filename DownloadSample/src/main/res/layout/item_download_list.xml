@@ -6,14 +6,38 @@
     android:layout_height="100dp"
     android:orientation="horizontal">
 
-    <TextView
-        android:id="@+id/item_download_tv_title"
+
+    <LinearLayout
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_gravity="center_vertical"
         android:layout_weight="1"
-        android:textSize="16sp"
-        android:textColor="#000000"/>
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/item_download_tv_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="#000000"
+            android:textSize="16sp"/>
+
+        <TextView
+            android:id="@+id/item_download_tv_size"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:textColor="#000000"
+            android:textSize="16sp"/>
+
+        <TextView
+            android:id="@+id/item_download_tv_speed"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:textColor="#000000"
+            android:textSize="16sp"/>
+
+    </LinearLayout>
 
 
     <com.hyh.download.sample.widget.ProgressButton

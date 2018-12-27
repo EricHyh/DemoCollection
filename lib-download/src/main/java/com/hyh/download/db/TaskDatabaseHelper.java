@@ -6,6 +6,7 @@ import com.hyh.download.State;
 import com.hyh.download.db.bean.TaskInfo;
 import com.hyh.download.db.dao.TaskInfoDao;
 import com.hyh.download.utils.DownloadFileHelper;
+import com.hyh.download.utils.L;
 import com.hyh.download.utils.ProgressHelper;
 import com.hyh.download.utils.StreamUtil;
 
@@ -127,6 +128,9 @@ public class TaskDatabaseHelper {
                 fixCurrentSize(taskInfo);
                 mTaskInfoMap.put(taskInfo.getResKey(), taskInfo);
             }
+        } else {
+            long currentSize = taskInfo.getCurrentSize();
+            L.d("getTaskInfoByKey currentSize = " + currentSize);
         }
         return taskInfo;
     }

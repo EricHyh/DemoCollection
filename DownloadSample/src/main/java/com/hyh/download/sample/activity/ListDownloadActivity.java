@@ -2,6 +2,7 @@ package com.hyh.download.sample.activity;
 
 import android.content.Context;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.DividerItemDecoration;
@@ -22,6 +23,7 @@ import com.hyh.download.sample.model.TestDownlodModel;
 import com.hyh.download.sample.widget.ProgressButton;
 import com.yly.mob.ssp.downloadsample.R;
 
+import java.text.DecimalFormat;
 import java.util.List;
 
 /**
@@ -76,6 +78,8 @@ public class ListDownloadActivity extends AppCompatActivity {
     private static class DownloadHolder extends RecyclerView.ViewHolder implements Callback, View.OnClickListener {
 
         private final TextView mTitle;
+        private final TextView mSize;
+        private final TextView mSpeed;
         private final ProgressButton mProgress;
         private DownloadBean mOldDownloadBean;
         private int mDownloadStatus;
@@ -83,6 +87,8 @@ public class ListDownloadActivity extends AppCompatActivity {
         DownloadHolder(View itemView) {
             super(itemView);
             mTitle = itemView.findViewById(R.id.item_download_tv_title);
+            mSize = itemView.findViewById(R.id.item_download_tv_size);
+            mSpeed = itemView.findViewById(R.id.item_download_tv_speed);
             mProgress = itemView.findViewById(R.id.item_download_pb_progress);
 
             mProgress.setOnClickListener(this);
@@ -96,13 +102,13 @@ public class ListDownloadActivity extends AppCompatActivity {
             mOldDownloadBean = downloadBean;
             mTitle.setText(downloadBean.title);
 
-
             String url = downloadBean.url;
             DownloadInfo downloadInfo = FileDownloader.getInstance().getDownloadInfo(url);
 
             if (downloadInfo != null) {
                 mDownloadStatus = downloadInfo.getCurrentStatus();
                 mProgress.setProgress(downloadInfo.getProgress());
+                mSpeed.setText(getSpeedStr(downloadInfo));
                 String text = "下载";
                 switch (mDownloadStatus) {
                     case State.NONE: {
@@ -149,6 +155,7 @@ public class ListDownloadActivity extends AppCompatActivity {
                 mProgress.setText(text);
             } else {
                 mProgress.setProgress(0);
+                mSpeed.setText(0.0 + "K/s");
                 mProgress.setText("下载");
             }
 
@@ -160,6 +167,7 @@ public class ListDownloadActivity extends AppCompatActivity {
             mDownloadStatus = downloadInfo.getCurrentStatus();
             mProgress.setText("暂停");
             mProgress.setProgress(downloadInfo.getProgress());
+            mSpeed.setText(getSpeedStr(downloadInfo));
         }
 
         @Override
@@ -167,6 +175,10 @@ public class ListDownloadActivity extends AppCompatActivity {
             mDownloadStatus = downloadInfo.getCurrentStatus();
             mProgress.setText("暂停");
             mProgress.setProgress(downloadInfo.getProgress());
+            long totalSize = downloadInfo.getTotalSize();
+            float mb = totalSize / 1024.0f / 1024.0f;
+            mSize.setText(mb + " MB");
+            mSpeed.setText(getSpeedStr(downloadInfo));
         }
 
         @Override
@@ -174,6 +186,7 @@ public class ListDownloadActivity extends AppCompatActivity {
             mDownloadStatus = downloadInfo.getCurrentStatus();
             mProgress.setText("暂停");
             mProgress.setProgress(downloadInfo.getProgress());
+            mSpeed.setText(getSpeedStr(downloadInfo));
         }
 
         @Override
@@ -181,6 +194,7 @@ public class ListDownloadActivity extends AppCompatActivity {
             mDownloadStatus = downloadInfo.getCurrentStatus();
             mProgress.setText("继续");
             mProgress.setProgress(downloadInfo.getProgress());
+            mSpeed.setText(getSpeedStr(downloadInfo));
         }
 
         @Override
@@ -188,6 +202,7 @@ public class ListDownloadActivity extends AppCompatActivity {
             mDownloadStatus = downloadInfo.getCurrentStatus();
             mProgress.setText("下载");
             mProgress.setProgress(downloadInfo.getProgress());
+            mSpeed.setText(getSpeedStr(downloadInfo));
         }
 
         @Override
@@ -195,6 +210,7 @@ public class ListDownloadActivity extends AppCompatActivity {
             mDownloadStatus = downloadInfo.getCurrentStatus();
             mProgress.setText("成功");
             mProgress.setProgress(downloadInfo.getProgress());
+            mSpeed.setText(getSpeedStr(downloadInfo));
         }
 
         @Override
@@ -202,6 +218,7 @@ public class ListDownloadActivity extends AppCompatActivity {
             mDownloadStatus = downloadInfo.getCurrentStatus();
             mProgress.setText("等待wifi");
             mProgress.setProgress(downloadInfo.getProgress());
+            mSpeed.setText(getSpeedStr(downloadInfo));
         }
 
         @Override
@@ -209,6 +226,7 @@ public class ListDownloadActivity extends AppCompatActivity {
             mDownloadStatus = downloadInfo.getCurrentStatus();
             mProgress.setText("空间不足");
             mProgress.setProgress(downloadInfo.getProgress());
+            mSpeed.setText(getSpeedStr(downloadInfo));
         }
 
         @Override
@@ -216,6 +234,7 @@ public class ListDownloadActivity extends AppCompatActivity {
             mDownloadStatus = downloadInfo.getCurrentStatus();
             mProgress.setText("重试");
             mProgress.setProgress(downloadInfo.getProgress());
+            mSpeed.setText(getSpeedStr(downloadInfo));
         }
 
         @Override
@@ -275,7 +294,6 @@ public class ListDownloadActivity extends AppCompatActivity {
 
             if (downloadInfo != null) {
                 mDownloadStatus = downloadInfo.getCurrentStatus();
-                mProgress.setProgress(downloadInfo.getProgress());
                 String text = "下载";
                 switch (mDownloadStatus) {
                     case State.NONE: {
@@ -320,13 +338,29 @@ public class ListDownloadActivity extends AppCompatActivity {
                     }
                 }
                 mProgress.setText(text);
+                int progress = downloadInfo.getProgress();
+                mProgress.setProgress(progress);
+                mSpeed.setText(getSpeedStr(downloadInfo));
             } else {
                 mProgress.setProgress(0);
+                mSpeed.setText(0.0 + "K/s");
                 mProgress.setText("下载");
             }
 
             FileDownloader.getInstance().addDownloadListener(url, this);
             FileDownloader.getInstance().startTask(url);
+        }
+
+        @NonNull
+        private String getSpeedStr(DownloadInfo downloadInfo) {
+            float speed = downloadInfo.getSpeed();
+            if (speed >= 1024) {
+                DecimalFormat decimalFormat = new DecimalFormat("0.0");
+                return decimalFormat.format(speed / 1024.0f) + "M/s";
+            } else {
+                DecimalFormat decimalFormat = new DecimalFormat("0.0");
+                return decimalFormat.format(speed) + "K/s";
+            }
         }
     }
 }

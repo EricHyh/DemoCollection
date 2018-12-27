@@ -265,26 +265,37 @@ public class TaskInfoDao {
         db.close();
     }
 
+    /**
+     * "responseCode",
+     * "failureCode", "eTag", "lastModified", "updateTimeMillis", "tag"};
+     */
     private TaskInfo readTaskInfo(Cursor cursor) {
         TaskInfo taskInfo = new TaskInfo();
         taskInfo.setId(cursor.getLong(0));
         taskInfo.setResKey(cursor.getString(1));
+
         taskInfo.setCacheRequestUrl(cursor.getString(2));
         taskInfo.setCacheTargetUrl(cursor.getString(3));
+
         taskInfo.setVersionCode(cursor.getInt(4));
         taskInfo.setPriority(cursor.getInt(5));
+
         taskInfo.setFileDir(cursor.getString(6));
         taskInfo.setFilePath(cursor.getString(7));
-        taskInfo.setProgress(cursor.getInt(8));
-        taskInfo.setByMultiThread(cursor.getInt(9) == 1);
-        taskInfo.setRangeNum(cursor.getInt(10));
+
+        taskInfo.setByMultiThread(cursor.getInt(8) == 1);
+        taskInfo.setRangeNum(cursor.getInt(9));
+
+        taskInfo.setTotalSize(cursor.getLong(10));
         taskInfo.setCurrentSize(cursor.getLong(11));
-        taskInfo.setTotalSize(cursor.getLong(12));
+        taskInfo.setProgress(cursor.getInt(12));
+
         taskInfo.setCurrentStatus(cursor.getInt(13));
         taskInfo.setWifiAutoRetry(cursor.getInt(14) == 1);
         taskInfo.setPermitRetryInMobileData(cursor.getInt(15) == 1);
         taskInfo.setPermitRetryInvalidFileTask(cursor.getInt(16) == 1);
         taskInfo.setPermitRecoverTask(cursor.getInt(17) == 1);
+
         taskInfo.setResponseCode(cursor.getInt(18));
         taskInfo.setFailureCode(cursor.getInt(19));
         taskInfo.setETag(cursor.getString(20));
