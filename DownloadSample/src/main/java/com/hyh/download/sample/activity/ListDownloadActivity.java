@@ -23,6 +23,7 @@ import com.hyh.download.sample.model.TestDownlodModel;
 import com.hyh.download.sample.widget.ProgressButton;
 import com.yly.mob.ssp.downloadsample.R;
 
+import java.io.File;
 import java.text.DecimalFormat;
 import java.util.List;
 
@@ -70,6 +71,18 @@ public class ListDownloadActivity extends AppCompatActivity {
         }
 
         @Override
+        public void onViewAttachedToWindow(DownloadHolder holder) {
+            super.onViewAttachedToWindow(holder);
+            holder.onViewAttachedToWindow();
+        }
+
+        @Override
+        public void onViewDetachedFromWindow(DownloadHolder holder) {
+            super.onViewDetachedFromWindow(holder);
+            holder.onViewDetachedFromWindow();
+        }
+
+        @Override
         public int getItemCount() {
             return mDownloadBeanList == null ? 0 : mDownloadBeanList.size();
         }
@@ -78,6 +91,7 @@ public class ListDownloadActivity extends AppCompatActivity {
     private static class DownloadHolder extends RecyclerView.ViewHolder implements Callback, View.OnClickListener {
 
         private final TextView mTitle;
+        private final TextView mName;
         private final TextView mSize;
         private final TextView mSpeed;
         private final ProgressButton mProgress;
@@ -87,11 +101,27 @@ public class ListDownloadActivity extends AppCompatActivity {
         DownloadHolder(View itemView) {
             super(itemView);
             mTitle = itemView.findViewById(R.id.item_download_tv_title);
+            mName = itemView.findViewById(R.id.item_download_tv_name);
             mSize = itemView.findViewById(R.id.item_download_tv_size);
             mSpeed = itemView.findViewById(R.id.item_download_tv_speed);
             mProgress = itemView.findViewById(R.id.item_download_pb_progress);
 
             mProgress.setOnClickListener(this);
+        }
+
+
+        void onViewAttachedToWindow() {
+            if (mOldDownloadBean != null) {
+                String url = mOldDownloadBean.url;
+                FileDownloader.getInstance().addDownloadListener(url, this);
+            }
+        }
+
+        void onViewDetachedFromWindow() {
+            if (mOldDownloadBean != null) {
+                String url = mOldDownloadBean.url;
+                FileDownloader.getInstance().removeDownloadListener(url, this);
+            }
         }
 
         void bindViewHolder(DownloadBean downloadBean) {
@@ -100,6 +130,7 @@ public class ListDownloadActivity extends AppCompatActivity {
                 FileDownloader.getInstance().removeDownloadListener(url, this);
             }
             mOldDownloadBean = downloadBean;
+
             mTitle.setText(downloadBean.title);
 
             String url = downloadBean.url;
@@ -109,51 +140,12 @@ public class ListDownloadActivity extends AppCompatActivity {
                 mDownloadStatus = downloadInfo.getCurrentStatus();
                 mProgress.setProgress(downloadInfo.getProgress());
                 mSpeed.setText(getSpeedStr(downloadInfo));
-                String text = "下载";
-                switch (mDownloadStatus) {
-                    case State.NONE: {
-                        text = "下载";
-                        break;
-                    }
-                    case State.PREPARE: {
-                        text = "暂停";
-                        break;
-                    }
-                    case State.WAITING_IN_QUEUE: {
-                        text = "暂停";
-                        break;
-                    }
-                    case State.DOWNLOADING: {
-                        text = "暂停";
-                        break;
-                    }
-                    case State.DELETE: {
-                        text = "下载";
-                        break;
-                    }
-                    case State.PAUSE: {
-                        text = "继续";
-                        break;
-                    }
-                    case State.SUCCESS: {
-                        text = "成功";
-                        break;
-                    }
-                    case State.WAITING_FOR_WIFI: {
-                        text = "等待wifi";
-                        break;
-                    }
-                    case State.LOW_DISK_SPACE: {
-                        text = "空间不足";
-                        break;
-                    }
-                    case State.FAILURE: {
-                        text = "重试";
-                        break;
-                    }
-                }
+                String text = getProgressBtnText(mDownloadStatus);
                 mProgress.setText(text);
             } else {
+                mDownloadStatus = State.NONE;
+                mName.setText(null);
+                mSize.setText(null);
                 mProgress.setProgress(0);
                 mSpeed.setText(0.0 + "K/s");
                 mProgress.setText("下载");
@@ -165,7 +157,7 @@ public class ListDownloadActivity extends AppCompatActivity {
         @Override
         public void onPrepare(DownloadInfo downloadInfo) {
             mDownloadStatus = downloadInfo.getCurrentStatus();
-            mProgress.setText("暂停");
+            mProgress.setText("准备中");
             mProgress.setProgress(downloadInfo.getProgress());
             mSpeed.setText(getSpeedStr(downloadInfo));
         }
@@ -173,10 +165,12 @@ public class ListDownloadActivity extends AppCompatActivity {
         @Override
         public void onDownloading(DownloadInfo downloadInfo) {
             mDownloadStatus = downloadInfo.getCurrentStatus();
-            mProgress.setText("暂停");
+            mProgress.setText("下载中");
             mProgress.setProgress(downloadInfo.getProgress());
             long totalSize = downloadInfo.getTotalSize();
             float mb = totalSize / 1024.0f / 1024.0f;
+
+            mName.setText(new File(downloadInfo.getFilePath()).getName());
             mSize.setText(mb + " MB");
             mSpeed.setText(getSpeedStr(downloadInfo));
         }
@@ -184,7 +178,7 @@ public class ListDownloadActivity extends AppCompatActivity {
         @Override
         public void onWaitingInQueue(DownloadInfo downloadInfo) {
             mDownloadStatus = downloadInfo.getCurrentStatus();
-            mProgress.setText("暂停");
+            mProgress.setText("等待中");
             mProgress.setProgress(downloadInfo.getProgress());
             mSpeed.setText(getSpeedStr(downloadInfo));
         }
@@ -294,57 +288,15 @@ public class ListDownloadActivity extends AppCompatActivity {
 
             if (downloadInfo != null) {
                 mDownloadStatus = downloadInfo.getCurrentStatus();
-                String text = "下载";
-                switch (mDownloadStatus) {
-                    case State.NONE: {
-                        text = "下载";
-                        break;
-                    }
-                    case State.PREPARE: {
-                        text = "暂停";
-                        break;
-                    }
-                    case State.WAITING_IN_QUEUE: {
-                        text = "暂停";
-                        break;
-                    }
-                    case State.DOWNLOADING: {
-                        text = "暂停";
-                        break;
-                    }
-                    case State.DELETE: {
-                        text = "下载";
-                        break;
-                    }
-                    case State.PAUSE: {
-                        text = "继续";
-                        break;
-                    }
-                    case State.SUCCESS: {
-                        text = "成功";
-                        break;
-                    }
-                    case State.WAITING_FOR_WIFI: {
-                        text = "等待wifi";
-                        break;
-                    }
-                    case State.LOW_DISK_SPACE: {
-                        text = "空间不足";
-                        break;
-                    }
-                    case State.FAILURE: {
-                        text = "重试";
-                        break;
-                    }
-                }
+                String text = getProgressBtnText(mDownloadStatus);
                 mProgress.setText(text);
                 int progress = downloadInfo.getProgress();
                 mProgress.setProgress(progress);
                 mSpeed.setText(getSpeedStr(downloadInfo));
             } else {
+                mProgress.setText("下载");
                 mProgress.setProgress(0);
                 mSpeed.setText(0.0 + "K/s");
-                mProgress.setText("下载");
             }
 
             FileDownloader.getInstance().addDownloadListener(url, this);
@@ -361,6 +313,55 @@ public class ListDownloadActivity extends AppCompatActivity {
                 DecimalFormat decimalFormat = new DecimalFormat("0.0");
                 return decimalFormat.format(speed) + "K/s";
             }
+        }
+
+
+        @NonNull
+        private String getProgressBtnText(int status) {
+            String text = "下载";
+            switch (status) {
+                case State.NONE: {
+                    text = "下载";
+                    break;
+                }
+                case State.PREPARE: {
+                    text = "准备中";
+                    break;
+                }
+                case State.WAITING_IN_QUEUE: {
+                    text = "等待中";
+                    break;
+                }
+                case State.DOWNLOADING: {
+                    text = "下载中";
+                    break;
+                }
+                case State.DELETE: {
+                    text = "下载";
+                    break;
+                }
+                case State.PAUSE: {
+                    text = "继续";
+                    break;
+                }
+                case State.SUCCESS: {
+                    text = "成功";
+                    break;
+                }
+                case State.WAITING_FOR_WIFI: {
+                    text = "等待wifi";
+                    break;
+                }
+                case State.LOW_DISK_SPACE: {
+                    text = "空间不足";
+                    break;
+                }
+                case State.FAILURE: {
+                    text = "重试";
+                    break;
+                }
+            }
+            return text;
         }
     }
 }

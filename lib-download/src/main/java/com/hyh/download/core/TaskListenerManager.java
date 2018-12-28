@@ -63,9 +63,13 @@ public class TaskListenerManager extends CallbackAdapter {
         callbackList = mCallbacksMap.get(key);
         if (callbackList == null) {
             callbackList = new CopyOnWriteArrayList<>();
+            callbackList.add(callback);
+            mCallbacksMap.put(key, callbackList);
+        } else {
+            if (!callbackList.contains(callback)) {
+                callbackList.add(callback);
+            }
         }
-        callbackList.add(callback);
-        mCallbacksMap.put(key, callbackList);
     }
 
     public void removeSingleTaskCallback(String resKey, Callback callback) {
@@ -119,7 +123,7 @@ public class TaskListenerManager extends CallbackAdapter {
 
     @Override
     public void onDownloading(final DownloadInfo downloadInfo) {
-        L.d("onDownloading");
+        L.d("onDownloading:" + downloadInfo.getProgress());
         final String resKey = downloadInfo.getResKey();
         Speed speed = mSpeedMap.get(resKey);
         if (speed == null) {
@@ -236,7 +240,6 @@ public class TaskListenerManager extends CallbackAdapter {
         L.d("onFailure");
         final String resKey = downloadInfo.getResKey();
         mSpeedMap.remove(resKey);
-
         post(new Runnable() {
             @Override
             public void run() {
@@ -248,7 +251,6 @@ public class TaskListenerManager extends CallbackAdapter {
                 }
             }
         });
-
     }
 
     @Override
@@ -271,7 +273,11 @@ public class TaskListenerManager extends CallbackAdapter {
     }
 
     private void postUiThread(Runnable runnable) {
-        mUiHandler.post(runnable);
+        if (Thread.currentThread() == Looper.getMainLooper().getThread()) {
+            runnable.run();
+        } else {
+            mUiHandler.post(runnable);
+        }
     }
 
     private void postBackThread(Runnable runnable) {
@@ -284,6 +290,8 @@ public class TaskListenerManager extends CallbackAdapter {
 
         private long lastTimeMills;
 
+        private float speed = 0.0f;
+
         float computeSpeed(long currentSize) {
             long elapsedTimeMillis = SystemClock.elapsedRealtime();
             if (lastTimeMills == 0) {
@@ -291,14 +299,17 @@ public class TaskListenerManager extends CallbackAdapter {
                 lastTimeMills = elapsedTimeMillis;
                 return 0.0f;
             } else {
-                long diffSize = currentSize - lastFileSize;
                 long diffTimeMillis = elapsedTimeMillis - lastTimeMills;
-                lastFileSize = currentSize;
-                lastTimeMills = elapsedTimeMillis;
-                if (diffSize <= 0 || diffTimeMillis <= 0) {
-                    return 0.0f;
+                if (speed == 0 || diffTimeMillis >= 2000) {
+                    long diffSize = currentSize - lastFileSize;
+                    lastFileSize = currentSize;
+                    lastTimeMills = elapsedTimeMillis;
+                    if (diffSize <= 0 || diffTimeMillis <= 0) {
+                        return 0.0f;
+                    }
+                    speed = (diffSize * 1000.0f) / (diffTimeMillis * 1024.0f);
                 }
-                return (diffSize * 1000.0f) / (diffTimeMillis * 1024.0f);
+                return speed;
             }
         }
     }

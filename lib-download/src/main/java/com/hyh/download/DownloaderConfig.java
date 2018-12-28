@@ -90,6 +90,5 @@ public class DownloaderConfig {
             downloaderConfig.globalFileChecker = this.globalFileChecker;
             return downloaderConfig;
         }
-
     }
 }

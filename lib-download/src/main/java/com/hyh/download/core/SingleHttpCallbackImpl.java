@@ -71,7 +71,9 @@ class SingleHttpCallbackImpl extends AbstractHttpCallback {
         taskInfo.setResponseCode(code);
         long contentLength = response.contentLength();
 
-        if (!checkIsSupportPartial(response, taskInfo)) {
+        long currentSize = taskInfo.getCurrentSize();
+        String filePath = taskInfo.getFilePath();
+        if (!TextUtils.isEmpty(filePath) && currentSize > 0 && !checkIsSupportPartial(response, taskInfo)) {
             boolean delete = DownloadFileHelper.deleteFile(taskInfo.getFilePath());
             L.d("not support partial content, delete file " + delete);
             taskInfo.setCurrentSize(0);
@@ -122,7 +124,7 @@ class SingleHttpCallbackImpl extends AbstractHttpCallback {
 
     private boolean checkIsSupportPartial(HttpResponse response, TaskInfo taskInfo) {
         String cacheTargetUrl = taskInfo.getCacheTargetUrl();
-        if (!TextUtils.isEmpty(cacheTargetUrl) && !TextUtils.equals(response.url(), cacheTargetUrl)) {
+        if (!TextUtils.equals(response.url(), cacheTargetUrl)) {
             return false;
         }
 
@@ -158,6 +160,8 @@ class SingleHttpCallbackImpl extends AbstractHttpCallback {
             }
             filePath = fileDir + File.separator + fileName;
             taskInfo.setFilePath(filePath);
+        } else {
+            DownloadFileHelper.ensureParentCreated(filePath);
         }
         return filePath;
     }
@@ -252,7 +256,7 @@ class SingleHttpCallbackImpl extends AbstractHttpCallback {
             long length = file.length();
             taskInfo.setCurrentSize(length);
             taskInfo.setProgress(ProgressHelper.computeProgress(length, taskInfo.getTotalSize()));
-        }else {
+        } else {
             taskInfo.setCurrentSize(0);
             taskInfo.setProgress(0);
         }

@@ -120,7 +120,7 @@ public class NativeHttpCall implements HttpCall {
         connection.addRequestProperty("User-Agent", userAgent);
         connection.setConnectTimeout(REQUEST_TIME_OUT);
         connection.setReadTimeout(READ_TIME_OUT);
-        if (startPosition > 0) {
+        if (startPosition >= 0) {
             if (endPosition < 0) {
                 connection.setRequestProperty("Range", "bytes=" + startPosition + "-");
             } else {

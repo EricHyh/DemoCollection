@@ -93,7 +93,7 @@ public class FileDownloader {
     }
 
     public synchronized void startTask(String url) {
-        startTask(new FileRequest.Builder().key(url).url(url).build(), null);
+        startTask(new FileRequest.Builder().key(url).url(url).byMultiThread(true).build(), null);
     }
 
     public synchronized void startTask(FileRequest request) {

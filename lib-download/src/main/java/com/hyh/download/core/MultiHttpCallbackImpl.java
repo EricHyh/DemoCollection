@@ -8,12 +8,12 @@ import com.hyh.download.net.HttpCall;
 import com.hyh.download.net.HttpCallback;
 import com.hyh.download.net.HttpClient;
 import com.hyh.download.net.HttpResponse;
+import com.hyh.download.utils.DownloadFileHelper;
 import com.hyh.download.utils.L;
 import com.hyh.download.utils.NetworkHelper;
 import com.hyh.download.utils.ProgressHelper;
 import com.hyh.download.utils.StreamUtil;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.util.Collection;
@@ -71,7 +71,7 @@ class MultiHttpCallbackImpl extends AbstractHttpCallback {
         int maximumPoolSize = 1;
         long keepAliveTime = 60L;
         TimeUnit unit = TimeUnit.SECONDS;
-        BlockingQueue<Runnable> workQueue = new ArrayBlockingQueue<Runnable>(5);
+        BlockingQueue<Runnable> workQueue = new ArrayBlockingQueue<Runnable>(10);
         ThreadFactory threadFactory = new ThreadFactory() {
             @Override
             public Thread newThread(Runnable r) {
@@ -88,9 +88,9 @@ class MultiHttpCallbackImpl extends AbstractHttpCallback {
                     OnWriteFileTask task = (OnWriteFileTask) r;
                     if (!executor.isShutdown()) {
                         OnWriteFileTask pollTask = (OnWriteFileTask) executor.getQueue().poll();
-                        L.d("RealHttpCallbackImpl mergeTask pre writeLength = " + task.writeLength);
-                        task.mergeTask(pollTask);
-                        L.d("RealHttpCallbackImpl mergeTask after writeLength = " + task.writeLength);
+                        if (pollTask != null) {
+                            task.mergeTask(pollTask);
+                        }
                         executor.execute(task);
                     }
                 }
@@ -157,12 +157,15 @@ class MultiHttpCallbackImpl extends AbstractHttpCallback {
     }
 
     private void handleWriteFile(long writeLength) {
+
         if (!cancel && failureCount.get() > 0) {
             Collection<RealHttpCallbackImpl> values = httpCallbackMap.values();
             for (RealHttpCallbackImpl httpCallback : values) {
                 httpCallback.wake();
             }
         }
+
+
         executor.execute(new OnWriteFileTask(writeLength));
     }
 
@@ -308,14 +311,17 @@ class MultiHttpCallbackImpl extends AbstractHttpCallback {
         }
 
         private void handleDownload(HttpResponse response, final TaskInfo taskInfo) throws IOException {
+
             String filePath = taskInfo.getFilePath();
-            long totalSize = taskInfo.getTotalSize();
-            File downLoadFile = new File(taskInfo.getFilePath());
+            DownloadFileHelper.ensureParentCreated(filePath);
+
+            /*long totalSize = taskInfo.getTotalSize();
+            File downLoadFile = new File(filePath);
             if (!downLoadFile.exists() || downLoadFile.length() < totalSize) {
                 RandomAccessFile raf = new RandomAccessFile(downLoadFile, "rw");
                 raf.setLength(totalSize);
                 raf.close();
-            }
+            }*/
 
             mFileWrite = new MultiFileWriteTask(filePath, rangeInfo);
             mFileWrite.write(response, new MultiFileWriteListener());

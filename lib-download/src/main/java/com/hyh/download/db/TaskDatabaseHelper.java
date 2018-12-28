@@ -6,7 +6,6 @@ import com.hyh.download.State;
 import com.hyh.download.db.bean.TaskInfo;
 import com.hyh.download.db.dao.TaskInfoDao;
 import com.hyh.download.utils.DownloadFileHelper;
-import com.hyh.download.utils.L;
 import com.hyh.download.utils.ProgressHelper;
 import com.hyh.download.utils.StreamUtil;
 
@@ -58,6 +57,52 @@ public class TaskDatabaseHelper {
         return interruptTasks;
     }
 
+    public void insertOrUpdate(TaskInfo taskInfo) {
+        String resKey = taskInfo.getResKey();
+        mTaskInfoMap.put(resKey, taskInfo);
+        mTaskInfoDao.insertOrUpdate(taskInfo);
+    }
+
+    public void updateCacheOnly(TaskInfo taskInfo) {
+        String resKey = taskInfo.getResKey();
+        mTaskInfoMap.put(resKey, taskInfo);
+    }
+
+    public void delete(String resKey) {
+        mTaskInfoMap.remove(resKey);
+        mTaskInfoDao.delete(resKey);
+    }
+
+    public void delete(TaskInfo taskInfo) {
+        delete(taskInfo.getResKey());
+    }
+
+    public TaskInfo getTaskInfoByKey(String resKey) {
+        TaskInfo taskInfo = mTaskInfoMap.get(resKey);
+        if (taskInfo == null) {
+            taskInfo = mTaskInfoDao.getTaskInfoByKey(resKey);
+            if (taskInfo != null) {
+                mTaskInfoMap.put(taskInfo.getResKey(), taskInfo);
+            }
+        }
+        if (taskInfo != null) {
+            fixTaskInfo(taskInfo);
+        }
+        return taskInfo;
+    }
+
+    private void fixTaskInfo(TaskInfo taskInfo) {
+        fixCurrentSize(taskInfo);
+        if (taskInfo.getCurrentStatus() == State.SUCCESS) {
+            long totalSize = taskInfo.getTotalSize();
+            long currentSize = taskInfo.getCurrentSize();
+            if (currentSize == 0 || (totalSize > 0 && totalSize != currentSize)) {
+                taskInfo.setCurrentStatus(State.DELETE);
+            }
+        }
+    }
+
+
     private void fixCurrentSize(TaskInfo taskInfo) {
         if (taskInfo.getRangeNum() > 1) {
             String filePath = taskInfo.getFilePath();
@@ -98,41 +143,6 @@ public class TaskDatabaseHelper {
             StreamUtil.close(raf);
         }
         return currentSize;
-    }
-
-    public void insertOrUpdate(TaskInfo taskInfo) {
-        String resKey = taskInfo.getResKey();
-        mTaskInfoMap.put(resKey, taskInfo);
-        mTaskInfoDao.insertOrUpdate(taskInfo);
-    }
-
-    public void updateCacheOnly(TaskInfo taskInfo) {
-        String resKey = taskInfo.getResKey();
-        mTaskInfoMap.put(resKey, taskInfo);
-    }
-
-    public void delete(String resKey) {
-        mTaskInfoMap.remove(resKey);
-        mTaskInfoDao.delete(resKey);
-    }
-
-    public void delete(TaskInfo taskInfo) {
-        delete(taskInfo.getResKey());
-    }
-
-    public TaskInfo getTaskInfoByKey(String resKey) {
-        TaskInfo taskInfo = mTaskInfoMap.get(resKey);
-        if (taskInfo == null) {
-            taskInfo = mTaskInfoDao.getTaskInfoByKey(resKey);
-            if (taskInfo != null) {
-                fixCurrentSize(taskInfo);
-                mTaskInfoMap.put(taskInfo.getResKey(), taskInfo);
-            }
-        } else {
-            long currentSize = taskInfo.getCurrentSize();
-            L.d("getTaskInfoByKey currentSize = " + currentSize);
-        }
-        return taskInfo;
     }
 }
 

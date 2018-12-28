@@ -26,6 +26,7 @@ public class TestDownlodModel {
         downloadBeanList.add(new DownloadBean("文件8", Constants.DownloadUrl.URL_8));
         downloadBeanList.add(new DownloadBean("文件9", Constants.DownloadUrl.URL_9));
         downloadBeanList.add(new DownloadBean("文件10", Constants.DownloadUrl.URL_10));
+        downloadBeanList.add(new DownloadBean("文件11", Constants.DownloadUrl.URL_11));
         return downloadBeanList;
     }
 

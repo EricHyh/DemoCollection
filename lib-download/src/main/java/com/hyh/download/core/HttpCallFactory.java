@@ -203,8 +203,7 @@ class HttpCallFactory {
 
     private HttpResponse requestFileInfo(HttpClient client, TaskInfo taskInfo) {
         try {
-            HttpResponse response = client.getHttpResponse(taskInfo.getRequestUrl());
-            return response;
+            return client.getHttpResponse(taskInfo.getRequestUrl());
         } catch (Exception e) {
             //
         }
@@ -224,7 +223,7 @@ class HttpCallFactory {
     private void fixFilePath(HttpResponse response, TaskInfo taskInfo) {
         String fileDir = taskInfo.getFileDir();
         String filePath = taskInfo.getFilePath();
-        if (!TextUtils.isEmpty(filePath)) {
+        if (TextUtils.isEmpty(filePath)) {
             String contentDisposition = response.header(NetworkHelper.CONTENT_DISPOSITION);
             String contentType = response.header(NetworkHelper.CONTENT_TYPE);
             String fileName = URLUtil.guessFileName(response.url(), contentDisposition, contentType);
@@ -284,7 +283,7 @@ class HttpCallFactory {
         RandomAccessFile raf = null;
         try {
             if (!DownloadFileHelper.isFileExists(rangeFilePath)) {
-                return 0;
+                return originalStartPosition;
             }
             raf = new RandomAccessFile(rangeFilePath, "rw");
             raf.seek(index * 8);
@@ -297,12 +296,12 @@ class HttpCallFactory {
         } finally {
             StreamUtil.close(raf);
         }
-        return 0;
+        return originalStartPosition;
     }
 
     private long fixStartPosition(RandomAccessFile fileRaf, long startPosition, long originalStartPosition) throws IOException {
         for (; ; ) {
-            fileRaf.seek(startPosition);
+            fileRaf.seek(startPosition - 1);
             if (fileRaf.readByte() == 0) {
                 startPosition--;
                 if (startPosition <= originalStartPosition) {

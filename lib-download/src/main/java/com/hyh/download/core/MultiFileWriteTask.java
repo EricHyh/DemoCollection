@@ -3,6 +3,7 @@ package com.hyh.download.core;
 import android.os.SystemClock;
 
 import com.hyh.download.net.HttpResponse;
+import com.hyh.download.utils.L;
 import com.hyh.download.utils.StreamUtil;
 
 import java.io.BufferedInputStream;
@@ -63,6 +64,9 @@ class MultiFileWriteTask implements FileWrite {
             while ((len = bis.read(buffer)) != -1) {
                 fileRaf.write(buffer, 0, len);
                 startPosition += len;
+                if (rangeIndex == 0) {
+                    L.d("1--startPosition = " + startPosition + ", endPosition = " + endPosition);
+                }
                 listener.onWriteFile(len);
 
                 if (isNeedSync()) {
@@ -75,6 +79,9 @@ class MultiFileWriteTask implements FileWrite {
             sync(bos, fd, tempFileRaf);
         } catch (Exception e) {
             isException = true;
+        }
+        if (rangeIndex == 0) {
+            L.d("2--startPosition = " + startPosition + ", endPosition = " + endPosition);
         }
         StreamUtil.close(bos, fileRaf, tempFileRaf, response);
         if (startPosition == endPosition + 1) {

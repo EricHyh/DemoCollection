@@ -89,6 +89,18 @@ public class DownloadFileHelper {
         return ensureCreated(new File(fileDirPath));
     }
 
+
+    public static void ensureParentCreated(String filePath) {
+        if (TextUtils.isEmpty(filePath)) {
+            return;
+        }
+        File parentFile = new File(filePath).getParentFile();
+        if (parentFile != null) {
+            ensureCreated(parentFile);
+        }
+    }
+
+
     public static long getFileLength(String filePath) {
         if (TextUtils.isEmpty(filePath)) {
             return 0;
