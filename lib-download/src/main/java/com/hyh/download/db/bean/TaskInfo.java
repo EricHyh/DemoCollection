@@ -302,8 +302,8 @@ public class TaskInfo implements Parcelable {
     }
 
     public void setCurrentSize(long currentSize) {
-        if (currentSize == 0) {
-            L.d("setCurrentSize 0");
+        if (totalSize > 0 && currentSize > totalSize) {
+            L.d("totalSize = " + totalSize + ", currentSize = " + currentSize);
         }
         this.currentSize = currentSize;
     }

@@ -138,6 +138,12 @@ public class ListDownloadActivity extends AppCompatActivity {
 
             if (downloadInfo != null) {
                 mDownloadStatus = downloadInfo.getCurrentStatus();
+                mName.setText(new File(downloadInfo.getFilePath()).getName());
+
+                long totalSize = downloadInfo.getTotalSize();
+                float mb = totalSize / 1024.0f / 1024.0f;
+                mSize.setText(mb + " MB");
+
                 mProgress.setProgress(downloadInfo.getProgress());
                 mSpeed.setText(getSpeedStr(downloadInfo));
                 String text = getProgressBtnText(mDownloadStatus);

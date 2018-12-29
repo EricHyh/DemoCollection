@@ -3,7 +3,6 @@ package com.hyh.download.core;
 import android.os.SystemClock;
 
 import com.hyh.download.net.HttpResponse;
-import com.hyh.download.utils.L;
 import com.hyh.download.utils.StreamUtil;
 
 import java.io.BufferedInputStream;
@@ -87,7 +86,6 @@ class SingleFileWriteTask implements FileWrite {
 
     @Override
     public void stop() {
-        L.d("SingleFileWrite stop");
         stop = true;
     }
 }

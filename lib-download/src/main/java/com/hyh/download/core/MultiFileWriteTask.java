@@ -63,10 +63,8 @@ class MultiFileWriteTask implements FileWrite {
             int len;
             while ((len = bis.read(buffer)) != -1) {
                 fileRaf.write(buffer, 0, len);
+                L.d("MultiFileWriteTask write:" + len);
                 startPosition += len;
-                if (rangeIndex == 0) {
-                    L.d("1--startPosition = " + startPosition + ", endPosition = " + endPosition);
-                }
                 listener.onWriteFile(len);
 
                 if (isNeedSync()) {

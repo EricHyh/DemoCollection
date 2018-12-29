@@ -50,7 +50,7 @@ public class NativeHttpCall implements HttpCall {
         this.executor = executor;
     }
 
-    public HttpResponse execute() throws Exception {
+    HttpResponse execute() throws Exception {
         synchronized (mLock) {
             if (isExecuted) {
                 throw new IllegalStateException("Already Executed");

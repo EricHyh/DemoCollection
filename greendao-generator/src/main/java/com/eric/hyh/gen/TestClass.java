@@ -24,7 +24,35 @@ public class TestClass {
             }).start();
         }*/
         //writeBuffer();
-        read();
+        simpleWrite();
+        simpleRead();
+    }
+
+
+    private static void simpleWrite() {
+        try {
+            RandomAccessFile raf = new RandomAccessFile("test", "rwd");
+            raf.seek(16);
+            raf.writeLong(1);
+            raf.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private static void simpleRead() {
+        try {
+            RandomAccessFile raf = new RandomAccessFile("test", "rwd");
+            raf.seek(8);
+            long l = raf.readLong();
+            System.out.println("simpleRead = " + l);
+            raf.seek(16);
+            long l1 = raf.readLong();
+            System.out.println("simpleRead = " + l1);
+            raf.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
 

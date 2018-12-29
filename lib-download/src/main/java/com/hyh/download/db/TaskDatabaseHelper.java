@@ -6,7 +6,7 @@ import com.hyh.download.State;
 import com.hyh.download.db.bean.TaskInfo;
 import com.hyh.download.db.dao.TaskInfoDao;
 import com.hyh.download.utils.DownloadFileHelper;
-import com.hyh.download.utils.ProgressHelper;
+import com.hyh.download.utils.RangeUtil;
 import com.hyh.download.utils.StreamUtil;
 
 import java.io.RandomAccessFile;
@@ -43,7 +43,7 @@ public class TaskDatabaseHelper {
         List<TaskInfo> interruptTasks = null;
         if (taskInfoList != null && !taskInfoList.isEmpty()) {
             for (TaskInfo taskInfo : taskInfoList) {
-                fixCurrentSize(taskInfo);
+                fixTaskInfo(taskInfo);
                 taskInfo.setCurrentStatus(State.FAILURE);
                 insertOrUpdate(taskInfo);
                 if (taskInfo.isPermitRecoverTask()) {
@@ -92,50 +92,48 @@ public class TaskDatabaseHelper {
     }
 
     private void fixTaskInfo(TaskInfo taskInfo) {
-        fixCurrentSize(taskInfo);
-        if (taskInfo.getCurrentStatus() == State.SUCCESS) {
+        int currentStatus = taskInfo.getCurrentStatus();
+        if (currentStatus == State.SUCCESS) {
+            long fileLength = DownloadFileHelper.getFileLength(taskInfo.getFilePath());
             long totalSize = taskInfo.getTotalSize();
-            long currentSize = taskInfo.getCurrentSize();
-            if (currentSize == 0 || (totalSize > 0 && totalSize != currentSize)) {
-                taskInfo.setCurrentStatus(State.DELETE);
-            }
-        }
-    }
-
-
-    private void fixCurrentSize(TaskInfo taskInfo) {
-        if (taskInfo.getRangeNum() > 1) {
-            String filePath = taskInfo.getFilePath();
-            String tempFilePath = DownloadFileHelper.getTempFilePath(filePath);
-            long currentSize = readCurrentSizeFromTempFile(tempFilePath, taskInfo.getRangeNum());
-            taskInfo.setCurrentSize(currentSize);
-            long totalSize = taskInfo.getTotalSize();
-            if (totalSize > 0) {
-                taskInfo.setProgress(ProgressHelper.computeProgress(currentSize, totalSize));
+            if (fileLength <= 0 || (totalSize > 0 && fileLength != totalSize)) {
+                DownloadFileHelper.deleteDownloadFile(taskInfo);
             } else {
-                taskInfo.setProgress(-1);
+                taskInfo.setCurrentSize(fileLength);
+                taskInfo.setProgress(RangeUtil.computeProgress(fileLength, totalSize));
             }
         } else {
-            String filePath = taskInfo.getFilePath();
-            long fileLength = DownloadFileHelper.getFileLength(filePath);
-            taskInfo.setCurrentSize(fileLength);
-            long totalSize = taskInfo.getTotalSize();
-            if (totalSize > 0) {
-                taskInfo.setProgress(ProgressHelper.computeProgress(fileLength, totalSize));
+            if (taskInfo.getRangeNum() > 1) {
+                String filePath = taskInfo.getFilePath();
+                String tempFilePath = DownloadFileHelper.getTempFilePath(filePath);
+                long currentSize = readCurrentSizeFromTempFile(tempFilePath, taskInfo.getTotalSize(), taskInfo.getRangeNum());
+                taskInfo.setCurrentSize(currentSize);
+                long totalSize = taskInfo.getTotalSize();
+                taskInfo.setProgress(RangeUtil.computeProgress(currentSize, totalSize));
             } else {
-                taskInfo.setProgress(-1);
+                String filePath = taskInfo.getFilePath();
+                long fileLength = DownloadFileHelper.getFileLength(filePath);
+                taskInfo.setCurrentSize(fileLength);
+                long totalSize = taskInfo.getTotalSize();
+                taskInfo.setProgress(RangeUtil.computeProgress(fileLength, totalSize));
             }
         }
     }
 
-    private long readCurrentSizeFromTempFile(String tempFilePath, int rangeNum) {
+
+    private long readCurrentSizeFromTempFile(String tempFilePath, long totalSize, int rangeNum) {
+        if (totalSize == 0) {
+            return 0;
+        }
+        long[] originalStartPositions = RangeUtil.computeStartPositions(totalSize, rangeNum);
         long currentSize = 0;
         RandomAccessFile raf = null;
         try {
             raf = new RandomAccessFile(tempFilePath, "rw");
             for (int index = 0; index < rangeNum; index++) {
                 raf.seek(index * 8);
-                currentSize += raf.readLong();
+                long startPosition = raf.readLong();
+                currentSize += (startPosition - originalStartPositions[index]);
             }
         } catch (Exception e) {
             e.printStackTrace();

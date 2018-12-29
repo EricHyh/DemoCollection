@@ -217,10 +217,6 @@ public abstract class SuperDownloadProxy implements IDownloadProxy {
                     }
                 }
                 if (!isFileDownloaded) {
-                    taskInfo.setProgress(0);
-                    taskInfo.setCurrentSize(0);
-                    taskInfo.setTotalSize(0);
-                    taskInfo.setCurrentStatus(State.NONE);
                     DownloadFileHelper.deleteDownloadFile(taskInfo);
                     TaskDatabaseHelper.getInstance().insertOrUpdate(taskInfo);
                 }
@@ -319,8 +315,6 @@ public abstract class SuperDownloadProxy implements IDownloadProxy {
 
         DownloadFileHelper.deleteDownloadFile(taskInfo);
         taskInfo.setCurrentStatus(State.DELETE);
-        taskInfo.setProgress(0);
-        taskInfo.setCurrentSize(0);
         handleCallback(taskInfo);
         handleDatabase(taskInfo);
 
@@ -336,10 +330,7 @@ public abstract class SuperDownloadProxy implements IDownloadProxy {
         boolean isSuccess = true;
         if (!checkFile(taskInfo, taskWrapper.fileChecker)) {
             isSuccess = false;
-            taskInfo.setProgress(0);
-            taskInfo.setCurrentSize(0);
-            taskInfo.setTotalSize(0);
-            taskInfo.setCurrentStatus(State.NONE);
+
             DownloadFileHelper.deleteDownloadFile(taskInfo);
             TaskDatabaseHelper.getInstance().insertOrUpdate(taskInfo);
 

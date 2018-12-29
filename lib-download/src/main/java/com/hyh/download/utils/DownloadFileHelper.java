@@ -4,9 +4,12 @@ import android.content.Context;
 import android.os.Environment;
 import android.os.StatFs;
 import android.text.TextUtils;
+import android.webkit.URLUtil;
 
+import com.hyh.download.State;
 import com.hyh.download.core.Constants;
 import com.hyh.download.db.bean.TaskInfo;
+import com.hyh.download.net.HttpResponse;
 
 import java.io.File;
 import java.security.MessageDigest;
@@ -114,9 +117,18 @@ public class DownloadFileHelper {
 
 
     public static void deleteDownloadFile(TaskInfo taskInfo) {
+        taskInfo.setProgress(0);
+        taskInfo.setCurrentSize(0);
+        taskInfo.setTotalSize(0);
+        taskInfo.setETag(null);
+        taskInfo.setLastModified(null);
+        taskInfo.setCurrentStatus(State.NONE);
+
         String filePath = taskInfo.getFilePath();
-        deleteFile(filePath);
-        deleteFile(getTempFilePath(filePath));
+        if (!TextUtils.isEmpty(filePath)) {
+            deleteFile(filePath);
+            deleteFile(getTempFilePath(filePath));
+        }
     }
 
     public static boolean deleteFile(String filePath) {
@@ -205,5 +217,29 @@ public class DownloadFileHelper {
         File parentFile = file.getParentFile();
         ensureCreated(parentFile);
         return parentFile.getAbsolutePath();
+    }
+
+    public static String fixFilePath(HttpResponse response, TaskInfo taskInfo) {
+        return fixFilePath(response.url(),
+                response.header(NetworkHelper.CONTENT_DISPOSITION),
+                response.header(NetworkHelper.CONTENT_TYPE),
+                taskInfo);
+    }
+
+    public static String fixFilePath(String url, String contentDisposition, String contentType, TaskInfo taskInfo) {
+        String fileDir = taskInfo.getFileDir();
+        String filePath = taskInfo.getFilePath();
+        if (TextUtils.isEmpty(filePath)) {
+            String fileName = URLUtil.guessFileName(url, contentDisposition, contentType);
+            if (TextUtils.isEmpty(fileName)) {
+                fileName = string2MD5(taskInfo.getResKey());
+            }
+            ensureCreated(fileDir);
+            filePath = fileDir + File.separator + fileName;
+            taskInfo.setFilePath(filePath);
+        } else {
+            ensureParentCreated(filePath);
+        }
+        return filePath;
     }
 }

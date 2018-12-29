@@ -89,7 +89,7 @@ public class TaskListenerManager extends CallbackAdapter {
 
     @Override
     public void onPrepare(final DownloadInfo downloadInfo) {
-        L.d("onPrepare");
+        L.d("onPrepare:" + downloadInfo.getProgress());
         post(new Runnable() {
             @Override
             public void run() {

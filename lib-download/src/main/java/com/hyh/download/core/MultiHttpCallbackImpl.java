@@ -10,23 +10,15 @@ import com.hyh.download.net.HttpClient;
 import com.hyh.download.net.HttpResponse;
 import com.hyh.download.utils.DownloadFileHelper;
 import com.hyh.download.utils.L;
-import com.hyh.download.utils.NetworkHelper;
-import com.hyh.download.utils.ProgressHelper;
-import com.hyh.download.utils.StreamUtil;
+import com.hyh.download.utils.RangeUtil;
 
 import java.io.IOException;
-import java.io.RandomAccessFile;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.RejectedExecutionHandler;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * @author Administrator
@@ -48,9 +40,13 @@ class MultiHttpCallbackImpl extends AbstractHttpCallback {
 
     private final long totalSize;
 
+    private final AtomicLong currentSize;
+
+    private volatile long lastPostTimeMillis;
+
     private final DownloadCallback downloadCallback;
 
-    private final int rangeNum;
+    private int taskNum;
 
     private List<RangeInfo> rangeInfoList;
 
@@ -64,55 +60,14 @@ class MultiHttpCallbackImpl extends AbstractHttpCallback {
 
     private volatile boolean isCallbackFailure;
 
-    private final ThreadPoolExecutor executor;
-
-    {
-        int corePoolSize = 1;
-        int maximumPoolSize = 1;
-        long keepAliveTime = 60L;
-        TimeUnit unit = TimeUnit.SECONDS;
-        BlockingQueue<Runnable> workQueue = new ArrayBlockingQueue<Runnable>(10);
-        ThreadFactory threadFactory = new ThreadFactory() {
-            @Override
-            public Thread newThread(Runnable r) {
-                Thread thread = new Thread(r, "MultiHttpCallbackImpl");
-                thread.setDaemon(true);
-                return thread;
-            }
-        };
-        RejectedExecutionHandler handler = new RejectedExecutionHandler() {
-            @Override
-            public void rejectedExecution(Runnable r, ThreadPoolExecutor executor) {
-                L.d("RealHttpCallbackImpl rejectedExecution");
-                if (r instanceof OnWriteFileTask) {
-                    OnWriteFileTask task = (OnWriteFileTask) r;
-                    if (!executor.isShutdown()) {
-                        OnWriteFileTask pollTask = (OnWriteFileTask) executor.getQueue().poll();
-                        if (pollTask != null) {
-                            task.mergeTask(pollTask);
-                        }
-                        executor.execute(task);
-                    }
-                }
-            }
-        };
-        executor = new ThreadPoolExecutor(corePoolSize, maximumPoolSize,
-                keepAliveTime, unit, workQueue, threadFactory, handler);
-        executor.allowCoreThreadTimeOut(true);
-    }
-
-
     MultiHttpCallbackImpl(Context context, HttpClient client, TaskInfo taskInfo, DownloadCallback downloadCallback) {
         this.context = context;
         this.client = client;
         this.taskInfo = taskInfo;
         this.totalSize = taskInfo.getTotalSize();
+        this.currentSize = new AtomicLong(taskInfo.getCurrentSize());
         this.downloadCallback = downloadCallback;
         this.httpCallbackMap = new HashMap<>();
-        this.rangeNum = taskInfo.getRangeNum();
-
-        int size = httpCallbackMap.size();
-        successCount.set(rangeNum - size);
     }
 
     void setRangeInfoList(List<RangeInfo> rangeInfoList) {
@@ -120,12 +75,13 @@ class MultiHttpCallbackImpl extends AbstractHttpCallback {
         for (RangeInfo rangeInfo : rangeInfoList) {
             long startPosition = rangeInfo.getStartPosition();
             long endPosition = rangeInfo.getEndPosition();
-            if (startPosition < endPosition) {
+            if (startPosition <= endPosition) {
                 RealHttpCallbackImpl realHttpCallback = new RealHttpCallbackImpl(rangeInfo);
                 String tag = taskInfo.getResKey().concat("-").concat(String.valueOf(rangeInfo.getRangeIndex()));
                 httpCallbackMap.put(tag, realHttpCallback);
             }
         }
+        this.taskNum = httpCallbackMap.size();
     }
 
     HttpCallback getHttpCallback(String tag) {
@@ -141,40 +97,50 @@ class MultiHttpCallbackImpl extends AbstractHttpCallback {
     protected void cancel() {
         this.cancel = true;
         Collection<RealHttpCallbackImpl> httpCallbacks = httpCallbackMap.values();
-        L.d("MultiHttpCallbackImpl cancel httpCallbacks'size = " + httpCallbacks.size());
         for (RealHttpCallbackImpl httpCallback : httpCallbacks) {
-            L.d("RealHttpCallbackImpl cancel");
             httpCallback.cancel();
         }
     }
 
     private boolean isAllSuccess() {
-        return successCount.get() == rangeNum;
+        return successCount.get() == taskNum;
     }
 
     private boolean isAllFailure() {
-        return failureCount.get() == rangeNum;
+        return failureCount.get() == taskNum;
     }
 
     private void handleWriteFile(long writeLength) {
+        long curSize = currentSize.addAndGet(writeLength);
+        taskInfo.setCurrentSize(curSize);
 
+        long elapsedTimeMillis = SystemClock.elapsedRealtime();
+        long diffTimeMillis = elapsedTimeMillis - lastPostTimeMillis;
+        if (diffTimeMillis >= 2000) {
+            taskInfo.setProgress(RangeUtil.computeProgress(curSize, totalSize));
+            downloadCallback.onDownloading(taskInfo);
+            lastPostTimeMillis = elapsedTimeMillis;
+        }
+    }
+
+    private void handleRetry() {
+        taskInfo.setProgress(RangeUtil.computeProgress(currentSize.get(), totalSize));
+        downloadCallback.onDownloading(taskInfo);
+    }
+
+    private void handleWriteFinish() {
         if (!cancel && failureCount.get() > 0) {
             Collection<RealHttpCallbackImpl> values = httpCallbackMap.values();
             for (RealHttpCallbackImpl httpCallback : values) {
                 httpCallback.wake();
             }
         }
-
-
-        executor.execute(new OnWriteFileTask(writeLength));
-    }
-
-    private void handleWriteFinish() {
         synchronized (mLock) {
             successCount.incrementAndGet();
             if (isAllSuccess()) {
                 fixCurrentSize();
                 if (!isCallbackSuccess) {
+                    L.d("onSuccess");
                     downloadCallback.onSuccess(taskInfo);
                     isCallbackSuccess = true;
                 }
@@ -211,7 +177,7 @@ class MultiHttpCallbackImpl extends AbstractHttpCallback {
             currentSize += writeLength;
             taskInfo.setCurrentSize(currentSize);
 
-            int progress = ProgressHelper.computeProgress(currentSize, totalSize);
+            int progress = RangeUtil.computeProgress(currentSize, totalSize);
             taskInfo.setProgress(progress);
         }
     }
@@ -220,7 +186,7 @@ class MultiHttpCallbackImpl extends AbstractHttpCallback {
         synchronized (mLock) {
             taskInfo.setCurrentSize(currentSize);
 
-            int progress = ProgressHelper.computeProgress(currentSize, totalSize);
+            int progress = RangeUtil.computeProgress(currentSize, totalSize);
             taskInfo.setProgress(progress);
         }
     }
@@ -229,20 +195,9 @@ class MultiHttpCallbackImpl extends AbstractHttpCallback {
 
         private final Object mLock = new Object();
 
-        //总重试的次数
-        private int totalRetryTimes = 0;
-        //重试的当前次数
-        private volatile int currentRetryTimes = 0;
-        //重试的最大次数
-        private static final int RETRY_MAX_TIMES = 3;
-        //每次重试的延时
-        private static final long RETRY_DELAY = 1000 * 2;
-        //获取wifi重试的最大次数
-        private static final int SEARCH_WIFI_MAX_TIMES = 15;
-        //总重试的最大次数
-        private static final int TOTAL_RETRY_MAX_TIMES = 20;
-
         private final RangeInfo rangeInfo;
+
+        private final IRetryStrategy mRetryStrategy;
 
         private volatile boolean isFailure;
 
@@ -252,19 +207,23 @@ class MultiHttpCallbackImpl extends AbstractHttpCallback {
 
         RealHttpCallbackImpl(RangeInfo rangeInfo) {
             this.rangeInfo = rangeInfo;
+            this.mRetryStrategy = new RetryStrategyImpl(context, taskInfo.isPermitRetryInMobileData());
         }
 
         void wake() {
             if (isFailure) {
                 synchronized (mLock) {
                     if (isFailure) {
+                        failureCount.decrementAndGet();
                         isFailure = false;
-                        currentRetryTimes = 0;
-                        totalRetryTimes -= 3;
-                        boolean retryDownload = retryDownload();
-                        if (retryDownload) {
-                            failureCount.decrementAndGet();
-                        }
+                    }
+                }
+                mRetryStrategy.clearCurrentRetryTimes();
+                boolean retryDownload = retryDownload();
+                if (!retryDownload) {
+                    synchronized (mLock) {
+                        this.isFailure = true;
+                        handleWriteFailure();
                     }
                 }
             }
@@ -335,11 +294,9 @@ class MultiHttpCallbackImpl extends AbstractHttpCallback {
 
             @Override
             public void onWriteFile(long writeLength) {
-                if (writeLength > 0) {
-                    rangeInfo.addStartPosition(writeLength);
-                    currentRetryTimes = 0;
-                    MultiHttpCallbackImpl.this.handleWriteFile(writeLength);
-                }
+                mRetryStrategy.clearCurrentRetryTimes();
+                rangeInfo.addStartPosition(writeLength);
+                MultiHttpCallbackImpl.this.handleWriteFile(writeLength);
             }
 
             @Override
@@ -375,25 +332,13 @@ class MultiHttpCallbackImpl extends AbstractHttpCallback {
             if (call != null && !call.isCanceled()) {
                 call.cancel();
             }
-            if (cancel || isAllFailure()) {
-                return false;
-            }
-            if (currentRetryTimes >= RETRY_MAX_TIMES || totalRetryTimes >= TOTAL_RETRY_MAX_TIMES) {
-                return false;
-            }
-            currentRetryTimes++;
-            if (waitingSuitableNetworkType()) {
-                if (currentRetryTimes == 0 || currentRetryTimes == 1) {
-                    SystemClock.sleep(RETRY_DELAY);
-                }
-                if (currentRetryTimes == 2) {
-                    SystemClock.sleep(2 * RETRY_DELAY);
-                }
-                if (cancel || isAllFailure()) {
-                    return false;
-                }
+            boolean shouldRetry = mRetryStrategy.shouldRetry(new IRetryStrategy.onWaitingListener() {
+                @Override
+                public void onWaiting() {
 
-
+                }
+            });
+            if (shouldRetry) {
                 long oldStartPosition = rangeInfo.getStartPosition();
                 long curStartPosition = fixStartPosition(oldStartPosition);
 
@@ -405,85 +350,12 @@ class MultiHttpCallbackImpl extends AbstractHttpCallback {
                         rangeInfo.getEndPosition());
 
                 call.enqueue(RealHttpCallbackImpl.this);
-                return true;
-            } else {
-                return retryDownload();
             }
-        }
-
-        private boolean waitingSuitableNetworkType() {
-            int waitingNumber = 0;
-            while (true) {
-                if (cancel) {
-                    return false;
-                }
-                if (isSuitableNetworkType()) {
-                    return true;
-                }
-                SystemClock.sleep(RETRY_DELAY);
-                waitingNumber++;
-                if (waitingNumber == SEARCH_WIFI_MAX_TIMES) {
-                    return false;
-                }
-            }
-        }
-
-        private boolean isSuitableNetworkType() {
-            return NetworkHelper.isWifiEnv(context)
-                    || taskInfo.isPermitRetryInMobileData() && NetworkHelper.isNetEnv(context);
+            return shouldRetry;
         }
 
         private long fixStartPosition(long oldStartPosition) {
-            RandomAccessFile raf = null;
-            try {
-                raf = new RandomAccessFile(taskInfo.getFilePath(), "rw");
-                for (; ; ) {
-                    raf.seek(oldStartPosition);
-                    if (raf.readByte() == 0) {
-                        oldStartPosition--;
-                        if (oldStartPosition <= rangeInfo.getOriginalStartPosition()) {
-                            oldStartPosition = rangeInfo.getOriginalStartPosition();
-                            break;
-                        }
-                    } else {
-                        break;
-                    }
-                }
-            } catch (Exception e) {
-                //
-            }
-            StreamUtil.close(raf);
-            return oldStartPosition;
-        }
-    }
-
-    private class OnWriteFileTask implements Runnable {
-
-        private volatile long writeLength;
-
-        private volatile int oldProgress;
-
-        OnWriteFileTask(long writeLength) {
-            this.writeLength = writeLength;
-        }
-
-        void mergeTask(OnWriteFileTask task) {
-            this.writeLength += task.writeLength;
-        }
-
-        @Override
-        public void run() {
-            synchronized (mLock) {
-                if (cancel || isAllSuccess() || isAllSuccess()) {
-                    return;
-                }
-                addCurrentSize(writeLength);
-                int progress = taskInfo.getProgress();
-                if (progress != oldProgress) {
-                    downloadCallback.onDownloading(taskInfo);
-                }
-                oldProgress = progress;
-            }
+            return RangeUtil.fixStartPosition(taskInfo.getFilePath(), oldStartPosition, rangeInfo.getOriginalStartPosition());
         }
     }
 }
