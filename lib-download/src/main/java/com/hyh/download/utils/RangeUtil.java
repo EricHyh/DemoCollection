@@ -128,6 +128,9 @@ public class RangeUtil {
     }
 
     public static int computeRangeNum(long curTotalSize) {
+        if (curTotalSize <= 0) {
+            return 1;
+        }
         long rangeNum = curTotalSize / (30 * 1024 * 1024);
         if (rangeNum <= 0) {
             rangeNum = 1;

@@ -103,12 +103,6 @@ public class FileDownloader {
     public synchronized void startTask(final FileRequest request, final Callback callback) {
         waitingForInitProxyFinish();
         String key = request.key();
-        if (isFileDownloaded(key, request.fileChecker())) {
-            if (callback != null) {
-                callback.onSuccess(mDownloadProxy.getTaskInfoByKey(key).toDownloadInfo());
-            }
-            return;
-        }
 
         if (isTaskAlive(request.key())) {
             if (callback != null) {
@@ -117,8 +111,15 @@ public class FileDownloader {
             return;
         }
 
+
+        if (!request.forceDownload() && isFileDownloaded(key, request.versionCode(), request.fileChecker())) {
+            if (callback != null) {
+                callback.onSuccess(mDownloadProxy.getTaskInfoByKey(key).toDownloadInfo());
+            }
+            return;
+        }
+
         final TaskInfo taskInfo = getTaskInfo(request);
-        mDownloadProxy.insertOrUpdate(taskInfo);
         if (callback != null) {
             mListenerManager.addSingleTaskCallback(request.key(), callback);
         }
@@ -152,6 +153,23 @@ public class FileDownloader {
         return mDownloadProxy.isFileDownloaded(resKey, fileChecker);
     }
 
+    public synchronized boolean isFileDownloaded(String resKey, int versionCode) {
+        waitingForInitProxyFinish();
+        if (versionCode <= 0) {
+            return mDownloadProxy.isFileDownloaded(resKey, null);
+        } else {
+            return mDownloadProxy.isFileDownloaded(resKey, versionCode, null);
+        }
+    }
+
+    public synchronized boolean isFileDownloaded(String resKey, int versionCode, FileChecker fileChecker) {
+        waitingForInitProxyFinish();
+        if (versionCode <= 0) {
+            return mDownloadProxy.isFileDownloaded(resKey, fileChecker);
+        } else {
+            return mDownloadProxy.isFileDownloaded(resKey, versionCode, fileChecker);
+        }
+    }
 
     public synchronized String getFilePath(String resKey) {
         waitingForInitProxyFinish();
@@ -204,13 +222,17 @@ public class FileDownloader {
             if (!isRequestChanged(request, taskInfo)) {
                 fixRequestInfo(request, taskInfo);
             } else {
-                DownloadFileHelper.deleteDownloadFile(taskInfo);
-                taskInfo = newTaskInfo(request);
+                if (isFileDownloaded(request.key(), request.versionCode(), request.fileChecker())) {
+
+                } else {
+                    DownloadFileHelper.deleteDownloadFile(taskInfo);
+                    taskInfo = newTaskInfo(request);
+                }
             }
         } else {
             taskInfo = newTaskInfo(request);
         }
-        taskInfo.setCurrentStatus(State.PREPARE);
+        taskInfo.setCurrentStatus(State.NONE);
         return taskInfo;
     }
 
@@ -236,12 +258,10 @@ public class FileDownloader {
         String requestFilePath = request.filePath();
         if (!TextUtils.isEmpty(requestFilePath)) {
             if (!TextUtils.equals(cacheFilePath, requestFilePath)) {
-                //之前下载额文件路径与现在请求的路径不一致，删除之前下载的文件,表示是一个新的下载
                 return true;
             }
         } else if (!TextUtils.isEmpty(requestFileDir)) {
             if (!TextUtils.equals(cacheFileDir, requestFileDir)) {
-                //之前下载额文件路径与现在请求的目录不一致，删除之前下载的文件,表示是一个新的下载
                 return true;
             }
         }
@@ -267,7 +287,11 @@ public class FileDownloader {
         taskInfo.setRequestUrl(request.url());
         taskInfo.setVersionCode(request.versionCode());
         taskInfo.setFileDir(createFileDir(request));
-        taskInfo.setFilePath(request.filePath());
+
+        String filePath = request.filePath();
+        filePath = DownloadFileHelper.fixFileExists(filePath);
+
+        taskInfo.setFilePath(filePath);
         taskInfo.setByMultiThread(request.byMultiThread());
 
         taskInfo.setWifiAutoRetry(request.wifiAutoRetry());

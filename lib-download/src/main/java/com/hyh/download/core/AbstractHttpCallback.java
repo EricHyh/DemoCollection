@@ -1,12 +1,9 @@
 package com.hyh.download.core;
 
 
-import com.hyh.download.db.bean.TaskInfo;
 import com.hyh.download.net.HttpCall;
 import com.hyh.download.net.HttpCallback;
 import com.hyh.download.net.HttpResponse;
-
-import java.io.IOException;
 
 /**
  * @author Administrator
@@ -16,14 +13,12 @@ import java.io.IOException;
 abstract class AbstractHttpCallback implements HttpCallback {
 
     @Override
-    public void onFailure(HttpCall httpCall, Exception e) {
+    public void onResponse(HttpCall httpCall, HttpResponse httpResponse) {
     }
 
     @Override
-    public void onResponse(HttpCall httpCall, HttpResponse httpResponse) throws IOException {
+    public void onFailure(HttpCall httpCall, Exception e) {
     }
-
-    abstract TaskInfo getTaskInfo();
 
     abstract void cancel();
 

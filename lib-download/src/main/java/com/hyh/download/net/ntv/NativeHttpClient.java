@@ -38,8 +38,8 @@ public class NativeHttpClient implements HttpClient {
     }
 
     @Override
-    public HttpCall newCall(String tag, String url, long oldSize) {
-        return new NativeHttpCall(url, mUserAgent, oldSize, -1, mExecutor);
+    public HttpCall newCall(String tag, String url, long startPosition) {
+        return new NativeHttpCall(url, mUserAgent, startPosition, -1, mExecutor);
     }
 
     @Override
@@ -48,7 +48,7 @@ public class NativeHttpClient implements HttpClient {
     }
 
     @Override
-    public HttpResponse getHttpResponse(String url) throws Exception {
+    public HttpResponse execute(String url) throws Exception {
         NativeHttpCall nativeHttpCall = new NativeHttpCall(url, mUserAgent, -1, -1, mExecutor);
         return nativeHttpCall.execute();
     }

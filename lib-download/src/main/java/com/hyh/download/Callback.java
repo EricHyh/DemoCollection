@@ -70,9 +70,4 @@ public interface Callback {
      */
     void onFailure(DownloadInfo downloadInfo);
 
-    /**
-     * 任务结束
-     */
-    void onHaveNoTask();
-
 }

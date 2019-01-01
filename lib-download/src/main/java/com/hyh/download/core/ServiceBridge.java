@@ -276,13 +276,6 @@ public class ServiceBridge implements IDownloadProxy {
                 }
             }
         }
-
-        @Override
-        public void onHaveNoTask() throws RemoteException {
-            if (mCallback != null) {
-                mCallback.onHaveNoTask();
-            }
-        }
     };
 
     private ServiceConnection getConnection() {

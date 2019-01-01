@@ -22,5 +22,6 @@ interface FileWrite {
 
         void onWriteFailure();
 
+        void onWriteLengthError(long startPosition, long endPosition);
     }
 }

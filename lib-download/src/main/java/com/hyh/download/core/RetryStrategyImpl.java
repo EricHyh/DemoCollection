@@ -23,11 +23,11 @@ public class RetryStrategyImpl implements IRetryStrategy {
 
     private int totalMaxRetryTimes = 20;
 
-    private int searchSuitableNetMaxTimes = 15;
+    private int searchSuitableNetMaxTimes = 10;
 
-    private long retryBaseDelay = 1000 * 2;
+    private long retryBaseDelay = 1000 * 3;
 
-    private long searchSuitableNetDelay = 1000 * 2;
+    private long searchSuitableNetDelay = 1000 * 3;
 
     private int totalRetryTimes;
 
@@ -111,6 +111,9 @@ public class RetryStrategyImpl implements IRetryStrategy {
     @Override
     public void clearCurrentRetryTimes() {
         currentRetryTimes = 0;
+        if (totalRetryTimes > 17) {
+            totalRetryTimes = 17;
+        }
     }
 
     @Override

@@ -31,13 +31,13 @@ class MultiHttpCall implements HttpCall {
 
     @Override
     public void enqueue(HttpCallback httpCallback) {
-        MultiHttpCallbackImpl multiHttpCallbackImpl = (MultiHttpCallbackImpl) httpCallback;
-        multiHttpCallbackImpl.setRangeInfoList(rangeInfoList);
+        MultiHttpCallbackWrapper multiHttpCallbackWrapper = (MultiHttpCallbackWrapper) httpCallback;
+        multiHttpCallbackWrapper.setRangeInfoList(rangeInfoList);
         Set<Map.Entry<String, HttpCall>> entrySet = httpCallMap.entrySet();
         for (Map.Entry<String, HttpCall> httpCallEntry : entrySet) {
             String tag = httpCallEntry.getKey();
             HttpCall httpCall = httpCallEntry.getValue();
-            httpCall.enqueue(multiHttpCallbackImpl.getHttpCallback(tag));
+            httpCall.enqueue(multiHttpCallbackWrapper.getHttpCallback(tag));
         }
     }
 

@@ -3,7 +3,6 @@ package com.hyh.download.net.ntv;
 import com.hyh.download.net.HttpCall;
 import com.hyh.download.net.HttpCallback;
 import com.hyh.download.net.HttpResponse;
-import com.hyh.download.utils.L;
 import com.hyh.download.utils.NetworkHelper;
 
 import java.io.IOException;
@@ -61,7 +60,8 @@ public class NativeHttpCall implements HttpCall {
                 return null;
             }
             HttpURLConnection connection = getConnection(url, startPosition, endPosition);
-            return new NativeHttpResponse(connection);
+            int code = connection.getResponseCode();
+            return new NativeHttpResponse(connection, code);
         }
     }
 
@@ -152,22 +152,20 @@ public class NativeHttpCall implements HttpCall {
         @Override
         public void run() {
             isRunning = true;
+            int code = 0;
             Exception exception = null;
             try {
                 synchronized (this) {
                     connection = getConnection(url, startPosition, endPosition);
+                    code = connection.getResponseCode();
                     inputStream = connection.getInputStream();
                 }
             } catch (Exception e) {
                 exception = e;
             }
             if (exception == null) {
-                HttpResponse httpResponse = new NativeHttpResponse(connection);
-                try {
-                    mHttpCallback.onResponse(NativeHttpCall.this, httpResponse);
-                } catch (IOException e) {
-                    L.d("onResponse failed", e);
-                }
+                HttpResponse httpResponse = new NativeHttpResponse(connection, code);
+                mHttpCallback.onResponse(NativeHttpCall.this, httpResponse);
             } else {
                 mHttpCallback.onFailure(NativeHttpCall.this, exception);
             }

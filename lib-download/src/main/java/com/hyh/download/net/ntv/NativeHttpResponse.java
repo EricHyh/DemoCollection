@@ -10,6 +10,8 @@ import com.hyh.download.utils.NetworkHelper;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
+import java.util.List;
+import java.util.Map;
 
 /**
  * @author Administrator
@@ -21,19 +23,23 @@ public class NativeHttpResponse implements HttpResponse {
 
     private HttpURLConnection connection;
 
+    private int code;
+
     private InputStream inputStream;
 
-    NativeHttpResponse(HttpURLConnection connection) {
+    NativeHttpResponse(HttpURLConnection connection, int code) {
         this.connection = connection;
+        this.code = code;
     }
 
     @Override
     public int code() {
-        try {
-            return connection.getResponseCode();
-        } catch (Exception e) {
-            return 0;
-        }
+        return code;
+    }
+
+    public boolean isSuccessful() {
+        int code = code();
+        return code >= 200 && code < 300;
     }
 
     @Override
@@ -48,6 +54,11 @@ public class NativeHttpResponse implements HttpResponse {
         }
         inputStream = connection.getInputStream();
         return inputStream;
+    }
+
+    @Override
+    public Map<String, List<String>> headers() {
+        return connection.getHeaderFields();
     }
 
     @Override

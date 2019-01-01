@@ -81,7 +81,7 @@ public abstract class SuperDownloadProxy implements IDownloadProxy {
     private AbstractHttpCallback getHttpCallbackImpl(TaskInfo taskInfo) {
         int rangeNum = taskInfo.getRangeNum();
         if (rangeNum > 1) {
-            return new MultiHttpCallbackImpl(mContext, mClient, taskInfo, mDownloadCallbackImpl);
+            return new MultiHttpCallbackWrapper(mContext, mClient, taskInfo, mDownloadCallbackImpl);
         } else {
             return new SingleHttpCallbackImpl(mContext, mClient, taskInfo, mDownloadCallbackImpl);
         }
@@ -225,6 +225,33 @@ public abstract class SuperDownloadProxy implements IDownloadProxy {
         }
     }
 
+    @Override
+    public boolean isFileDownloaded(String resKey, int versionCode, IFileChecker fileChecker) {
+        synchronized (mTaskLock) {
+            boolean isFileDownloaded = false;
+            TaskInfo taskInfo = TaskDatabaseHelper.getInstance().getTaskInfoByKey(resKey);
+            if (taskInfo != null && taskInfo.getCurrentStatus() == State.SUCCESS && taskInfo.getVersionCode() == versionCode) {
+                String filePath = taskInfo.getFilePath();
+                long totalSize = taskInfo.getTotalSize();
+                if (totalSize <= 0) {
+                    isFileDownloaded = DownloadFileHelper.getFileLength(filePath) > 0;
+                } else {
+                    isFileDownloaded = DownloadFileHelper.getFileLength(filePath) == totalSize;
+                }
+                if (isFileDownloaded) {
+                    if (!checkFile(taskInfo, fileChecker)) {
+                        isFileDownloaded = false;
+                    }
+                }
+                if (!isFileDownloaded) {
+                    DownloadFileHelper.deleteDownloadFile(taskInfo);
+                    TaskDatabaseHelper.getInstance().insertOrUpdate(taskInfo);
+                }
+            }
+            return isFileDownloaded;
+        }
+    }
+
     private boolean checkFile(TaskInfo taskInfo, IFileChecker fileChecker) {
         if (fileChecker != null) {
             try {
@@ -259,7 +286,6 @@ public abstract class SuperDownloadProxy implements IDownloadProxy {
                 L.d("startNextTask resKey is " + taskWrapper.resKey);
             } else {
                 if (mAliveTaskManager.getRunningTaskNum() == 0) {
-                    handleHaveNoTask();
                     L.d("startNextTask: 没任务了");
                 }
             }
@@ -272,8 +298,10 @@ public abstract class SuperDownloadProxy implements IDownloadProxy {
         mAliveTaskManager.addTask(new TaskWrapper(resKey, taskInfo, fileChecker));
 
         taskInfo.setCurrentStatus(State.PREPARE);
-        handleCallback(taskInfo);
+
         handleDatabase(taskInfo);
+
+        handleCallback(taskInfo);
     }
 
 
@@ -366,38 +394,41 @@ public abstract class SuperDownloadProxy implements IDownloadProxy {
             taskInfo.setCurrentStatus(State.FAILURE);
         }
 
-        handleDatabase(taskInfo);
         handleCallback(taskInfo);
+        handleDatabase(taskInfo);
 
         startNextTask();
     }
 
-    protected abstract void handleHaveNoTask();
-
     protected abstract void handleCallback(TaskInfo taskInfo);
 
-    private List<String> mDownloadingStatusTasks = new CopyOnWriteArrayList<>();
+    private List<String> mDownloadingTasks = new CopyOnWriteArrayList<>();
 
     private void handleDatabase(TaskInfo taskInfo) {
         String resKey = taskInfo.getResKey();
         int currentStatus = taskInfo.getCurrentStatus();
         if (currentStatus == State.DOWNLOADING) {
-            if (mDownloadingStatusTasks.contains(resKey)) {
+            if (mDownloadingTasks.contains(resKey)) {
                 TaskDatabaseHelper.getInstance().updateCacheOnly(taskInfo);
             } else {
                 TaskDatabaseHelper.getInstance().insertOrUpdate(taskInfo);
             }
-            mDownloadingStatusTasks.add(resKey);
+            mDownloadingTasks.add(resKey);
         } else if (currentStatus == State.DELETE) {
-            mDownloadingStatusTasks.remove(resKey);
+            mDownloadingTasks.remove(resKey);
             TaskDatabaseHelper.getInstance().delete(taskInfo);
         } else {
-            mDownloadingStatusTasks.remove(resKey);
+            mDownloadingTasks.remove(resKey);
             TaskDatabaseHelper.getInstance().insertOrUpdate(taskInfo);
         }
     }
 
     private class DownloadCallbackImpl implements DownloadCallback {
+
+        @Override
+        public void onConnected(TaskInfo taskInfo, Map<String, List<String>> responseHeaderFields) {
+
+        }
 
         @Override
         public void onDownloading(TaskInfo taskInfo) {
@@ -521,4 +552,5 @@ public abstract class SuperDownloadProxy implements IDownloadProxy {
             return mAliveTaskMap.get(resKey);
         }
     }
+
 }

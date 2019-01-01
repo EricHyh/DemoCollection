@@ -24,6 +24,8 @@ public interface IDownloadProxy {
 
     boolean isFileDownloaded(String resKey, IFileChecker fileChecker);
 
+    boolean isFileDownloaded(String resKey, int versionCode, IFileChecker fileChecker);
+
     void insertOrUpdate(TaskInfo taskInfo);
 
     TaskInfo getTaskInfoByKey(String resKey);

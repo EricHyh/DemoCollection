@@ -64,11 +64,4 @@ public class LocalDownloadProxyImpl extends SuperDownloadProxy implements IDownl
             }
         }
     }
-
-    @Override
-    protected void handleHaveNoTask() {
-        if (mCallback != null) {
-            mCallback.onHaveNoTask();
-        }
-    }
 }

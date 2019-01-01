@@ -51,9 +51,4 @@ public abstract class CallbackAdapter implements Callback {
     public void onFailure(DownloadInfo downloadInfo) {
 
     }
-
-    @Override
-    public void onHaveNoTask() {
-
-    }
 }

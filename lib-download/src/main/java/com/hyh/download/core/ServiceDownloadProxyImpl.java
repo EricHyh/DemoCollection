@@ -43,23 +43,6 @@ public class ServiceDownloadProxyImpl extends SuperDownloadProxy implements IDow
         }
     }
 
-    @Override
-    protected void handleHaveNoTask() {
-        Set<Map.Entry<Integer, IClient>> entries = mClients.entrySet();
-        Iterator<Map.Entry<Integer, IClient>> iterator = entries.iterator();
-        while (iterator.hasNext()) {
-            Map.Entry<Integer, IClient> entry = iterator.next();
-            IClient client = entry.getValue();
-            try {
-                client.onHaveNoTask();
-            } catch (RemoteException e) {
-                if (!isAlive(client)) {
-                    iterator.remove();
-                }
-            }
-        }
-    }
-
     private boolean isAlive(IClient client) {
         try {
             return client.isAlive();

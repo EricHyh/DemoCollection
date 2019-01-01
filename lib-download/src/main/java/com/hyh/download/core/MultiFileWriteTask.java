@@ -59,7 +59,7 @@ class MultiFileWriteTask implements FileWrite {
             tempFileRaf = new RandomAccessFile(tempFilePath, "rws");
 
             fileRaf.seek(startPosition);
-            byte[] buffer = new byte[8 * 1024];
+            byte[] buffer = new byte[32 * 1024];
             int len;
             while ((len = bis.read(buffer)) != -1) {
                 fileRaf.write(buffer, 0, len);
@@ -78,14 +78,14 @@ class MultiFileWriteTask implements FileWrite {
         } catch (Exception e) {
             isException = true;
         }
-        if (rangeIndex == 0) {
-            L.d("2--startPosition = " + startPosition + ", endPosition = " + endPosition);
-        }
         StreamUtil.close(bos, fileRaf, tempFileRaf, response);
         if (startPosition == endPosition + 1) {
             listener.onWriteFinish();
         } else if (isException) {
             listener.onWriteFailure();
+        } else if (!stop) {
+            //下载长度有误
+            listener.onWriteLengthError(startPosition, endPosition);
         }
     }
 

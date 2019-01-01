@@ -25,8 +25,10 @@ public class TaskInfo implements Parcelable {
     @Column(nameInDb = "resKey")
     private String resKey;
 
+    @Column(nameInDb = "requestUrl")
     private String requestUrl;
 
+    @Column(nameInDb = "targetUrl")
     private String targetUrl;
 
     @Column(nameInDb = "cacheRequestUrl")
@@ -65,6 +67,9 @@ public class TaskInfo implements Parcelable {
 
     @Column(nameInDb = "currentStatus")
     private volatile int currentStatus;
+
+    @Column(nameInDb = "onlyWifiDownload")
+    private boolean onlyWifiDownload;
 
     @Column(nameInDb = "wifiAutoRetry")
     private boolean wifiAutoRetry;
@@ -316,6 +321,14 @@ public class TaskInfo implements Parcelable {
         this.currentStatus = currentStatus;
     }
 
+    public boolean isOnlyWifiDownload() {
+        return onlyWifiDownload;
+    }
+
+    public void setOnlyWifiDownload(boolean onlyWifiDownload) {
+        this.onlyWifiDownload = onlyWifiDownload;
+    }
+
     public boolean isWifiAutoRetry() {
         return wifiAutoRetry;
     }
@@ -408,7 +421,6 @@ public class TaskInfo implements Parcelable {
         downloadInfo.setTotalSize(this.totalSize);
         downloadInfo.setCurrentSize(this.currentSize);
         downloadInfo.setProgress(this.progress);
-        downloadInfo.setSpeed(0);
         downloadInfo.setTag(this.tag);
         return downloadInfo;
     }

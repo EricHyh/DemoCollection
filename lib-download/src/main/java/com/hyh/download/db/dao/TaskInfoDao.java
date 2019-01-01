@@ -31,11 +31,12 @@ public class TaskInfoDao {
 
     private static final String TABLE_NAME = "TaskInfo";
 
-    private final static String[] sColumnNames = {"_id", "resKey", "cacheRequestUrl", "cacheTargetUrl",
+    private final static String[] sColumnNames = {"_id", "resKey",
+            "requestUrl", "targetUrl", "cacheRequestUrl", "cacheTargetUrl",
             "versionCode", "priority", "fileDir", "filePath", "byMultiThread",
             "rangeNum", "totalSize", "currentSize", "progress", "currentStatus",
-            "wifiAutoRetry", "permitRetryInMobileData", "permitRetryInvalidFileTask", "permitRecoverTask", "responseCode",
-            "failureCode", "eTag", "lastModified", "updateTimeMillis", "tag"};
+            "onlyWifiDownload", "wifiAutoRetry", "permitRetryInMobileData", "permitRetryInvalidFileTask", "permitRecoverTask",
+            "responseCode", "failureCode", "eTag", "lastModified", "updateTimeMillis", "tag"};
 
     private static Map<String, ColumnInfo> sColumns = new TreeMap<>(new Comparator<String>() {
         @Override
@@ -182,8 +183,11 @@ public class TaskInfoDao {
         List<TaskInfo> taskInfoList = null;
         SQLiteDatabase db = mSqLiteHelper.getReadableDatabase();
         String[] columns = sColumnNames;
-        String selection = "currentStatus in (?, ?, ?)";
-        String[] selectionArgs = {String.valueOf(State.PREPARE), String.valueOf(State.WAITING_IN_QUEUE), String.valueOf(State.DOWNLOADING)};
+        String selection = "currentStatus in (?, ?, ?, ?)";
+        String[] selectionArgs = {String.valueOf(State.PREPARE),
+                String.valueOf(State.WAITING_IN_QUEUE),
+                String.valueOf(State.CONNECTED),
+                String.valueOf(State.DOWNLOADING)};
         String groupBy = null;
         String having = null;
         String orderBy = null;
@@ -274,34 +278,38 @@ public class TaskInfoDao {
         taskInfo.setId(cursor.getLong(0));
         taskInfo.setResKey(cursor.getString(1));
 
-        taskInfo.setCacheRequestUrl(cursor.getString(2));
-        taskInfo.setCacheTargetUrl(cursor.getString(3));
+        taskInfo.setRequestUrl(cursor.getString(2));
+        taskInfo.setTargetUrl(cursor.getString(3));
+        taskInfo.setCacheTargetUrl(cursor.getString(4));
+        taskInfo.setCacheTargetUrl(cursor.getString(5));
 
-        taskInfo.setVersionCode(cursor.getInt(4));
-        taskInfo.setPriority(cursor.getInt(5));
+        taskInfo.setVersionCode(cursor.getInt(6));
+        taskInfo.setPriority(cursor.getInt(7));
 
-        taskInfo.setFileDir(cursor.getString(6));
-        taskInfo.setFilePath(cursor.getString(7));
+        taskInfo.setFileDir(cursor.getString(8));
+        taskInfo.setFilePath(cursor.getString(9));
 
-        taskInfo.setByMultiThread(cursor.getInt(8) == 1);
-        taskInfo.setRangeNum(cursor.getInt(9));
+        taskInfo.setByMultiThread(cursor.getInt(10) == 1);
+        taskInfo.setRangeNum(cursor.getInt(11));
 
-        taskInfo.setTotalSize(cursor.getLong(10));
-        taskInfo.setCurrentSize(cursor.getLong(11));
-        taskInfo.setProgress(cursor.getInt(12));
+        taskInfo.setTotalSize(cursor.getLong(12));
+        taskInfo.setCurrentSize(cursor.getLong(13));
+        taskInfo.setProgress(cursor.getInt(14));
 
-        taskInfo.setCurrentStatus(cursor.getInt(13));
-        taskInfo.setWifiAutoRetry(cursor.getInt(14) == 1);
-        taskInfo.setPermitRetryInMobileData(cursor.getInt(15) == 1);
-        taskInfo.setPermitRetryInvalidFileTask(cursor.getInt(16) == 1);
-        taskInfo.setPermitRecoverTask(cursor.getInt(17) == 1);
+        taskInfo.setCurrentStatus(cursor.getInt(15));
 
-        taskInfo.setResponseCode(cursor.getInt(18));
-        taskInfo.setFailureCode(cursor.getInt(19));
-        taskInfo.setETag(cursor.getString(20));
-        taskInfo.setLastModified(cursor.getString(21));
-        taskInfo.setUpdateTimeMillis(cursor.getLong(22));
-        taskInfo.setTag(cursor.getString(23));
+        taskInfo.setOnlyWifiDownload(cursor.getInt(16) == 1);
+        taskInfo.setWifiAutoRetry(cursor.getInt(17) == 1);
+        taskInfo.setPermitRetryInMobileData(cursor.getInt(18) == 1);
+        taskInfo.setPermitRetryInvalidFileTask(cursor.getInt(19) == 1);
+        taskInfo.setPermitRecoverTask(cursor.getInt(20) == 1);
+
+        taskInfo.setResponseCode(cursor.getInt(21));
+        taskInfo.setFailureCode(cursor.getInt(22));
+        taskInfo.setETag(cursor.getString(23));
+        taskInfo.setLastModified(cursor.getString(24));
+        taskInfo.setUpdateTimeMillis(cursor.getLong(25));
+        taskInfo.setTag(cursor.getString(26));
         return taskInfo;
     }
 
@@ -312,8 +320,12 @@ public class TaskInfoDao {
             contentValues.put("_id", id);
         }
         contentValues.put("resKey", taskInfo.getResKey());
+
+        contentValues.put("requestUrl", taskInfo.getRequestUrl());
+        contentValues.put("targetUrl", taskInfo.getTargetUrl());
         contentValues.put("cacheRequestUrl", taskInfo.getCacheRequestUrl());
         contentValues.put("cacheTargetUrl", taskInfo.getCacheTargetUrl());
+
         contentValues.put("versionCode", taskInfo.getVersionCode());
         contentValues.put("priority", taskInfo.getPriority());
         contentValues.put("fileDir", taskInfo.getFileDir());
@@ -324,10 +336,13 @@ public class TaskInfoDao {
         contentValues.put("currentSize", taskInfo.getCurrentSize());
         contentValues.put("progress", taskInfo.getProgress());
         contentValues.put("currentStatus", taskInfo.getCurrentStatus());
+
+        contentValues.put("onlyWifiDownload", taskInfo.isOnlyWifiDownload() ? 1 : 0);
         contentValues.put("wifiAutoRetry", taskInfo.isWifiAutoRetry() ? 1 : 0);
         contentValues.put("permitRetryInMobileData", taskInfo.isPermitRetryInMobileData() ? 1 : 0);
         contentValues.put("permitRetryInvalidFileTask", taskInfo.isPermitRetryInvalidFileTask() ? 1 : 0);
         contentValues.put("permitRecoverTask", taskInfo.isPermitRecoverTask() ? 1 : 0);
+
         contentValues.put("responseCode", taskInfo.getResponseCode());
         contentValues.put("failureCode", taskInfo.getFailureCode());
         contentValues.put("eTag", taskInfo.getETag());

@@ -236,10 +236,42 @@ public class DownloadFileHelper {
             }
             ensureCreated(fileDir);
             filePath = fileDir + File.separator + fileName;
+            filePath = fixFileExists(filePath);
             taskInfo.setFilePath(filePath);
         } else {
             ensureParentCreated(filePath);
         }
         return filePath;
+    }
+
+    public static String fixFileExists(String filePath) {
+        if (TextUtils.isEmpty(filePath)) {
+            return filePath;
+        }
+        File file = new File(filePath);
+        if (!file.exists()) {
+            return filePath;
+        }
+
+        String fileName = file.getName();
+        int index = fileName.lastIndexOf(".");
+        String toPrefix;
+        String toSuffix;
+        if (index < 0) {
+            toPrefix = fileName;
+            toSuffix = "";
+        } else {
+            toPrefix = fileName.substring(0, index);
+            toSuffix = fileName.substring(index, fileName.length());
+        }
+        File directory = file.getParentFile();
+        ensureCreated(directory);
+        int fileIndex = 1;
+        File newFile;
+        do {
+            newFile = new File(directory, toPrefix + '(' + fileIndex + ')' + toSuffix);
+            fileIndex++;
+        } while (!newFile.exists());
+        return newFile.getAbsolutePath();
     }
 }

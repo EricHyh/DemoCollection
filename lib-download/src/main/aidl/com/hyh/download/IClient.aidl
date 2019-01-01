@@ -8,7 +8,4 @@ interface IClient {
     boolean isAlive();
 
     void onCallback(in DownloadInfo downloadInfo);
-
-    void onHaveNoTask();
-
 }

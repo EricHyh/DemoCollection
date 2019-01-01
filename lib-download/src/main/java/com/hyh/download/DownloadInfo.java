@@ -31,8 +31,6 @@ public class DownloadInfo implements Parcelable {
 
     private int progress;
 
-    private float speed;//单位 K/s
-
     private String tag;
 
     public DownloadInfo() {
@@ -118,14 +116,6 @@ public class DownloadInfo implements Parcelable {
         this.progress = progress;
     }
 
-    public float getSpeed() {
-        return speed;
-    }
-
-    public void setSpeed(float speed) {
-        this.speed = speed;
-    }
-
     public String getTag() {
         return tag;
     }
@@ -150,7 +140,6 @@ public class DownloadInfo implements Parcelable {
         currentSize = in.readLong();
         totalSize = in.readLong();
         progress = in.readInt();
-        speed = in.readFloat();
         tag = in.readString();
     }
 
@@ -178,7 +167,6 @@ public class DownloadInfo implements Parcelable {
         dest.writeLong(currentSize);
         dest.writeLong(totalSize);
         dest.writeInt(progress);
-        dest.writeFloat(speed);
         dest.writeString(tag);
     }
 }

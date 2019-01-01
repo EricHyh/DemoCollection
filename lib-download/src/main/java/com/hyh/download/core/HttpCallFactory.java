@@ -185,7 +185,7 @@ class HttpCallFactory {
 
     private HttpResponse requestFileInfo(HttpClient client, TaskInfo taskInfo) {
         try {
-            return client.getHttpResponse(taskInfo.getRequestUrl());
+            return client.execute(taskInfo.getRequestUrl());
         } catch (Exception e) {
             //
         }

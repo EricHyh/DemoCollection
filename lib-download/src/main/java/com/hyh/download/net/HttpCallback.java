@@ -1,7 +1,5 @@
 package com.hyh.download.net;
 
-import java.io.IOException;
-
 /**
  * @author Administrator
  * @description
@@ -10,7 +8,7 @@ import java.io.IOException;
 
 public interface HttpCallback {
 
-    void onResponse(HttpCall httpCall, HttpResponse httpResponse) throws IOException;
+    void onResponse(HttpCall httpCall, HttpResponse httpResponse);
 
     void onFailure(HttpCall httpCall, Exception e);
 

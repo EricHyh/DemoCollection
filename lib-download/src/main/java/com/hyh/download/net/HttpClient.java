@@ -8,9 +8,9 @@ package com.hyh.download.net;
 
 public interface HttpClient {
 
-    HttpCall newCall(String tag, String url, long oldSize);
+    HttpCall newCall(String tag, String url, long startPosition);
 
     HttpCall newCall(String tag, String url, long startPosition, long endPosition);
 
-    HttpResponse getHttpResponse(String url) throws Exception;
+    HttpResponse execute(String url) throws Exception;
 }

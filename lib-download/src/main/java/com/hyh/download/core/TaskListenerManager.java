@@ -5,7 +5,6 @@ import android.os.Looper;
 import android.os.SystemClock;
 
 import com.hyh.download.Callback;
-import com.hyh.download.CallbackAdapter;
 import com.hyh.download.DownloadInfo;
 import com.hyh.download.utils.L;
 
@@ -26,7 +25,7 @@ import java.util.concurrent.TimeUnit;
  * @data 2017/7/11
  */
 @SuppressWarnings("unchecked")
-public class TaskListenerManager extends CallbackAdapter {
+public class TaskListenerManager implements Callback {
 
     private final Map<String, Speed> mSpeedMap = new ConcurrentHashMap<>();
 
@@ -90,35 +89,25 @@ public class TaskListenerManager extends CallbackAdapter {
     @Override
     public void onPrepare(final DownloadInfo downloadInfo) {
         L.d("onPrepare:" + downloadInfo.getProgress());
-        post(new Runnable() {
-            @Override
-            public void run() {
-                String resKey = downloadInfo.getResKey();
-                List<Callback> singleCallbacks = getSingleCallbacks(resKey);
-                if (singleCallbacks != null) {
-                    for (Callback callback : singleCallbacks) {
-                        callback.onPrepare(downloadInfo);
-                    }
-                }
+        String resKey = downloadInfo.getResKey();
+        List<Callback> singleCallbacks = getSingleCallbacks(resKey);
+        if (singleCallbacks != null) {
+            for (Callback callback : singleCallbacks) {
+                callback.onPrepare(downloadInfo);
             }
-        });
+        }
     }
 
     @Override
     public void onWaitingInQueue(final DownloadInfo downloadInfo) {
         L.d("onWaitingInQueue");
-        post(new Runnable() {
-            @Override
-            public void run() {
-                String resKey = downloadInfo.getResKey();
-                List<Callback> singleCallbacks = getSingleCallbacks(resKey);
-                if (singleCallbacks != null) {
-                    for (Callback callback : singleCallbacks) {
-                        callback.onWaitingInQueue(downloadInfo);
-                    }
-                }
+        String resKey = downloadInfo.getResKey();
+        List<Callback> singleCallbacks = getSingleCallbacks(resKey);
+        if (singleCallbacks != null) {
+            for (Callback callback : singleCallbacks) {
+                callback.onWaitingInQueue(downloadInfo);
             }
-        });
+        }
     }
 
     @Override
@@ -130,18 +119,13 @@ public class TaskListenerManager extends CallbackAdapter {
             speed = new Speed();
             mSpeedMap.put(resKey, speed);
         }
-        downloadInfo.setSpeed(speed.computeSpeed(downloadInfo.getCurrentSize()));
-        post(new Runnable() {
-            @Override
-            public void run() {
-                List<Callback> singleCallbacks = getSingleCallbacks(resKey);
-                if (singleCallbacks != null) {
-                    for (Callback callback : singleCallbacks) {
-                        callback.onDownloading(downloadInfo);
-                    }
-                }
+        //downloadInfo.setSpeed(speed.computeSpeed(downloadInfo.getCurrentSize()));
+        List<Callback> singleCallbacks = getSingleCallbacks(resKey);
+        if (singleCallbacks != null) {
+            for (Callback callback : singleCallbacks) {
+                callback.onDownloading(downloadInfo);
             }
-        });
+        }
     }
 
     @Override
@@ -149,17 +133,12 @@ public class TaskListenerManager extends CallbackAdapter {
         L.d("onPause");
         final String resKey = downloadInfo.getResKey();
         mSpeedMap.remove(resKey);
-        post(new Runnable() {
-            @Override
-            public void run() {
-                final List<Callback> singleCallbacks = getSingleCallbacks(resKey);
-                if (singleCallbacks != null) {
-                    for (Callback callback : singleCallbacks) {
-                        callback.onPause(downloadInfo);
-                    }
-                }
+        final List<Callback> singleCallbacks = getSingleCallbacks(resKey);
+        if (singleCallbacks != null) {
+            for (Callback callback : singleCallbacks) {
+                callback.onPause(downloadInfo);
             }
-        });
+        }
     }
 
     @Override
@@ -167,17 +146,12 @@ public class TaskListenerManager extends CallbackAdapter {
         L.d("onDelete");
         final String resKey = downloadInfo.getResKey();
         mSpeedMap.remove(resKey);
-        post(new Runnable() {
-            @Override
-            public void run() {
-                List<Callback> singleCallbacks = getSingleCallbacks(resKey);
-                if (singleCallbacks != null) {
-                    for (Callback callback : singleCallbacks) {
-                        callback.onDelete(downloadInfo);
-                    }
-                }
+        List<Callback> singleCallbacks = getSingleCallbacks(resKey);
+        if (singleCallbacks != null) {
+            for (Callback callback : singleCallbacks) {
+                callback.onDelete(downloadInfo);
             }
-        });
+        }
     }
 
     @Override
@@ -185,17 +159,12 @@ public class TaskListenerManager extends CallbackAdapter {
         L.d("onSuccess");
         final String resKey = downloadInfo.getResKey();
         mSpeedMap.remove(resKey);
-        post(new Runnable() {
-            @Override
-            public void run() {
-                List<Callback> singleCallbacks = getSingleCallbacks(resKey);
-                if (singleCallbacks != null) {
-                    for (Callback callback : singleCallbacks) {
-                        callback.onSuccess(downloadInfo);
-                    }
-                }
+        List<Callback> singleCallbacks = getSingleCallbacks(resKey);
+        if (singleCallbacks != null) {
+            for (Callback callback : singleCallbacks) {
+                callback.onSuccess(downloadInfo);
             }
-        });
+        }
     }
 
     @Override
@@ -203,18 +172,12 @@ public class TaskListenerManager extends CallbackAdapter {
         L.d("onWaitingForWifi");
         final String resKey = downloadInfo.getResKey();
         mSpeedMap.remove(resKey);
-        post(new Runnable() {
-            @Override
-            public void run() {
-                List<Callback> singleCallbacks = getSingleCallbacks(resKey);
-                if (singleCallbacks != null) {
-                    for (Callback callback : singleCallbacks) {
-                        callback.onWaitingForWifi(downloadInfo);
-                    }
-                }
+        List<Callback> singleCallbacks = getSingleCallbacks(resKey);
+        if (singleCallbacks != null) {
+            for (Callback callback : singleCallbacks) {
+                callback.onWaitingForWifi(downloadInfo);
             }
-        });
-
+        }
     }
 
     @Override
@@ -222,17 +185,12 @@ public class TaskListenerManager extends CallbackAdapter {
         L.d("onLowDiskSpace");
         final String resKey = downloadInfo.getResKey();
         mSpeedMap.remove(resKey);
-        post(new Runnable() {
-            @Override
-            public void run() {
-                final List<Callback> singleCallbacks = getSingleCallbacks(resKey);
-                if (singleCallbacks != null) {
-                    for (Callback callback : singleCallbacks) {
-                        callback.onLowDiskSpace(downloadInfo);
-                    }
-                }
+        final List<Callback> singleCallbacks = getSingleCallbacks(resKey);
+        if (singleCallbacks != null) {
+            for (Callback callback : singleCallbacks) {
+                callback.onLowDiskSpace(downloadInfo);
             }
-        });
+        }
     }
 
     @Override
@@ -240,48 +198,12 @@ public class TaskListenerManager extends CallbackAdapter {
         L.d("onFailure");
         final String resKey = downloadInfo.getResKey();
         mSpeedMap.remove(resKey);
-        post(new Runnable() {
-            @Override
-            public void run() {
-                final List<Callback> singleCallbacks = getSingleCallbacks(resKey);
-                if (singleCallbacks != null) {
-                    for (Callback callback : singleCallbacks) {
-                        callback.onFailure(downloadInfo);
-                    }
-                }
+        final List<Callback> singleCallbacks = getSingleCallbacks(resKey);
+        if (singleCallbacks != null) {
+            for (Callback callback : singleCallbacks) {
+                callback.onFailure(downloadInfo);
             }
-        });
-    }
-
-    @Override
-    public void onHaveNoTask() {
-        L.d("onHaveNoTask");
-        post(new Runnable() {
-            @Override
-            public void run() {
-
-            }
-        });
-    }
-
-    private void post(Runnable runnable) {
-        if (mIsPostUiThread) {
-            postUiThread(runnable);
-        } else {
-            postBackThread(runnable);
         }
-    }
-
-    private void postUiThread(Runnable runnable) {
-        if (Thread.currentThread() == Looper.getMainLooper().getThread()) {
-            runnable.run();
-        } else {
-            mUiHandler.post(runnable);
-        }
-    }
-
-    private void postBackThread(Runnable runnable) {
-        mBackExecutor.execute(runnable);
     }
 
     private static class Speed {

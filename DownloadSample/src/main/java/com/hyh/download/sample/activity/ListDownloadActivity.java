@@ -24,7 +24,6 @@ import com.hyh.download.sample.widget.ProgressButton;
 import com.yly.mob.ssp.downloadsample.R;
 
 import java.io.File;
-import java.text.DecimalFormat;
 import java.util.List;
 
 /**
@@ -238,11 +237,6 @@ public class ListDownloadActivity extends AppCompatActivity {
         }
 
         @Override
-        public void onHaveNoTask() {
-
-        }
-
-        @Override
         public void onClick(View v) {
             switch (mDownloadStatus) {
                 case State.NONE: {
@@ -311,14 +305,15 @@ public class ListDownloadActivity extends AppCompatActivity {
 
         @NonNull
         private String getSpeedStr(DownloadInfo downloadInfo) {
-            float speed = downloadInfo.getSpeed();
+            /*float speed = downloadInfo.getSpeed();
             if (speed >= 1024) {
                 DecimalFormat decimalFormat = new DecimalFormat("0.0");
                 return decimalFormat.format(speed / 1024.0f) + "M/s";
             } else {
                 DecimalFormat decimalFormat = new DecimalFormat("0.0");
                 return decimalFormat.format(speed) + "K/s";
-            }
+            }*/
+            return null;
         }
 
 

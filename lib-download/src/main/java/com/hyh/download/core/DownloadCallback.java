@@ -2,6 +2,9 @@ package com.hyh.download.core;
 
 import com.hyh.download.db.bean.TaskInfo;
 
+import java.util.List;
+import java.util.Map;
+
 /**
  * @author Administrator
  * @description
@@ -9,6 +12,8 @@ import com.hyh.download.db.bean.TaskInfo;
  */
 
 public interface DownloadCallback {
+
+    void onConnected(TaskInfo taskInfo, Map<String, List<String>> responseHeaderFields);
 
     void onDownloading(TaskInfo taskInfo);
 

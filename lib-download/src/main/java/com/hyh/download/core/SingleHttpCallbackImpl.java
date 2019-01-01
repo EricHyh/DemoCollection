@@ -14,7 +14,6 @@ import com.hyh.download.utils.NetworkHelper;
 import com.hyh.download.utils.RangeUtil;
 
 import java.io.File;
-import java.io.IOException;
 
 /**
  * @author Administrator
@@ -31,21 +30,23 @@ class SingleHttpCallbackImpl extends AbstractHttpCallback {
 
     private DownloadCallback downloadCallback;
 
-    private IRetryStrategy mRetryStrategy;
+    private IRetryStrategy retryStrategy;
 
     private volatile boolean cancel;
 
     private FileWrite mFileWrite;
 
+    private long lastPostTimeMillis;
+
     SingleHttpCallbackImpl(Context context, HttpClient client, TaskInfo taskInfo, DownloadCallback downloadCallback) {
         this.client = client;
         this.taskInfo = taskInfo;
         this.downloadCallback = downloadCallback;
-        this.mRetryStrategy = new RetryStrategyImpl(context, taskInfo.isPermitRetryInMobileData());
+        this.retryStrategy = new RetryStrategyImpl(context, taskInfo.isPermitRetryInMobileData());
     }
 
     @Override
-    public void onResponse(HttpCall call, HttpResponse response) throws IOException {
+    public void onResponse(HttpCall call, HttpResponse response) {
         this.call = call;
         if (cancel) {
             if (this.call != null && !this.call.isCanceled()) {
@@ -55,16 +56,23 @@ class SingleHttpCallbackImpl extends AbstractHttpCallback {
         }
         int code = response.code();
         taskInfo.setResponseCode(code);
+
+        if (!response.isSuccessful()) {
+            if (!retryDownload()) {
+                notifyFailure();
+            }
+            return;
+        }
+
         long contentLength = response.contentLength();
 
         long currentSize = taskInfo.getCurrentSize();
         String filePath = taskInfo.getFilePath();
         if (!TextUtils.isEmpty(filePath) && currentSize > 0 && !checkIsSupportPartial(response, taskInfo)) {
-            boolean delete = DownloadFileHelper.deleteFile(taskInfo.getFilePath());
-            L.d("not support partial content, delete file " + delete);
-            taskInfo.setCurrentSize(0);
-            taskInfo.setProgress(0);
-            taskInfo.setTotalSize(0);
+
+            DownloadFileHelper.deleteDownloadFile(taskInfo);
+            L.d("not support partial content, delete file ");
+
             if (this.call != null && !this.call.isCanceled()) {
                 this.call.cancel();
             }
@@ -87,24 +95,19 @@ class SingleHttpCallbackImpl extends AbstractHttpCallback {
             handleDownload(response, taskInfo);
         } else if (code == Constants.ResponseCode.NOT_FOUND) {
             //未找到文件
-            downloadCallback.onFailure(taskInfo);
+            notifyFailure();
         } else {
             if (!retryDownload()) {
-                downloadCallback.onFailure(taskInfo);
+                notifyFailure();
             }
         }
-    }
-
-    @Override
-    TaskInfo getTaskInfo() {
-        return taskInfo;
     }
 
     @Override
     public void onFailure(HttpCall call, Exception e) {
         this.call = call;
         if (!retryDownload()) {
-            downloadCallback.onFailure(taskInfo);
+            notifyFailure();
         }
     }
 
@@ -128,64 +131,88 @@ class SingleHttpCallbackImpl extends AbstractHttpCallback {
         taskInfo.setCacheRequestUrl(taskInfo.getRequestUrl());
         taskInfo.setCacheTargetUrl(response.url());
         String filePath = DownloadFileHelper.fixFilePath(response, taskInfo);
+
+        downloadCallback.onConnected(taskInfo, response.headers());
+
         final long currentSize = taskInfo.getCurrentSize();
         final long totalSize = taskInfo.getTotalSize();
         mFileWrite = new SingleFileWriteTask(filePath, currentSize, totalSize);
-        mFileWrite.write(response, new SingleFileWriteListener(totalSize, currentSize));
+        mFileWrite.write(response, new SingleFileWriteListener(currentSize, totalSize));
     }
 
-    private class SingleFileWriteListener implements FileWrite.FileWriteListener {
-
-        final long totalSize;
-
-        volatile long currentSize;
-
-        private long lastPostTimeMillis;
-
-        SingleFileWriteListener(long totalSize, long currentSize) {
-            this.totalSize = totalSize;
-            this.currentSize = currentSize;
-        }
-
-        @Override
-        public void onWriteFile(long writeLength) {
-            mRetryStrategy.clearCurrentRetryTimes();
-            currentSize += writeLength;
-            taskInfo.setCurrentSize(currentSize);
-
-            long elapsedTimeMillis = SystemClock.elapsedRealtime();
+    private void notifyDownloading(long currentSize, long totalSize) {
+        long elapsedTimeMillis = SystemClock.elapsedRealtime();
+        int oldProgress = taskInfo.getProgress();
+        int curProgress = RangeUtil.computeProgress(currentSize, totalSize);
+        if (oldProgress != curProgress) {
+            taskInfo.setProgress(RangeUtil.computeProgress(currentSize, totalSize));
+            downloadCallback.onDownloading(taskInfo);
+            lastPostTimeMillis = elapsedTimeMillis;
+        } else {
             long diffTimeMillis = elapsedTimeMillis - lastPostTimeMillis;
             if (diffTimeMillis >= 2000) {
-                taskInfo.setProgress(RangeUtil.computeProgress(currentSize, totalSize));
                 downloadCallback.onDownloading(taskInfo);
                 lastPostTimeMillis = elapsedTimeMillis;
             }
         }
+    }
+
+    private void notifySuccess() {
+        taskInfo.setProgress(100);
+        downloadCallback.onSuccess(taskInfo);
+    }
+
+    private void notifyFailure() {
+        fixCurrentSize();
+        downloadCallback.onFailure(taskInfo);
+    }
+
+    private class SingleFileWriteListener implements FileWrite.FileWriteListener {
+
+        volatile long currentSize;
+
+        final long totalSize;
+
+        SingleFileWriteListener(long currentSize, long totalSize) {
+            this.currentSize = currentSize;
+            this.totalSize = totalSize;
+        }
+
+        @Override
+        public void onWriteFile(long writeLength) {
+            retryStrategy.clearCurrentRetryTimes();
+            currentSize += writeLength;
+            taskInfo.setCurrentSize(currentSize);
+
+            notifyDownloading(currentSize, totalSize);
+        }
 
         @Override
         public void onWriteFinish() {
-            taskInfo.setProgress(100);
-            downloadCallback.onSuccess(taskInfo);
+            notifySuccess();
         }
 
         @Override
         public void onWriteFailure() {
             if (!retryDownload()) {
-                fixCurrentSize();
-                downloadCallback.onFailure(taskInfo);
+                notifyFailure();
             }
         }
-    }
 
+        @Override
+        public void onWriteLengthError(long startPosition, long endPosition) {
+
+        }
+    }
 
     private boolean retryDownload() {
         if (call != null && !call.isCanceled()) {
             call.cancel();
         }
-        boolean shouldRetry = mRetryStrategy.shouldRetry(new IRetryStrategy.onWaitingListener() {
+        boolean shouldRetry = retryStrategy.shouldRetry(new IRetryStrategy.onWaitingListener() {
             @Override
             public void onWaiting() {
-
+                notifyDownloading(taskInfo.getCurrentSize(), taskInfo.getTotalSize());
             }
         });
         if (shouldRetry) {
@@ -221,6 +248,6 @@ class SingleHttpCallbackImpl extends AbstractHttpCallback {
         if (this.call != null && !this.call.isCanceled()) {
             this.call.cancel();
         }
-        mRetryStrategy.cancel();
+        retryStrategy.cancel();
     }
 }
