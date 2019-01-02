@@ -63,11 +63,12 @@ class SingleFileWriteTask implements FileWrite {
             isException = true;
         }
         StreamUtil.close(bos, bis, response);
-        if (startPosition == endPosition) {
-            listener.onWriteFinish();
-        } else if (isException) {
+        if (stop) {
+            return;
+        }
+        if (isException) {
             listener.onWriteFailure();
-        } else if (endPosition <= 0 && !stop) {
+        } else if (startPosition == endPosition || endPosition <= 0) {
             listener.onWriteFinish();
         } else {
             //下载长度有误

@@ -158,6 +158,16 @@ public class ServiceBridge implements IDownloadProxy {
     }
 
     @Override
+    public boolean isFileDownloaded(String resKey, int versionCode, IFileChecker fileChecker) {
+        waitingForService();
+        try {
+            return mServiceAgent.isFileDownloadedWithVersion(resKey, versionCode, fileChecker);
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    @Override
     public TaskInfo getTaskInfoByKey(String resKey) {
         waitingForService();
         try {

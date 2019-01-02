@@ -9,6 +9,7 @@ import com.hyh.download.net.HttpCallback;
 import com.hyh.download.net.HttpClient;
 import com.hyh.download.net.HttpResponse;
 import com.hyh.download.utils.DownloadFileHelper;
+import com.hyh.download.utils.L;
 import com.hyh.download.utils.RangeUtil;
 
 import java.util.Collection;
@@ -324,7 +325,20 @@ class MultiHttpCallbackWrapper extends AbstractHttpCallback {
 
             @Override
             public void onWriteLengthError(long startPosition, long endPosition) {
+                L.d("RealHttpCallbackImpl: onWriteLengthError startPosition = " + startPosition + ", endPosition = " + endPosition);
+                long oldStartPosition = rangeInfo.getStartPosition();
+                long curStartPosition = 0;
+                long fixDiff = curStartPosition - oldStartPosition;
 
+                rangeInfo.addStartPosition(fixDiff);
+                addCurrentSize(fixDiff);
+
+                RangeUtil.writeStartPosition(rangeInfo);
+
+                if (!retryDownload()) {
+                    isFailure = true;
+                    MultiHttpCallbackWrapper.this.handleWriteFailure();
+                }
             }
         }
 
@@ -351,8 +365,10 @@ class MultiHttpCallbackWrapper extends AbstractHttpCallback {
             if (shouldRetry) {
                 long oldStartPosition = rangeInfo.getStartPosition();
                 long curStartPosition = fixStartPosition(oldStartPosition);
+                long fixDiff = curStartPosition - oldStartPosition;
 
-                addCurrentSize(curStartPosition - oldStartPosition);
+                rangeInfo.addStartPosition(fixDiff);
+                addCurrentSize(fixDiff);
 
                 HttpCall call = client.newCall(taskInfo.getResKey().concat("-").concat(String.valueOf(rangeInfo.getRangeIndex())),
                         taskInfo.getRequestUrl(),
@@ -365,7 +381,7 @@ class MultiHttpCallbackWrapper extends AbstractHttpCallback {
         }
 
         private long fixStartPosition(long oldStartPosition) {
-            return RangeUtil.fixStartPosition(taskInfo.getFilePath(), oldStartPosition, rangeInfo.getOriginalStartPosition());
+            return RangeUtil.fixStartPosition(taskInfo.getFilePath(), oldStartPosition, rangeInfo.getOriginalStartPosition(), rangeInfo.getEndPosition());
         }
     }
 }

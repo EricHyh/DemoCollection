@@ -24,6 +24,8 @@ interface IRequest {
 
     boolean isFileDownloaded(String resKey, in IFileChecker fileChecker);
 
+    boolean isFileDownloadedWithVersion(String resKey, int versionCode, in IFileChecker fileChecker);
+
     TaskInfo getTaskInfoByKey(String resKey);
 
     void startTask(in TaskInfo taskInfo, in IFileChecker fileChecker);

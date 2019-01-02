@@ -12,6 +12,7 @@ import com.hyh.download.net.HttpClient;
 import com.hyh.download.net.ntv.NativeHttpClient;
 import com.hyh.download.utils.DownloadFileHelper;
 import com.hyh.download.utils.L;
+import com.hyh.download.utils.RangeUtil;
 
 import java.util.List;
 import java.util.Map;
@@ -53,11 +54,9 @@ public abstract class SuperDownloadProxy implements IDownloadProxy {
         mExecutor = new ThreadPoolExecutor(corePoolSize, maximumPoolSize, keepAliveTime, unit, workQueue, threadFactory, handler);
     }
 
-    protected Context mContext;
+    private Context mContext;
 
     private HttpClient mClient;
-
-    private final HttpCallFactory mCallFactory = new HttpCallFactory(mExecutor);
 
     private final AliveTaskManager mAliveTaskManager = new AliveTaskManager();
 
@@ -76,15 +75,6 @@ public abstract class SuperDownloadProxy implements IDownloadProxy {
         this.mGlobalFileChecker = globalFileChecker;
         this.mDownloadCallbackImpl = new DownloadCallbackImpl();
         TaskDatabaseHelper.getInstance().init(context);
-    }
-
-    private AbstractHttpCallback getHttpCallbackImpl(TaskInfo taskInfo) {
-        int rangeNum = taskInfo.getRangeNum();
-        if (rangeNum > 1) {
-            return new MultiHttpCallbackWrapper(mContext, mClient, taskInfo, mDownloadCallbackImpl);
-        } else {
-            return new SingleHttpCallbackImpl(mContext, mClient, taskInfo, mDownloadCallbackImpl);
-        }
     }
 
     @Override
@@ -118,8 +108,6 @@ public abstract class SuperDownloadProxy implements IDownloadProxy {
 
             handlePrepare(taskInfo, fileChecker);
 
-            if (mCallFactory.isCreating(taskInfo.getResKey())) return;
-
             if (runningTaskNum >= mDownloadProxyConfig.getMaxSyncDownloadNum()) {
                 handleWaitingInQueue(taskInfo, fileChecker);
                 return;
@@ -127,35 +115,33 @@ public abstract class SuperDownloadProxy implements IDownloadProxy {
 
             mAliveTaskManager.addRunningTask(resKey);
 
-            mCallFactory.create(mClient, taskInfo, new HttpCallFactory.HttpCallCreateListener() {
-                @Override
-                public void onCreateFinish(HttpCall call) {
-                    if (!isTaskAlive(resKey)) {
-                        if (call != null) {
-                            call.cancel();
-                        }
-                        return;
-                    }
+            HttpCall httpCall;
+            AbstractHttpCallback httpCallback;
 
-                    if (call == null) {
-                        handleFailure(taskInfo);
-                        return;
-                    }
-
-                    if (call instanceof MultiHttpCall && ((MultiHttpCall) call).isHttpCallEmpty()) {
-                        handleSuccess(taskInfo);
-                        return;
-                    }
-
-                    taskInfo.setCurrentStatus(State.DOWNLOADING);
-                    insertOrUpdate(taskInfo);
-                    AbstractHttpCallback httpCallbackImpl = getHttpCallbackImpl(taskInfo);
-
-                    mAliveTaskManager.putHttpCallback(resKey, httpCallbackImpl);
-
-                    call.enqueue(httpCallbackImpl);
+            boolean byMultiThread = taskInfo.isByMultiThread();
+            int rangeNum = taskInfo.getRangeNum();
+            if (!byMultiThread) {
+                String filePath = taskInfo.getFilePath();
+                long fileLength = DownloadFileHelper.getFileLength(filePath);
+                taskInfo.setCurrentSize(fileLength);
+                taskInfo.setProgress(RangeUtil.computeProgress(fileLength, taskInfo.getTotalSize()));
+                httpCall = mClient.newCall(resKey, taskInfo.getRequestUrl(), taskInfo.getCurrentSize());
+                httpCallback = new SingleHttpCallbackImpl(mContext, mClient, taskInfo, mDownloadCallbackImpl);
+            } else {
+                if (rangeNum == 1) {
+                    String filePath = taskInfo.getFilePath();
+                    long fileLength = DownloadFileHelper.getFileLength(filePath);
+                    taskInfo.setCurrentSize(fileLength);
+                    taskInfo.setProgress(RangeUtil.computeProgress(fileLength, taskInfo.getTotalSize()));
+                    httpCall = mClient.newCall(resKey, taskInfo.getRequestUrl(), taskInfo.getCurrentSize());
+                    httpCallback = new SingleHttpCallbackImpl(mContext, mClient, taskInfo, mDownloadCallbackImpl);
+                } else {
+                    httpCall = mClient.newCall(resKey, taskInfo.getRequestUrl(), -1);
+                    httpCallback = new MultiHttpCallbackImpl(mContext, mClient, taskInfo, mDownloadCallbackImpl);
                 }
-            });
+            }
+            mAliveTaskManager.putHttpCallback(resKey, httpCallback);
+            httpCall.enqueue(httpCallback);
         }
     }
 
@@ -552,5 +538,4 @@ public abstract class SuperDownloadProxy implements IDownloadProxy {
             return mAliveTaskMap.get(resKey);
         }
     }
-
 }

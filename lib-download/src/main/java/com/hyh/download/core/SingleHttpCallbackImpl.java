@@ -82,25 +82,18 @@ class SingleHttpCallbackImpl extends AbstractHttpCallback {
             return;
         }
 
-        if (contentLength > 0
-                && (code == Constants.ResponseCode.OK || code == Constants.ResponseCode.PARTIAL_CONTENT)) {//请求数据成功
+        if (contentLength <= 0) {
+            //无法获取到文件长度的下载情况
+            taskInfo.setTotalSize(-1L);
+        } else {
             long totalSize = taskInfo.getTotalSize();
             if (totalSize <= 0) {
                 taskInfo.setTotalSize(response.contentLength() + taskInfo.getCurrentSize());
             }
-            handleDownload(response, taskInfo);
-        } else if (contentLength <= 0 && (code == Constants.ResponseCode.OK || code == Constants.ResponseCode.PARTIAL_CONTENT)) {
-            //无法获取到文件长度的下载情况
-            taskInfo.setTotalSize(-1L);
-            handleDownload(response, taskInfo);
-        } else if (code == Constants.ResponseCode.NOT_FOUND) {
-            //未找到文件
-            notifyFailure();
-        } else {
-            if (!retryDownload()) {
-                notifyFailure();
-            }
         }
+
+        handleConnected(response);
+        handleDownload(response, taskInfo);
     }
 
     @Override
@@ -126,17 +119,21 @@ class SingleHttpCallbackImpl extends AbstractHttpCallback {
         return "bytes".equals(acceptRanges);
     }
 
-    private void handleDownload(HttpResponse response, TaskInfo taskInfo) {
+
+    private void handleConnected(HttpResponse response) {
+        DownloadFileHelper.fixFilePath(response, taskInfo);
         taskInfo.setTargetUrl(response.url());
         taskInfo.setCacheRequestUrl(taskInfo.getRequestUrl());
         taskInfo.setCacheTargetUrl(response.url());
-        String filePath = DownloadFileHelper.fixFilePath(response, taskInfo);
-
+        taskInfo.setETag(response.header(NetworkHelper.ETAG));
+        taskInfo.setLastModified(response.header(NetworkHelper.LAST_MODIFIED));
         downloadCallback.onConnected(taskInfo, response.headers());
+    }
 
+    private void handleDownload(HttpResponse response, TaskInfo taskInfo) {
         final long currentSize = taskInfo.getCurrentSize();
         final long totalSize = taskInfo.getTotalSize();
-        mFileWrite = new SingleFileWriteTask(filePath, currentSize, totalSize);
+        mFileWrite = new SingleFileWriteTask(taskInfo.getFilePath(), currentSize, totalSize);
         mFileWrite.write(response, new SingleFileWriteListener(currentSize, totalSize));
     }
 
@@ -201,7 +198,11 @@ class SingleHttpCallbackImpl extends AbstractHttpCallback {
 
         @Override
         public void onWriteLengthError(long startPosition, long endPosition) {
-
+            L.d("SingleHttpCallbackImpl: onWriteLengthError startPosition = " + startPosition + ", endPosition = " + endPosition);
+            DownloadFileHelper.deleteDownloadFile(taskInfo);
+            if (!retryDownload()) {
+                notifyFailure();
+            }
         }
     }
 

@@ -14,13 +14,13 @@ import java.util.Set;
  * @description
  * @data 2017/7/12
  */
-class MultiHttpCall implements HttpCall {
+class MultiHttpCallWrapper implements HttpCall {
 
     private Map<String, HttpCall> httpCallMap;
 
     private List<RangeInfo> rangeInfoList;
 
-    MultiHttpCall(Map<String, HttpCall> httpCallMap, List<RangeInfo> rangeInfoList) {
+    MultiHttpCallWrapper(Map<String, HttpCall> httpCallMap, List<RangeInfo> rangeInfoList) {
         this.httpCallMap = httpCallMap;
         this.rangeInfoList = rangeInfoList;
     }

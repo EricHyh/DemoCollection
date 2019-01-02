@@ -1,5 +1,10 @@
 package com.hyh.download.utils;
 
+import android.text.TextUtils;
+
+import com.hyh.download.core.RangeInfo;
+
+import java.io.FileNotFoundException;
 import java.io.RandomAccessFile;
 
 /**
@@ -37,18 +42,18 @@ public class RangeUtil {
         return endPositions;
     }
 
-    public static long[] getCacheStartPositions(String filePath, long[] originalStartPositions) {
+    public static long[] getCacheStartPositions(String filePath, long[] originalStartPositions, long[] endPositions) {
         String tempFilePath = DownloadFileHelper.getTempFilePath(filePath);
         long[] startPositions = RangeUtil.readStartPositions(tempFilePath, originalStartPositions.length);
-        return fixStartPositions(filePath, startPositions, originalStartPositions);
+        return fixStartPositions(filePath, startPositions, originalStartPositions, endPositions);
     }
 
-    private static long[] fixStartPositions(String filePath, long[] startPositions, long[] originalStartPositions) {
+    private static long[] fixStartPositions(String filePath, long[] startPositions, long[] originalStartPositions, long[] endPositions) {
         RandomAccessFile fileRaf = null;
         try {
             fileRaf = new RandomAccessFile(filePath, "rw");
             for (int index = 0; index < startPositions.length; index++) {
-                startPositions[index] = fixStartPosition(fileRaf, startPositions[index], originalStartPositions[index]);
+                startPositions[index] = fixStartPosition(fileRaf, startPositions[index], originalStartPositions[index], endPositions[index]);
             }
             return startPositions;
         } catch (Exception e) {
@@ -59,9 +64,12 @@ public class RangeUtil {
     }
 
 
-    public static long fixStartPosition(String filePath, long oldStartPosition, long originalStartPosition) {
+    public static long fixStartPosition(String filePath, long oldStartPosition, long originalStartPosition, long endPosition) {
         if (oldStartPosition <= originalStartPosition) {
             return originalStartPosition;
+        }
+        if (oldStartPosition > endPosition + 1) {
+            oldStartPosition = endPosition + 1;
         }
         RandomAccessFile raf = null;
         try {
@@ -87,9 +95,12 @@ public class RangeUtil {
     }
 
 
-    private static long fixStartPosition(RandomAccessFile fileRaf, long oldStartPosition, long originalStartPosition) {
+    private static long fixStartPosition(RandomAccessFile fileRaf, long oldStartPosition, long originalStartPosition, long endPosition) {
         if (oldStartPosition <= originalStartPosition) {
             return originalStartPosition;
+        }
+        if (oldStartPosition > endPosition + 1) {
+            oldStartPosition = endPosition + 1;
         }
         try {
             for (; ; ) {
@@ -147,5 +158,21 @@ public class RangeUtil {
             return -1;
         }
         return Math.round(currentSize * 100.0f / totalSize);
+    }
+
+    public static void writeStartPosition(RangeInfo rangeInfo) {
+        String tempFilePath = rangeInfo.getTempFilePath();
+        if (TextUtils.isEmpty(tempFilePath)) {
+            return;
+        }
+        RandomAccessFile raf = null;
+        try {
+            raf = new RandomAccessFile(tempFilePath, "rws");
+            raf.seek(rangeInfo.getRangeIndex() * 8);
+            raf.writeLong(rangeInfo.getStartPosition());
+            raf.close();
+        } catch (Exception e) {
+            StreamUtil.close(raf);
+        }
     }
 }

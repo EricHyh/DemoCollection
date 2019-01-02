@@ -75,6 +75,12 @@ public class FDLService extends Service {
         }
 
         @Override
+        public boolean isFileDownloadedWithVersion(String resKey, int versionCode, IFileChecker fileChecker) throws RemoteException {
+            waitingForInitProxy();
+            return mServiceProxy.isFileDownloaded(resKey, versionCode, fileChecker);
+        }
+
+        @Override
         public TaskInfo getTaskInfoByKey(String resKey) throws RemoteException {
             waitingForInitProxy();
             return mServiceProxy.getTaskInfoByKey(resKey);

@@ -222,8 +222,8 @@ public class FileDownloader {
             if (!isRequestChanged(request, taskInfo)) {
                 fixRequestInfo(request, taskInfo);
             } else {
-                if (isFileDownloaded(request.key(), request.versionCode(), request.fileChecker())) {
-
+                if (isFileDownloaded(request.key(), request.fileChecker())) {
+                    taskInfo = newTaskInfo(request);
                 } else {
                     DownloadFileHelper.deleteDownloadFile(taskInfo);
                     taskInfo = newTaskInfo(request);

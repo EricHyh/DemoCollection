@@ -79,11 +79,14 @@ class MultiFileWriteTask implements FileWrite {
             isException = true;
         }
         StreamUtil.close(bos, fileRaf, tempFileRaf, response);
-        if (startPosition == endPosition + 1) {
-            listener.onWriteFinish();
-        } else if (isException) {
+        if (stop) {
+            return;
+        }
+        if (isException) {
             listener.onWriteFailure();
-        } else if (!stop) {
+        } else if (startPosition == endPosition + 1) {
+            listener.onWriteFinish();
+        } else {
             //下载长度有误
             listener.onWriteLengthError(startPosition, endPosition);
         }

@@ -13,8 +13,6 @@ import com.hyh.download.utils.NetworkHelper;
 
 public class RetryStrategyImpl implements IRetryStrategy {
 
-    private final Object mLock = new Object();
-
     private Context context;
 
     private boolean isPermitRetryInMobileData;
@@ -35,12 +33,10 @@ public class RetryStrategyImpl implements IRetryStrategy {
 
     private volatile boolean cancel;
 
-
     RetryStrategyImpl(Context context, boolean isPermitRetryInMobileData) {
         this.context = context;
         this.isPermitRetryInMobileData = isPermitRetryInMobileData;
     }
-
 
     public RetryStrategyImpl(Context context, boolean isPermitRetryInMobileData, int maxRetryTimes, int totalMaxRetryTimes, int searchSuitableNetMaxTimes, long retryBaseDelay, long searchSuitableNetDelay) {
         this.context = context;
@@ -78,10 +74,8 @@ public class RetryStrategyImpl implements IRetryStrategy {
     @Override
     public boolean shouldRetry(onWaitingListener listener) {
         for (; ; ) {
-            synchronized (mLock) {
-                if (cancel) {
-                    return false;
-                }
+            if (cancel) {
+                return false;
             }
             if (currentRetryTimes >= maxRetryTimes || totalRetryTimes >= totalMaxRetryTimes) {
                 return false;
@@ -98,12 +92,7 @@ public class RetryStrategyImpl implements IRetryStrategy {
                     listener.onWaiting();
                     SystemClock.sleep(2 * retryBaseDelay);
                 }
-                synchronized (mLock) {
-                    if (cancel) {
-                        return false;
-                    }
-                }
-                return true;
+                return !cancel;
             }
         }
     }
@@ -118,8 +107,6 @@ public class RetryStrategyImpl implements IRetryStrategy {
 
     @Override
     public void cancel() {
-        synchronized (mLock) {
-            cancel = true;
-        }
+        cancel = true;
     }
 }
