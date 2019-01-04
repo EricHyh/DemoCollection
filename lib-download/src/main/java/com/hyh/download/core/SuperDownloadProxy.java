@@ -301,6 +301,13 @@ public abstract class SuperDownloadProxy implements IDownloadProxy {
         handleDatabase(taskInfo);
     }
 
+    private void handleConnected(TaskInfo taskInfo, Map<String, List<String>> responseHeaderFields) {
+        if (!isTaskAlive(taskInfo.getResKey())) return;
+
+        taskInfo.setCurrentStatus(State.CONNECTED);
+
+    }
+
     private void handleDownloading(TaskInfo taskInfo) {
         if (!isTaskAlive(taskInfo.getResKey())) return;
 
@@ -386,6 +393,10 @@ public abstract class SuperDownloadProxy implements IDownloadProxy {
         startNextTask();
     }
 
+    private void post() {
+
+    }
+
     protected abstract void handleCallback(TaskInfo taskInfo);
 
     private List<String> mDownloadingTasks = new CopyOnWriteArrayList<>();
@@ -413,7 +424,7 @@ public abstract class SuperDownloadProxy implements IDownloadProxy {
 
         @Override
         public void onConnected(TaskInfo taskInfo, Map<String, List<String>> responseHeaderFields) {
-
+            handleConnected(taskInfo, responseHeaderFields);
         }
 
         @Override
