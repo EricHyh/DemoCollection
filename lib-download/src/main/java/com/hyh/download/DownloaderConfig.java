@@ -18,6 +18,8 @@ public class DownloaderConfig {
 
     private FileChecker globalFileChecker;
 
+    private int threadMode;
+
     private DownloaderConfig() {
     }
 
@@ -41,6 +43,10 @@ public class DownloaderConfig {
         return globalFileChecker;
     }
 
+    public int getThreadMode() {
+        return threadMode;
+    }
+
     public static class Builder {
 
         private boolean byService = false;
@@ -52,6 +58,8 @@ public class DownloaderConfig {
         private String defaultFileDir;
 
         private FileChecker globalFileChecker;
+
+        private int threadMode = ThreadMode.UI;
 
         public Builder() {
         }
@@ -81,6 +89,11 @@ public class DownloaderConfig {
             return this;
         }
 
+        public Builder threadMode(int threadMode) {
+            this.threadMode = threadMode;
+            return this;
+        }
+
         public DownloaderConfig build() {
             DownloaderConfig downloaderConfig = new DownloaderConfig();
             downloaderConfig.byService = this.byService;
@@ -88,6 +101,7 @@ public class DownloaderConfig {
             downloaderConfig.maxSyncDownloadNum = this.maxSyncDownloadNum;
             downloaderConfig.defaultFileDir = this.defaultFileDir;
             downloaderConfig.globalFileChecker = this.globalFileChecker;
+            downloaderConfig.threadMode = this.threadMode;
             return downloaderConfig;
         }
     }

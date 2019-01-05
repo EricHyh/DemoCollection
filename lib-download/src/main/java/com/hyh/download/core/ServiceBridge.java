@@ -83,7 +83,8 @@ public class ServiceBridge implements IDownloadProxy {
     public void initProxy(Runnable afterInit) {
         waitingForService();
         try {
-            mServiceAgent.initDownloadProxy(new DownloadProxyConfig(mDownloaderConfig.getMaxSyncDownloadNum()),
+            mServiceAgent.initDownloadProxy(
+                    new DownloadProxyConfig(mDownloaderConfig.getMaxSyncDownloadNum(), mDownloaderConfig.getThreadMode()),
                     mDownloaderConfig.getGlobalFileChecker());
             afterInit.run();
         } catch (Exception e) {

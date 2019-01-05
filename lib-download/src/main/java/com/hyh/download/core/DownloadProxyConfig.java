@@ -11,16 +11,24 @@ public class DownloadProxyConfig implements Parcelable {
 
     private int maxSyncDownloadNum;
 
-    public DownloadProxyConfig(int maxSyncDownloadNum) {
+    private int threadMode;
+
+    public DownloadProxyConfig(int maxSyncDownloadNum, int threadMode) {
         this.maxSyncDownloadNum = maxSyncDownloadNum;
+        this.threadMode = threadMode;
     }
 
     public int getMaxSyncDownloadNum() {
         return maxSyncDownloadNum;
     }
 
+    public int getThreadMode() {
+        return threadMode;
+    }
+
     protected DownloadProxyConfig(Parcel in) {
         maxSyncDownloadNum = in.readInt();
+        threadMode = in.readInt();
     }
 
     public static final Creator<DownloadProxyConfig> CREATOR = new Creator<DownloadProxyConfig>() {
@@ -43,5 +51,6 @@ public class DownloadProxyConfig implements Parcelable {
     @Override
     public void writeToParcel(Parcel parcel, int i) {
         parcel.writeInt(maxSyncDownloadNum);
+        parcel.writeInt(threadMode);
     }
 }

@@ -19,7 +19,9 @@ public class LocalDownloadProxyImpl extends SuperDownloadProxy implements IDownl
     private Callback mCallback;
 
     public LocalDownloadProxyImpl(Context context, DownloaderConfig downloaderConfig, Callback callback) {
-        super(context, new DownloadProxyConfig(downloaderConfig.getMaxSyncDownloadNum()), downloaderConfig.getGlobalFileChecker());
+        super(context,
+                new DownloadProxyConfig(downloaderConfig.getMaxSyncDownloadNum(), downloaderConfig.getThreadMode()),
+                downloaderConfig.getGlobalFileChecker());
         mCallback = callback;
     }
 

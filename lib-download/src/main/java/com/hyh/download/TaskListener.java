@@ -7,7 +7,7 @@ import java.util.Map;
  * Created by Eric_He on 2019/1/1.
  */
 
-public interface DownloadListener {
+public interface TaskListener {
 
     void onPrepare(DownloadInfo downloadInfo);
 

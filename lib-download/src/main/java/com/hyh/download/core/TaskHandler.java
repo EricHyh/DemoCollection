@@ -5,10 +5,12 @@ import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Looper;
 import android.os.Message;
+import android.os.RemoteException;
 
 import com.hyh.download.IFileChecker;
 import com.hyh.download.State;
 import com.hyh.download.ThreadMode;
+import com.hyh.download.db.TaskDatabaseHelper;
 import com.hyh.download.db.bean.TaskInfo;
 import com.hyh.download.net.HttpCall;
 import com.hyh.download.net.HttpClient;
@@ -22,7 +24,7 @@ import java.util.Map;
  * Created by Eric_He on 2019/1/4.
  */
 
-public class TaskHandler {
+public class TaskHandler implements Comparable<TaskHandler> {
 
     private final Object mLock = new Object();
 
@@ -38,6 +40,8 @@ public class TaskHandler {
 
     private IFileChecker mFileChecker;
 
+    private RunningTaskStopListener mRunningTaskStopListener;
+
     private int mThreadMode;
 
     private Handler mPostHandler;
@@ -46,17 +50,27 @@ public class TaskHandler {
 
     private DownloadCallbackImpl mDownloadCallback = new DownloadCallbackImpl();
 
+    private volatile boolean mIsPrepared;
+
+    private volatile boolean mIsRetryInvalidFileTask;
+
+    public TaskHandler(String resKey) {
+        mResKey = resKey;
+    }
+
     public TaskHandler(Context context,
                        HttpClient client,
                        TaskInfo taskInfo,
                        IFileChecker globalFileChecker,
                        IFileChecker fileChecker,
+                       RunningTaskStopListener listener,
                        int threadMode) {
         mContext = context;
         mClient = client;
         mTaskInfo = taskInfo;
         mGlobalFileChecker = globalFileChecker;
         mFileChecker = fileChecker;
+        mRunningTaskStopListener = listener;
         mThreadMode = threadMode;
 
         if (mThreadMode == ThreadMode.UI) {
@@ -66,6 +80,10 @@ public class TaskHandler {
             handlerThread.start();
             mPostHandler = new Handler(handlerThread.getLooper(), new HandlerCallback());
         }
+    }
+
+    public String getResKey() {
+        return mResKey;
     }
 
     public void prepare() {
@@ -112,11 +130,12 @@ public class TaskHandler {
                     httpCallback = new MultiHttpCallbackImpl(mContext, mClient, mTaskInfo, mDownloadCallback);
                 }
             }
+            mHttpCallback = httpCallback;
             httpCall.enqueue(httpCallback);
         }
     }
 
-    public void stop() {
+    public void pause() {
         synchronized (mLock) {
             final AbstractHttpCallback callback = mHttpCallback;
             if (callback != null) {
@@ -166,7 +185,86 @@ public class TaskHandler {
     }
 
     private void handleSuccess() {
+        synchronized (mLock) {
+            if (!mIsPrepared) return;
+        }
 
+
+        boolean isSuccess = true;
+        if (!checkFile()) {
+            isSuccess = false;
+
+            DownloadFileHelper.deleteDownloadFile(mTaskInfo);
+            TaskDatabaseHelper.getInstance().insertOrUpdate(mTaskInfo);
+
+            if (!mIsRetryInvalidFileTask && mTaskInfo.isPermitRetryInvalidFileTask()) {
+                mIsRetryInvalidFileTask = true;
+                /*mAliveTaskManager.removeTask(resKey);
+                startTask(taskInfo, taskWrapper.fileChecker);*/
+                start();
+
+            } else {
+                handleFailure();
+            }
+        }
+
+        if (isSuccess) {
+
+            mTaskInfo.setCurrentStatus(State.SUCCESS);
+
+            if (mRunningTaskStopListener != null) {
+                mRunningTaskStopListener.onFinish(mTaskInfo);
+            }
+
+            /*handleCallback(taskInfo);
+            handleDatabase(taskInfo);
+            startNextTask();*/
+        }
+    }
+
+
+    private boolean checkFile() {
+        if (mFileChecker != null) {
+            try {
+                return mFileChecker.isValidFile(mTaskInfo.toDownloadInfo());
+            } catch (RemoteException e) {
+                //
+            }
+        }
+        if (mGlobalFileChecker != null) {
+            try {
+                return mGlobalFileChecker.isValidFile(mTaskInfo.toDownloadInfo());
+            } catch (RemoteException e) {
+                //
+            }
+        }
+        return true;
+    }
+
+    @Override
+    public boolean equals(Object object) {
+        if (this == object) return true;
+        if (object == null || getClass() != object.getClass()) return false;
+        TaskHandler that = (TaskHandler) object;
+        return mResKey.equals(that.mResKey);
+    }
+
+    @Override
+    public int compareTo(TaskHandler taskHandler) {
+        if (taskHandler == null) {
+            return 1;
+        }
+        if (this.mTaskInfo == null) {
+            return 1;
+        }
+        TaskHandler that = taskHandler;
+        if (that.mTaskInfo == null) {
+            return 1;
+        }
+        if (this.mTaskInfo.getPriority() > that.mTaskInfo.getPriority()) {
+            return -1;
+        }
+        return 1;
     }
 
     private class HandlerCallback implements Handler.Callback {
@@ -225,5 +323,11 @@ public class TaskHandler {
         public void onSuccess(TaskInfo taskInfo) {
             handleSuccess();
         }
+    }
+
+    public interface RunningTaskStopListener {
+
+        void onFinish(TaskInfo taskInfo);
+
     }
 }
