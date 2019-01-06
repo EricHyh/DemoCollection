@@ -2,6 +2,7 @@ package com.hyh.download.core;
 
 import com.hyh.download.DownloadInfo;
 import com.hyh.download.TaskListener;
+import com.hyh.download.utils.L;
 
 import java.util.List;
 import java.util.Map;
@@ -83,6 +84,7 @@ public class TaskListenerManager implements TaskListener {
 
     @Override
     public void onDownloading(String resKey, long totalSize, long currentSize, int progress, float speed) {
+        L.d("onDownloading: " + resKey + ", progress = " + progress);
         List<TaskListener> singleListeners = getSingleListeners(resKey);
         if (singleListeners != null) {
             for (TaskListener listener : singleListeners) {
@@ -127,6 +129,7 @@ public class TaskListenerManager implements TaskListener {
     @Override
     public void onSuccess(final DownloadInfo downloadInfo) {
         String resKey = downloadInfo.getResKey();
+        L.d("onSuccess: " + resKey);
         List<TaskListener> singleListeners = getSingleListeners(resKey);
         if (singleListeners != null) {
             for (TaskListener listener : singleListeners) {

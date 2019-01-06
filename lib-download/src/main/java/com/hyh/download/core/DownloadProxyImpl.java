@@ -246,25 +246,26 @@ public class DownloadProxyImpl implements IDownloadProxy {
     }
 
     private void startNextTask() {
+        L.d("startNextTask execute run");
         if (mTaskHandlerManager.getRunningTaskNum() > mDownloadProxyConfig.getMaxSyncDownloadNum()) {
+            L.d("running task is " + mTaskHandlerManager.getRunningTaskNum());
             return;
         }
         synchronized (mTaskLock) {
-            L.d("startNextTask execute run");
             if (mTaskHandlerManager.getRunningTaskNum() > mDownloadProxyConfig.getMaxSyncDownloadNum()) {
+                L.d("running task is " + mTaskHandlerManager.getRunningTaskNum());
                 return;
             }
             TaskHandler taskHandler = mTaskHandlerManager.pollTask();
             if (taskHandler != null) {
+                L.d("startNextTask resKey is " + taskHandler.getResKey());
                 mTaskHandlerManager.addRunningTask(taskHandler.getResKey());
                 taskHandler.run();
-                L.d("startNextTask resKey is " + taskHandler.getResKey());
             } else {
                 if (mTaskHandlerManager.getRunningTaskNum() == 0) {
                     L.d("startNextTask: 没任务了");
                 }
             }
-            L.d("startNextTask execute end");
         }
     }
 

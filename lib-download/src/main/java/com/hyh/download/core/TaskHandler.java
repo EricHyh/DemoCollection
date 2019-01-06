@@ -33,7 +33,7 @@ public class TaskHandler implements Comparable<TaskHandler> {
 
     private HttpClient mClient;
 
-    private String mResKey;
+    private final String mResKey;
 
     private TaskInfo mTaskInfo;
 
@@ -69,6 +69,7 @@ public class TaskHandler implements Comparable<TaskHandler> {
                 int threadMode) {
         mContext = context;
         mClient = client;
+        mResKey = taskInfo.getResKey();
         mTaskInfo = taskInfo;
         mFileChecker = fileChecker;
         mInnerTaskListener = innerTaskListener;

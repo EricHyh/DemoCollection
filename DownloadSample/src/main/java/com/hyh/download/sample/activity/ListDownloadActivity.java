@@ -8,6 +8,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.DividerItemDecoration;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -24,6 +25,7 @@ import com.hyh.download.sample.widget.ProgressButton;
 import com.yly.mob.ssp.downloadsample.R;
 
 import java.io.File;
+import java.text.DecimalFormat;
 import java.util.List;
 import java.util.Map;
 
@@ -138,14 +140,17 @@ public class ListDownloadActivity extends AppCompatActivity {
 
             if (downloadInfo != null) {
                 mDownloadStatus = downloadInfo.getCurrentStatus();
-                mName.setText(new File(downloadInfo.getFilePath()).getName());
+                String filePath = downloadInfo.getFilePath();
+                if(!TextUtils.isEmpty(filePath)){
+                    mName.setText(new File(filePath).getName());
+                }
 
                 long totalSize = downloadInfo.getTotalSize();
                 float mb = totalSize / 1024.0f / 1024.0f;
                 mSize.setText(mb + " MB");
 
                 mProgress.setProgress(downloadInfo.getProgress());
-                mSpeed.setText(getSpeedStr(downloadInfo));
+                mSpeed.setText(0.0 + "K/s");
                 String text = getProgressBtnText(mDownloadStatus);
                 mProgress.setText(text);
             } else {
@@ -165,7 +170,7 @@ public class ListDownloadActivity extends AppCompatActivity {
             mDownloadStatus = downloadInfo.getCurrentStatus();
             mProgress.setText("准备中");
             mProgress.setProgress(downloadInfo.getProgress());
-            mSpeed.setText(getSpeedStr(downloadInfo));
+            mSpeed.setText(getSpeedStr(0));
         }
 
 
@@ -174,30 +179,30 @@ public class ListDownloadActivity extends AppCompatActivity {
             mDownloadStatus = downloadInfo.getCurrentStatus();
             mProgress.setText("等待中");
             mProgress.setProgress(downloadInfo.getProgress());
-            mSpeed.setText(getSpeedStr(downloadInfo));
+            mSpeed.setText(getSpeedStr(0));
         }
 
         @Override
         public void onConnected(DownloadInfo downloadInfo, Map<String, List<String>> responseHeaderFields) {
-
+            mName.setText(new File(downloadInfo.getFilePath()).getName());
+            float mb = downloadInfo.getTotalSize() / 1024.0f / 1024.0f;
+            mSize.setText(mb + " MB");
         }
 
         @Override
         public void onDownloading(String resKey, long totalSize, long currentSize, int progress, float speed) {
-            /*mDownloadStatus = downloadInfo.getCurrentStatus();
+            mDownloadStatus = State.DOWNLOADING;
             mProgress.setText("下载中");
-            mProgress.setProgress(downloadInfo.getProgress());
-            long totalSize = downloadInfo.getTotalSize();
-            float mb = totalSize / 1024.0f / 1024.0f;
-
-            mName.setText(new File(downloadInfo.getFilePath()).getName());
-            mSize.setText(mb + " MB");
-            mSpeed.setText(getSpeedStr(downloadInfo));*/
+            mProgress.setProgress(progress);
+            mSpeed.setText(getSpeedStr(speed));
         }
 
         @Override
         public void onRetrying(DownloadInfo downloadInfo, boolean deleteFile) {
-
+            mDownloadStatus = downloadInfo.getCurrentStatus();
+            mProgress.setText("重试中");
+            mProgress.setProgress(downloadInfo.getProgress());
+            mSpeed.setText(getSpeedStr(0));
         }
 
         @Override
@@ -205,7 +210,7 @@ public class ListDownloadActivity extends AppCompatActivity {
             mDownloadStatus = downloadInfo.getCurrentStatus();
             mProgress.setText("继续");
             mProgress.setProgress(downloadInfo.getProgress());
-            mSpeed.setText(getSpeedStr(downloadInfo));
+            mSpeed.setText(getSpeedStr(0));
         }
 
         @Override
@@ -213,7 +218,7 @@ public class ListDownloadActivity extends AppCompatActivity {
             mDownloadStatus = downloadInfo.getCurrentStatus();
             mProgress.setText("下载");
             mProgress.setProgress(downloadInfo.getProgress());
-            mSpeed.setText(getSpeedStr(downloadInfo));
+            mSpeed.setText(getSpeedStr(0));
         }
 
         @Override
@@ -221,7 +226,7 @@ public class ListDownloadActivity extends AppCompatActivity {
             mDownloadStatus = downloadInfo.getCurrentStatus();
             mProgress.setText("成功");
             mProgress.setProgress(downloadInfo.getProgress());
-            mSpeed.setText(getSpeedStr(downloadInfo));
+            mSpeed.setText(getSpeedStr(0));
         }
 
         @Override
@@ -229,7 +234,7 @@ public class ListDownloadActivity extends AppCompatActivity {
             mDownloadStatus = downloadInfo.getCurrentStatus();
             mProgress.setText("重试");
             mProgress.setProgress(downloadInfo.getProgress());
-            mSpeed.setText(getSpeedStr(downloadInfo));
+            mSpeed.setText(getSpeedStr(0));
         }
 
         @Override
@@ -280,11 +285,11 @@ public class ListDownloadActivity extends AppCompatActivity {
                 mProgress.setText(text);
                 int progress = downloadInfo.getProgress();
                 mProgress.setProgress(progress);
-                mSpeed.setText(getSpeedStr(downloadInfo));
+                mSpeed.setText(getSpeedStr(0));
             } else {
                 mProgress.setText("下载");
                 mProgress.setProgress(0);
-                mSpeed.setText(0.0 + "K/s");
+                mSpeed.setText(getSpeedStr(0));
             }
 
             FileDownloader.getInstance().addDownloadListener(url, this);
@@ -292,18 +297,15 @@ public class ListDownloadActivity extends AppCompatActivity {
         }
 
         @NonNull
-        private String getSpeedStr(DownloadInfo downloadInfo) {
-            /*float speed = downloadInfo.getSpeed();
+        private String getSpeedStr(float speed) {
             if (speed >= 1024) {
                 DecimalFormat decimalFormat = new DecimalFormat("0.0");
                 return decimalFormat.format(speed / 1024.0f) + "M/s";
             } else {
                 DecimalFormat decimalFormat = new DecimalFormat("0.0");
                 return decimalFormat.format(speed) + "K/s";
-            }*/
-            return null;
+            }
         }
-
 
         @NonNull
         private String getProgressBtnText(int status) {
