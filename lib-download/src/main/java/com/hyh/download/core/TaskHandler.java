@@ -5,12 +5,13 @@ import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Looper;
 import android.os.Message;
-import android.os.RemoteException;
+import android.os.SystemClock;
 
+import com.hyh.download.DownloadInfo;
 import com.hyh.download.IFileChecker;
 import com.hyh.download.State;
+import com.hyh.download.TaskListener;
 import com.hyh.download.ThreadMode;
-import com.hyh.download.db.TaskDatabaseHelper;
 import com.hyh.download.db.bean.TaskInfo;
 import com.hyh.download.net.HttpCall;
 import com.hyh.download.net.HttpClient;
@@ -36,11 +37,11 @@ public class TaskHandler implements Comparable<TaskHandler> {
 
     private TaskInfo mTaskInfo;
 
-    private IFileChecker mGlobalFileChecker;
-
     private IFileChecker mFileChecker;
 
-    private RunningTaskStopListener mRunningTaskStopListener;
+    private InnerTaskListener mInnerTaskListener;
+
+    private TaskListener mOuterTaskListener;
 
     private int mThreadMode;
 
@@ -50,59 +51,81 @@ public class TaskHandler implements Comparable<TaskHandler> {
 
     private DownloadCallbackImpl mDownloadCallback = new DownloadCallbackImpl();
 
+    private Speed mSpeed = new Speed();
+
     private volatile boolean mIsPrepared;
+    private HandlerThread mNotifyThread;
 
-    private volatile boolean mIsRetryInvalidFileTask;
-
-    public TaskHandler(String resKey) {
+    TaskHandler(String resKey) {
         mResKey = resKey;
     }
 
-    public TaskHandler(Context context,
-                       HttpClient client,
-                       TaskInfo taskInfo,
-                       IFileChecker globalFileChecker,
-                       IFileChecker fileChecker,
-                       RunningTaskStopListener listener,
-                       int threadMode) {
+    TaskHandler(Context context,
+                HttpClient client,
+                TaskInfo taskInfo,
+                IFileChecker fileChecker,
+                InnerTaskListener innerTaskListener,
+                TaskListener outerTaskListener,
+                int threadMode) {
         mContext = context;
         mClient = client;
         mTaskInfo = taskInfo;
-        mGlobalFileChecker = globalFileChecker;
         mFileChecker = fileChecker;
-        mRunningTaskStopListener = listener;
+        mInnerTaskListener = innerTaskListener;
+        mOuterTaskListener = outerTaskListener;
         mThreadMode = threadMode;
 
         if (mThreadMode == ThreadMode.UI) {
             mPostHandler = new Handler(Looper.getMainLooper(), new HandlerCallback());
         } else if (mThreadMode == ThreadMode.BACKGROUND) {
-            HandlerThread handlerThread = new HandlerThread("TaskHandler-" + mResKey.hashCode());
-            handlerThread.start();
-            mPostHandler = new Handler(handlerThread.getLooper(), new HandlerCallback());
+            mNotifyThread = new HandlerThread("TaskHandler-" + mResKey.hashCode());
+            mNotifyThread.start();
+            mPostHandler = new Handler(mNotifyThread.getLooper(), new HandlerCallback());
         }
     }
 
-    public String getResKey() {
+    String getResKey() {
         return mResKey;
     }
 
-    public void prepare() {
+    void prepare() {
         synchronized (mLock) {
+            mIsPrepared = true;
+
+            mTaskInfo.setCurrentStatus(State.PREPARE);
+
+            mInnerTaskListener.onPrepare(mTaskInfo);
+
+            DownloadInfo downloadInfo = mTaskInfo.toDownloadInfo();
             if (mPostHandler != null) {
-                mPostHandler.sendMessage(mPostHandler.obtainMessage(State.PREPARE));
+                Message message = mPostHandler.obtainMessage(State.PREPARE);
+                message.obj = downloadInfo;
+                sendMessage(message);
             } else {
-                handlePrepare();
+                notifyPrepare(downloadInfo);
             }
         }
     }
 
-    public void waiting() {
+    void waiting() {
         synchronized (mLock) {
-            handleWaitingInQueue();
+
+            mTaskInfo.setCurrentStatus(State.WAITING_IN_QUEUE);
+
+            mInnerTaskListener.onWaitingInQueue(mTaskInfo);
+
+            DownloadInfo downloadInfo = mTaskInfo.toDownloadInfo();
+            if (mPostHandler != null) {
+                Message message = mPostHandler.obtainMessage(State.WAITING_IN_QUEUE);
+                message.obj = downloadInfo;
+                sendMessage(message);
+            } else {
+                notifyWaitingInQueue(downloadInfo);
+            }
         }
     }
 
-    public void start() {
+    void run() {
         synchronized (mLock) {
 
             HttpCall httpCall;
@@ -114,20 +137,18 @@ public class TaskHandler implements Comparable<TaskHandler> {
                 String filePath = mTaskInfo.getFilePath();
                 long fileLength = DownloadFileHelper.getFileLength(filePath);
                 mTaskInfo.setCurrentSize(fileLength);
-                mTaskInfo.setProgress(RangeUtil.computeProgress(fileLength, mTaskInfo.getTotalSize()));
                 httpCall = mClient.newCall(mResKey, mTaskInfo.getRequestUrl(), mTaskInfo.getCurrentSize());
-                httpCallback = new SingleHttpCallbackImpl(mContext, mClient, mTaskInfo, mDownloadCallback);
+                httpCallback = new SingleHttpCallbackImpl(mContext, mClient, mTaskInfo, mDownloadCallback, mFileChecker);
             } else {
                 if (rangeNum == 1) {
                     String filePath = mTaskInfo.getFilePath();
                     long fileLength = DownloadFileHelper.getFileLength(filePath);
                     mTaskInfo.setCurrentSize(fileLength);
-                    mTaskInfo.setProgress(RangeUtil.computeProgress(fileLength, mTaskInfo.getTotalSize()));
                     httpCall = mClient.newCall(mResKey, mTaskInfo.getRequestUrl(), mTaskInfo.getCurrentSize());
-                    httpCallback = new SingleHttpCallbackImpl(mContext, mClient, mTaskInfo, mDownloadCallback);
+                    httpCallback = new SingleHttpCallbackImpl(mContext, mClient, mTaskInfo, mDownloadCallback, mFileChecker);
                 } else {
                     httpCall = mClient.newCall(mResKey, mTaskInfo.getRequestUrl(), -1);
-                    httpCallback = new MultiHttpCallbackImpl(mContext, mClient, mTaskInfo, mDownloadCallback);
+                    httpCallback = new MultiHttpCallbackImpl(mContext, mClient, mTaskInfo, mDownloadCallback, mFileChecker);
                 }
             }
             mHttpCallback = httpCallback;
@@ -135,110 +156,110 @@ public class TaskHandler implements Comparable<TaskHandler> {
         }
     }
 
-    public void pause() {
+    void pause() {
         synchronized (mLock) {
+            mIsPrepared = false;
+
             final AbstractHttpCallback callback = mHttpCallback;
             if (callback != null) {
                 callback.cancel();
             }
-            handlePause();
+
+            mTaskInfo.setCurrentStatus(State.PAUSE);
+            DownloadInfo downloadInfo = mTaskInfo.toDownloadInfo();
+
+            mInnerTaskListener.onPause(mTaskInfo);
+
+            if (mPostHandler != null) {
+                Message message = mPostHandler.obtainMessage(State.PAUSE);
+                message.obj = downloadInfo;
+                sendMessage(message);
+            } else {
+                notifyPause(downloadInfo);
+            }
         }
     }
 
-    public void delete() {
+    void delete() {
         synchronized (mLock) {
+            mIsPrepared = false;
+
             AbstractHttpCallback callback = mHttpCallback;
             if (callback != null) {
                 callback.cancel();
             }
-            handleDelete();
-        }
-    }
 
+            mTaskInfo.setCurrentStatus(State.DELETE);
 
-    private void handlePrepare() {
+            mInnerTaskListener.onDelete(mTaskInfo);
 
-    }
-
-    private void handleWaitingInQueue() {
-
-    }
-
-    private void handleConnected(Map<String, List<String>> responseHeaderFields) {
-
-    }
-
-    private void handleDownloading() {
-
-    }
-
-    private void handlePause() {
-
-    }
-
-    private void handleDelete() {
-
-    }
-
-    private void handleFailure() {
-
-    }
-
-    private void handleSuccess() {
-        synchronized (mLock) {
-            if (!mIsPrepared) return;
-        }
-
-
-        boolean isSuccess = true;
-        if (!checkFile()) {
-            isSuccess = false;
-
-            DownloadFileHelper.deleteDownloadFile(mTaskInfo);
-            TaskDatabaseHelper.getInstance().insertOrUpdate(mTaskInfo);
-
-            if (!mIsRetryInvalidFileTask && mTaskInfo.isPermitRetryInvalidFileTask()) {
-                mIsRetryInvalidFileTask = true;
-                /*mAliveTaskManager.removeTask(resKey);
-                startTask(taskInfo, taskWrapper.fileChecker);*/
-                start();
-
+            DownloadInfo downloadInfo = mTaskInfo.toDownloadInfo();
+            if (mPostHandler != null) {
+                Message message = mPostHandler.obtainMessage(State.DELETE);
+                message.obj = downloadInfo;
+                sendMessage(message);
             } else {
-                handleFailure();
+                notifyDelete(downloadInfo);
             }
-        }
-
-        if (isSuccess) {
-
-            mTaskInfo.setCurrentStatus(State.SUCCESS);
-
-            if (mRunningTaskStopListener != null) {
-                mRunningTaskStopListener.onFinish(mTaskInfo);
-            }
-
-            /*handleCallback(taskInfo);
-            handleDatabase(taskInfo);
-            startNextTask();*/
         }
     }
 
 
-    private boolean checkFile() {
-        if (mFileChecker != null) {
-            try {
-                return mFileChecker.isValidFile(mTaskInfo.toDownloadInfo());
-            } catch (RemoteException e) {
-                //
-            }
+    private void notifyPrepare(DownloadInfo downloadInfo) {
+        mOuterTaskListener.onPrepare(downloadInfo);
+    }
+
+    private void notifyWaitingInQueue(DownloadInfo downloadInfo) {
+        mOuterTaskListener.onWaitingInQueue(downloadInfo);
+    }
+
+    private void notifyConnected(DownloadInfo downloadInfo, Map<String, List<String>> responseHeaderFields) {
+        if (!checkPrepare()) return;
+
+        mOuterTaskListener.onConnected(downloadInfo, responseHeaderFields);
+    }
+
+    private void notifyDownloading(long currentSize) {
+        if (!checkPrepare()) return;
+
+        String resKey = mResKey;
+        long totalSize = mTaskInfo.getTotalSize();
+        int progress = RangeUtil.computeProgress(currentSize, totalSize);
+        float speed = mSpeed.computeSpeed(currentSize);
+        mOuterTaskListener.onDownloading(resKey, totalSize, currentSize, progress, speed);
+    }
+
+    private void notifyRetrying(DownloadInfo downloadInfo, boolean deleteFile) {
+        if (!checkPrepare()) return;
+
+        mOuterTaskListener.onRetrying(downloadInfo, deleteFile);
+    }
+
+
+    private void notifyPause(DownloadInfo downloadInfo) {
+        mOuterTaskListener.onPause(downloadInfo);
+    }
+
+    private void notifyDelete(DownloadInfo downloadInfo) {
+        mOuterTaskListener.onDelete(downloadInfo);
+    }
+
+    private void notifySuccess(DownloadInfo downloadInfo) {
+        if (!checkPrepare()) return;
+
+        mOuterTaskListener.onSuccess(downloadInfo);
+    }
+
+    private void notifyFailure(DownloadInfo downloadInfo) {
+        if (!checkPrepare()) return;
+
+        mOuterTaskListener.onFailure(downloadInfo);
+    }
+
+    private boolean checkPrepare() {
+        synchronized (mLock) {
+            return mIsPrepared;
         }
-        if (mGlobalFileChecker != null) {
-            try {
-                return mGlobalFileChecker.isValidFile(mTaskInfo.toDownloadInfo());
-            } catch (RemoteException e) {
-                //
-            }
-        }
-        return true;
     }
 
     @Override
@@ -249,8 +270,9 @@ public class TaskHandler implements Comparable<TaskHandler> {
         return mResKey.equals(that.mResKey);
     }
 
+    @SuppressWarnings("all")
     @Override
-    public int compareTo(TaskHandler taskHandler) {
+    public int compareTo(final TaskHandler taskHandler) {
         if (taskHandler == null) {
             return 1;
         }
@@ -267,36 +289,72 @@ public class TaskHandler implements Comparable<TaskHandler> {
         return 1;
     }
 
+    private void sendMessage(Message message) {
+        if (mNotifyThread == null) {
+            mPostHandler.sendMessage(message);
+        } else {
+            if (!mNotifyThread.isAlive()) {
+                return;
+            }
+            try {
+                mPostHandler.sendMessage(message);
+            } catch (Exception e) {
+                //
+            }
+        }
+    }
+
     private class HandlerCallback implements Handler.Callback {
 
         @Override
         public boolean handleMessage(Message msg) {
             int state = msg.what;
+            boolean needQuit = false;
             switch (state) {
                 case State.PREPARE: {
+                    notifyPrepare((DownloadInfo) msg.obj);
                     break;
                 }
                 case State.WAITING_IN_QUEUE: {
+                    notifyWaitingInQueue((DownloadInfo) msg.obj);
                     break;
                 }
                 case State.CONNECTED: {
+                    ConnectMessageObj connectMessageObj = (ConnectMessageObj) msg.obj;
+                    notifyConnected(connectMessageObj.downloadInfo, connectMessageObj.responseHeaderFields);
                     break;
                 }
                 case State.DOWNLOADING: {
+                    notifyDownloading((long) msg.obj);
+                    break;
+                }
+                case State.RETRYING: {
+                    notifyRetrying((DownloadInfo) msg.obj, msg.arg1 == 1);
                     break;
                 }
                 case State.PAUSE: {
+                    notifyPause((DownloadInfo) msg.obj);
+                    needQuit = true;
                     break;
                 }
                 case State.DELETE: {
+                    notifyDelete((DownloadInfo) msg.obj);
+                    needQuit = true;
                     break;
                 }
                 case State.SUCCESS: {
+                    notifySuccess((DownloadInfo) msg.obj);
+                    needQuit = true;
                     break;
                 }
                 case State.FAILURE: {
+                    notifyFailure((DownloadInfo) msg.obj);
+                    needQuit = true;
                     break;
                 }
+            }
+            if (needQuit && mNotifyThread != null) {
+                mNotifyThread.quit();
             }
             return true;
         }
@@ -305,29 +363,115 @@ public class TaskHandler implements Comparable<TaskHandler> {
     private class DownloadCallbackImpl implements DownloadCallback {
 
         @Override
-        public void onConnected(TaskInfo taskInfo, Map<String, List<String>> responseHeaderFields) {
-            handleConnected(responseHeaderFields);
+        public void onConnected(Map<String, List<String>> responseHeaderFields) {
+            mInnerTaskListener.onConnected(mTaskInfo);
+
+            DownloadInfo downloadInfo = mTaskInfo.toDownloadInfo();
+            if (mPostHandler != null) {
+                Message message = mPostHandler.obtainMessage(State.CONNECTED);
+                message.obj = new ConnectMessageObj(downloadInfo, responseHeaderFields);
+                sendMessage(message);
+            } else {
+                notifyConnected(downloadInfo, responseHeaderFields);
+            }
         }
 
         @Override
-        public void onDownloading(TaskInfo taskInfo) {
-            handleDownloading();
+        public void onDownloading(long currentSize) {
+            mInnerTaskListener.onDownloading(mTaskInfo);
+
+            if (mPostHandler != null) {
+                Message message = mPostHandler.obtainMessage(State.DOWNLOADING);
+                message.obj = currentSize;
+                sendMessage(message);
+            } else {
+                notifyDownloading(currentSize);
+            }
         }
 
         @Override
-        public void onFailure(TaskInfo taskInfo) {
-            handleFailure();
+        public void onRetrying(int failureCode, boolean deleteFile) {
+            mInnerTaskListener.onRetrying(mTaskInfo);
+
+            DownloadInfo downloadInfo = mTaskInfo.toDownloadInfo();
+            if (mPostHandler != null) {
+                Message message = mPostHandler.obtainMessage(State.RETRYING);
+                message.obj = downloadInfo;
+                message.arg2 = deleteFile ? 1 : 0;
+                sendMessage(message);
+            } else {
+                notifyRetrying(downloadInfo, deleteFile);
+            }
         }
 
         @Override
-        public void onSuccess(TaskInfo taskInfo) {
-            handleSuccess();
+        public void onSuccess() {
+            mInnerTaskListener.onSuccess(mTaskInfo);
+
+            DownloadInfo downloadInfo = mTaskInfo.toDownloadInfo();
+            if (mPostHandler != null) {
+                Message message = mPostHandler.obtainMessage(State.SUCCESS);
+                message.obj = downloadInfo;
+                sendMessage(message);
+            } else {
+                notifySuccess(downloadInfo);
+            }
+        }
+
+        @Override
+        public void onFailure(int failureCode) {
+            mInnerTaskListener.onFailure(mTaskInfo);
+
+            DownloadInfo downloadInfo = mTaskInfo.toDownloadInfo();
+            if (mPostHandler != null) {
+                Message message = mPostHandler.obtainMessage(State.FAILURE);
+                message.obj = downloadInfo;
+                sendMessage(message);
+            } else {
+                notifyFailure(downloadInfo);
+            }
         }
     }
 
-    public interface RunningTaskStopListener {
+    private static class ConnectMessageObj {
 
-        void onFinish(TaskInfo taskInfo);
+        DownloadInfo downloadInfo;
 
+        Map<String, List<String>> responseHeaderFields;
+
+        ConnectMessageObj(DownloadInfo downloadInfo, Map<String, List<String>> responseHeaderFields) {
+            this.downloadInfo = downloadInfo;
+            this.responseHeaderFields = responseHeaderFields;
+        }
+    }
+
+    private static class Speed {
+
+        private long lastFileSize;
+
+        private long lastTimeMills;
+
+        private float speed = 0.0f;
+
+        float computeSpeed(long currentSize) {
+            long elapsedTimeMillis = SystemClock.elapsedRealtime();
+            if (lastTimeMills == 0) {
+                lastFileSize = currentSize;
+                lastTimeMills = elapsedTimeMillis;
+                return 0.0f;
+            } else {
+                long diffTimeMillis = elapsedTimeMillis - lastTimeMills;
+                if (speed == 0 || diffTimeMillis >= 2000) {
+                    long diffSize = currentSize - lastFileSize;
+                    lastFileSize = currentSize;
+                    lastTimeMills = elapsedTimeMillis;
+                    if (diffSize <= 0 || diffTimeMillis <= 0) {
+                        return 0.0f;
+                    }
+                    speed = (diffSize * 1000.0f) / (diffTimeMillis * 1024.0f);
+                }
+                return speed;
+            }
+        }
     }
 }

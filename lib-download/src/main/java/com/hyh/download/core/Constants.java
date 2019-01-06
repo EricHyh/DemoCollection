@@ -8,10 +8,6 @@ import java.net.HttpURLConnection;
 
 public class Constants {
 
-    public static final String COMMADN = "command";
-
-    public static final String REQUEST_INFO = "request_info";
-
     public static final int MEMORY_SIZE_ERROR = -1;
 
     public static class ResponseCode {

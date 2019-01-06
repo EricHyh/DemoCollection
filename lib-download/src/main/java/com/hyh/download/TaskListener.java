@@ -15,7 +15,9 @@ public interface TaskListener {
 
     void onConnected(DownloadInfo downloadInfo, Map<String, List<String>> responseHeaderFields);
 
-    void onDownloading(String resKey, long currentSize, long totalSize, int progress, float speed);
+    void onDownloading(String resKey, long totalSize, long currentSize, int progress, float speed);
+
+    void onRetrying(DownloadInfo downloadInfo, boolean deleteFile);
 
     void onPause(DownloadInfo downloadInfo);
 
@@ -23,6 +25,6 @@ public interface TaskListener {
 
     void onSuccess(DownloadInfo downloadInfo);
 
-    void onFailure(DownloadInfo downloadInfo, int failureCode);
+    void onFailure(DownloadInfo downloadInfo);
 
 }

@@ -14,10 +14,10 @@ import android.view.ViewGroup;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.hyh.download.Callback;
 import com.hyh.download.DownloadInfo;
 import com.hyh.download.FileDownloader;
 import com.hyh.download.State;
+import com.hyh.download.TaskListener;
 import com.hyh.download.sample.bean.DownloadBean;
 import com.hyh.download.sample.model.TestDownlodModel;
 import com.hyh.download.sample.widget.ProgressButton;
@@ -25,6 +25,7 @@ import com.yly.mob.ssp.downloadsample.R;
 
 import java.io.File;
 import java.util.List;
+import java.util.Map;
 
 /**
  * @author Administrator
@@ -87,7 +88,7 @@ public class ListDownloadActivity extends AppCompatActivity {
         }
     }
 
-    private static class DownloadHolder extends RecyclerView.ViewHolder implements Callback, View.OnClickListener {
+    private static class DownloadHolder extends RecyclerView.ViewHolder implements TaskListener, View.OnClickListener {
 
         private final TextView mTitle;
         private final TextView mName;
@@ -167,18 +168,6 @@ public class ListDownloadActivity extends AppCompatActivity {
             mSpeed.setText(getSpeedStr(downloadInfo));
         }
 
-        @Override
-        public void onDownloading(DownloadInfo downloadInfo) {
-            mDownloadStatus = downloadInfo.getCurrentStatus();
-            mProgress.setText("下载中");
-            mProgress.setProgress(downloadInfo.getProgress());
-            long totalSize = downloadInfo.getTotalSize();
-            float mb = totalSize / 1024.0f / 1024.0f;
-
-            mName.setText(new File(downloadInfo.getFilePath()).getName());
-            mSize.setText(mb + " MB");
-            mSpeed.setText(getSpeedStr(downloadInfo));
-        }
 
         @Override
         public void onWaitingInQueue(DownloadInfo downloadInfo) {
@@ -186,6 +175,29 @@ public class ListDownloadActivity extends AppCompatActivity {
             mProgress.setText("等待中");
             mProgress.setProgress(downloadInfo.getProgress());
             mSpeed.setText(getSpeedStr(downloadInfo));
+        }
+
+        @Override
+        public void onConnected(DownloadInfo downloadInfo, Map<String, List<String>> responseHeaderFields) {
+
+        }
+
+        @Override
+        public void onDownloading(String resKey, long totalSize, long currentSize, int progress, float speed) {
+            /*mDownloadStatus = downloadInfo.getCurrentStatus();
+            mProgress.setText("下载中");
+            mProgress.setProgress(downloadInfo.getProgress());
+            long totalSize = downloadInfo.getTotalSize();
+            float mb = totalSize / 1024.0f / 1024.0f;
+
+            mName.setText(new File(downloadInfo.getFilePath()).getName());
+            mSize.setText(mb + " MB");
+            mSpeed.setText(getSpeedStr(downloadInfo));*/
+        }
+
+        @Override
+        public void onRetrying(DownloadInfo downloadInfo, boolean deleteFile) {
+
         }
 
         @Override
@@ -208,22 +220,6 @@ public class ListDownloadActivity extends AppCompatActivity {
         public void onSuccess(DownloadInfo downloadInfo) {
             mDownloadStatus = downloadInfo.getCurrentStatus();
             mProgress.setText("成功");
-            mProgress.setProgress(downloadInfo.getProgress());
-            mSpeed.setText(getSpeedStr(downloadInfo));
-        }
-
-        @Override
-        public void onWaitingForWifi(DownloadInfo downloadInfo) {
-            mDownloadStatus = downloadInfo.getCurrentStatus();
-            mProgress.setText("等待wifi");
-            mProgress.setProgress(downloadInfo.getProgress());
-            mSpeed.setText(getSpeedStr(downloadInfo));
-        }
-
-        @Override
-        public void onLowDiskSpace(DownloadInfo downloadInfo) {
-            mDownloadStatus = downloadInfo.getCurrentStatus();
-            mProgress.setText("空间不足");
             mProgress.setProgress(downloadInfo.getProgress());
             mSpeed.setText(getSpeedStr(downloadInfo));
         }
@@ -265,14 +261,6 @@ public class ListDownloadActivity extends AppCompatActivity {
                 }
                 case State.SUCCESS: {
                     Toast.makeText(mTitle.getContext(), "已下载完成", Toast.LENGTH_SHORT).show();
-                    break;
-                }
-                case State.WAITING_FOR_WIFI: {
-                    startDownload(mOldDownloadBean);
-                    break;
-                }
-                case State.LOW_DISK_SPACE: {
-                    Toast.makeText(mTitle.getContext(), "存储空间不足", Toast.LENGTH_SHORT).show();
                     break;
                 }
                 case State.FAILURE: {
@@ -347,14 +335,6 @@ public class ListDownloadActivity extends AppCompatActivity {
                 }
                 case State.SUCCESS: {
                     text = "成功";
-                    break;
-                }
-                case State.WAITING_FOR_WIFI: {
-                    text = "等待wifi";
-                    break;
-                }
-                case State.LOW_DISK_SPACE: {
-                    text = "空间不足";
                     break;
                 }
                 case State.FAILURE: {

@@ -1,7 +1,5 @@
 package com.hyh.download.core;
 
-import com.hyh.download.db.bean.TaskInfo;
-
 import java.util.List;
 import java.util.Map;
 
@@ -10,15 +8,16 @@ import java.util.Map;
  * @description
  * @data 2018/12/17
  */
-
 public interface DownloadCallback {
 
-    void onConnected(TaskInfo taskInfo, Map<String, List<String>> responseHeaderFields);
+    void onConnected(Map<String, List<String>> responseHeaderFields);
 
-    void onDownloading(TaskInfo taskInfo);
+    void onDownloading(long currentSize);
 
-    void onFailure(TaskInfo taskInfo);
+    void onRetrying(int failureCode, boolean deleteFile);
 
-    void onSuccess(TaskInfo taskInfo);
+    void onSuccess();
+
+    void onFailure(int failureCode);
 
 }

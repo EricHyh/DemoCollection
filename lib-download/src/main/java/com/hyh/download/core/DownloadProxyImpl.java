@@ -5,6 +5,7 @@ import android.os.RemoteException;
 
 import com.hyh.download.IFileChecker;
 import com.hyh.download.State;
+import com.hyh.download.TaskListener;
 import com.hyh.download.db.TaskDatabaseHelper;
 import com.hyh.download.db.bean.TaskInfo;
 import com.hyh.download.net.HttpClient;
@@ -30,7 +31,7 @@ import java.util.concurrent.TimeUnit;
  * @data 2017/5/16
  */
 
-public abstract class SuperDownloadProxy implements IDownloadProxy {
+public class DownloadProxyImpl implements IDownloadProxy {
 
     private final ThreadPoolExecutor mExecutor;
 
@@ -43,7 +44,7 @@ public abstract class SuperDownloadProxy implements IDownloadProxy {
         ThreadFactory threadFactory = new ThreadFactory() {
             @Override
             public Thread newThread(Runnable r) {
-                Thread thread = new Thread(r, "SuperDownloadProxy");
+                Thread thread = new Thread(r, "DownloadProxyImpl");
                 thread.setDaemon(true);
                 return thread;
             }
@@ -52,30 +53,31 @@ public abstract class SuperDownloadProxy implements IDownloadProxy {
         mExecutor = new ThreadPoolExecutor(corePoolSize, maximumPoolSize, keepAliveTime, unit, workQueue, threadFactory, handler);
     }
 
-    private Context mContext;
+    private final Context mContext;
 
-    private HttpClient mClient;
-
-    private final AliveTaskManager mAliveTaskManager = new AliveTaskManager();
+    private final HttpClient mClient;
 
     private final TaskHandlerManager mTaskHandlerManager = new TaskHandlerManager();
 
-    private DownloadProxyConfig mDownloadProxyConfig;
+    private final DownloadProxyConfig mDownloadProxyConfig;
 
-    private IFileChecker mGlobalFileChecker;
+    private final InnerTaskListener mInnerTaskListener = new InnerTaskListenerImpl();
 
-    private DownloadCallbackImpl mDownloadCallbackImpl;
+    private final TaskListener mTaskListener;
 
-    private TaskHandler.RunningTaskStopListener mRunningTaskStopListener = new RunningTaskStopListenerImpl();
+    private final IFileChecker mGlobalFileChecker;
 
     private final Object mTaskLock = new Object();
 
-    SuperDownloadProxy(Context context, DownloadProxyConfig downloadProxyConfig, IFileChecker globalFileChecker) {
+    public DownloadProxyImpl(Context context,
+                             DownloadProxyConfig downloadProxyConfig,
+                             TaskListener taskListener,
+                             IFileChecker globalFileChecker) {
         this.mContext = context;
         this.mClient = new NativeHttpClient(context);
         this.mDownloadProxyConfig = downloadProxyConfig;
+        this.mTaskListener = taskListener;
         this.mGlobalFileChecker = globalFileChecker;
-        this.mDownloadCallbackImpl = new DownloadCallbackImpl();
         TaskDatabaseHelper.getInstance().init(context);
     }
 
@@ -109,15 +111,14 @@ public abstract class SuperDownloadProxy implements IDownloadProxy {
             TaskHandler taskHandler = new TaskHandler(mContext,
                     mClient,
                     taskInfo,
-                    mGlobalFileChecker,
-                    fileChecker,
-                    mRunningTaskStopListener,
+                    getFileChecker(fileChecker),
+                    mInnerTaskListener,
+                    mTaskListener,
                     mDownloadProxyConfig.getThreadMode());
 
             mTaskHandlerManager.addTask(taskHandler);
             taskHandler.prepare();
 
-            handlePrepare(taskInfo, fileChecker);
             int runningTaskNum = mTaskHandlerManager.getRunningTaskNum();
             if (runningTaskNum >= mDownloadProxyConfig.getMaxSyncDownloadNum()) {
 
@@ -128,8 +129,18 @@ public abstract class SuperDownloadProxy implements IDownloadProxy {
             }
 
             mTaskHandlerManager.addRunningTask(taskInfo.getResKey());
-            taskHandler.start();
+            taskHandler.run();
         }
+    }
+
+    private IFileChecker getFileChecker(IFileChecker fileChecker) {
+        if (fileChecker == null && mGlobalFileChecker == null) {
+            return null;
+        }
+        if (fileChecker != null) {
+            return fileChecker;
+        }
+        return mGlobalFileChecker;
     }
 
     @Override
@@ -175,7 +186,7 @@ public abstract class SuperDownloadProxy implements IDownloadProxy {
                     isFileDownloaded = DownloadFileHelper.getFileLength(filePath) == totalSize;
                 }
                 if (isFileDownloaded) {
-                    if (!checkFile(taskInfo, fileChecker)) {
+                    if (!checkSuccessFile(taskInfo, fileChecker)) {
                         isFileDownloaded = false;
                     }
                 }
@@ -202,7 +213,7 @@ public abstract class SuperDownloadProxy implements IDownloadProxy {
                     isFileDownloaded = DownloadFileHelper.getFileLength(filePath) == totalSize;
                 }
                 if (isFileDownloaded) {
-                    if (!checkFile(taskInfo, fileChecker)) {
+                    if (!checkSuccessFile(taskInfo, fileChecker)) {
                         isFileDownloaded = false;
                     }
                 }
@@ -215,19 +226,13 @@ public abstract class SuperDownloadProxy implements IDownloadProxy {
         }
     }
 
-    private boolean checkFile(TaskInfo taskInfo, IFileChecker fileChecker) {
+    private boolean checkSuccessFile(TaskInfo taskInfo, IFileChecker fileChecker) {
+        fileChecker = getFileChecker(fileChecker);
         if (fileChecker != null) {
             try {
                 return fileChecker.isValidFile(taskInfo.toDownloadInfo());
             } catch (RemoteException e) {
-                //
-            }
-        }
-        if (mGlobalFileChecker != null) {
-            try {
-                return mGlobalFileChecker.isValidFile(taskInfo.toDownloadInfo());
-            } catch (RemoteException e) {
-                //
+                return true;
             }
         }
         return true;
@@ -242,11 +247,11 @@ public abstract class SuperDownloadProxy implements IDownloadProxy {
 
     private void startNextTask() {
         synchronized (mTaskLock) {
-            L.d("startNextTask execute start");
+            L.d("startNextTask execute run");
             TaskHandler taskHandler = mTaskHandlerManager.pollTask();
             if (taskHandler != null) {
                 mTaskHandlerManager.addRunningTask(taskHandler.getResKey());
-                taskHandler.start();
+                taskHandler.run();
                 L.d("startNextTask resKey is " + taskHandler.getResKey());
             } else {
                 if (mTaskHandlerManager.getRunningTaskNum() == 0) {
@@ -257,223 +262,78 @@ public abstract class SuperDownloadProxy implements IDownloadProxy {
         }
     }
 
-    private void handlePrepare(TaskInfo taskInfo, IFileChecker fileChecker) {
-        String resKey = taskInfo.getResKey();
+    private class InnerTaskListenerImpl implements InnerTaskListener {
 
-        taskInfo.setCurrentStatus(State.PREPARE);
+        private List<String> mDownloadingTasks = new CopyOnWriteArrayList<>();
 
-        handleDatabase(taskInfo);
-
-        handleCallback(taskInfo);
-    }
-
-
-    private void handleWaitingInQueue(TaskInfo taskInfo, IFileChecker fileChecker) {
-        String resKey = taskInfo.getResKey();
-        taskInfo.setCurrentStatus(State.WAITING_IN_QUEUE);
-
-
-        handleCallback(taskInfo);
-        handleDatabase(taskInfo);
-    }
-
-    private void handleConnected(TaskInfo taskInfo, Map<String, List<String>> responseHeaderFields) {
-        if (!isTaskAlive(taskInfo.getResKey())) return;
-
-        taskInfo.setCurrentStatus(State.CONNECTED);
-
-    }
-
-    private void handleDownloading(TaskInfo taskInfo) {
-        if (!isTaskAlive(taskInfo.getResKey())) return;
-
-        taskInfo.setCurrentStatus(State.DOWNLOADING);
-        handleCallback(taskInfo);
-        handleDatabase(taskInfo);
-    }
-
-
-    private void handlePause(TaskInfo taskInfo) {
-        String resKey = taskInfo.getResKey();
-
-        mAliveTaskManager.removeTask(resKey);
-
-        taskInfo.setCurrentStatus(State.PAUSE);
-        handleCallback(taskInfo);
-        handleDatabase(taskInfo);
-
-        startNextTask();
-    }
-
-    private void handleDelete(TaskInfo taskInfo) {
-        String resKey = taskInfo.getResKey();
-
-        mAliveTaskManager.removeTask(resKey);
-
-        DownloadFileHelper.deleteDownloadFile(taskInfo);
-        taskInfo.setCurrentStatus(State.DELETE);
-        handleCallback(taskInfo);
-        handleDatabase(taskInfo);
-
-        startNextTask();
-    }
-
-
-    private void handleSuccess(TaskInfo taskInfo) {
-        String resKey = taskInfo.getResKey();
-        if (!isTaskAlive(resKey)) return;
-
-        TaskWrapper taskWrapper = mAliveTaskManager.getTaskWrapper(resKey);
-        boolean isSuccess = true;
-        if (!checkFile(taskInfo, taskWrapper.fileChecker)) {
-            isSuccess = false;
-
-            DownloadFileHelper.deleteDownloadFile(taskInfo);
-            TaskDatabaseHelper.getInstance().insertOrUpdate(taskInfo);
-
-            if (taskInfo.isPermitRetryInvalidFileTask()) {
-
-                mAliveTaskManager.removeTask(resKey);
-
-                startTask(taskInfo, taskWrapper.fileChecker);
-            } else {
-                handleFailure(taskInfo);
-            }
-        }
-
-        if (isSuccess) {
-            mAliveTaskManager.removeTask(resKey);
-
-            taskInfo.setCurrentStatus(State.SUCCESS);
-            handleCallback(taskInfo);
+        @Override
+        public void onPrepare(TaskInfo taskInfo) {
             handleDatabase(taskInfo);
-            startNextTask();
         }
-    }
-
-    private void handleFailure(TaskInfo taskInfo) {
-        String resKey = taskInfo.getResKey();
-        if (!isTaskAlive(resKey)) return;
-
-        mAliveTaskManager.removeTask(resKey);
-
-        if (taskInfo.isWifiAutoRetry()) {
-            taskInfo.setCurrentStatus(State.WAITING_FOR_WIFI);
-        } else {
-            taskInfo.setCurrentStatus(State.FAILURE);
-        }
-
-        handleCallback(taskInfo);
-        handleDatabase(taskInfo);
-
-        startNextTask();
-    }
-
-    private void post() {
-
-    }
-
-    protected abstract void handleCallback(TaskInfo taskInfo);
-
-    private List<String> mDownloadingTasks = new CopyOnWriteArrayList<>();
-
-    private void handleDatabase(TaskInfo taskInfo) {
-        String resKey = taskInfo.getResKey();
-        int currentStatus = taskInfo.getCurrentStatus();
-        if (currentStatus == State.DOWNLOADING) {
-            if (mDownloadingTasks.contains(resKey)) {
-                TaskDatabaseHelper.getInstance().updateCacheOnly(taskInfo);
-            } else {
-                TaskDatabaseHelper.getInstance().insertOrUpdate(taskInfo);
-            }
-            mDownloadingTasks.add(resKey);
-        } else if (currentStatus == State.DELETE) {
-            mDownloadingTasks.remove(resKey);
-            TaskDatabaseHelper.getInstance().delete(taskInfo);
-        } else {
-            mDownloadingTasks.remove(resKey);
-            TaskDatabaseHelper.getInstance().insertOrUpdate(taskInfo);
-        }
-    }
-
-
-    private class RunningTaskStopListenerImpl implements TaskHandler.RunningTaskStopListener {
 
         @Override
-        public void onFinish(TaskInfo taskInfo) {
-
+        public void onWaitingInQueue(TaskInfo taskInfo) {
+            handleDatabase(taskInfo);
         }
-    }
-
-
-    private class DownloadCallbackImpl implements DownloadCallback {
 
         @Override
-        public void onConnected(TaskInfo taskInfo, Map<String, List<String>> responseHeaderFields) {
-            handleConnected(taskInfo, responseHeaderFields);
+        public void onConnected(TaskInfo taskInfo) {
+            handleDatabase(taskInfo);
         }
 
         @Override
         public void onDownloading(TaskInfo taskInfo) {
-            handleDownloading(taskInfo);
+            handleDatabase(taskInfo);
         }
 
         @Override
-        public void onFailure(TaskInfo taskInfo) {
-            handleFailure(taskInfo);
+        public void onRetrying(TaskInfo taskInfo) {
+            handleDatabase(taskInfo);
+        }
+
+        @Override
+        public void onPause(TaskInfo taskInfo) {
+            handleDatabase(taskInfo);
+            startNextTask();
+        }
+
+        @Override
+        public void onDelete(TaskInfo taskInfo) {
+            handleDatabase(taskInfo);
+            startNextTask();
         }
 
         @Override
         public void onSuccess(TaskInfo taskInfo) {
-            handleSuccess(taskInfo);
-        }
-    }
-
-    private static class TaskWrapper implements Comparable {
-
-        private String resKey;
-
-        private TaskInfo taskInfo;
-
-        private IFileChecker fileChecker;
-
-        TaskWrapper(String resKey) {
-            this.resKey = resKey;
-        }
-
-        TaskWrapper(String resKey, TaskInfo taskInfo, IFileChecker fileChecker) {
-            this.resKey = resKey;
-            this.taskInfo = taskInfo;
-            this.fileChecker = fileChecker;
+            handleDatabase(taskInfo);
+            startNextTask();
         }
 
         @Override
-        public boolean equals(Object object) {
-            if (this == object) return true;
-            if (object == null || getClass() != object.getClass()) return false;
-            TaskWrapper that = (TaskWrapper) object;
-            return resKey.equals(that.resKey);
+        public void onFailure(TaskInfo taskInfo) {
+            handleDatabase(taskInfo);
+            startNextTask();
         }
 
-        @Override
-        public int compareTo(Object o) {
-            if (o == null || !(o instanceof TaskWrapper)) {
-                return 1;
+        private void handleDatabase(TaskInfo taskInfo) {
+            String resKey = taskInfo.getResKey();
+            int currentStatus = taskInfo.getCurrentStatus();
+            if (currentStatus == State.DOWNLOADING) {
+                if (mDownloadingTasks.contains(resKey)) {
+                    TaskDatabaseHelper.getInstance().updateCacheOnly(taskInfo);
+                } else {
+                    TaskDatabaseHelper.getInstance().insertOrUpdate(taskInfo);
+                }
+                mDownloadingTasks.add(resKey);
+            } else if (currentStatus == State.DELETE) {
+                mDownloadingTasks.remove(resKey);
+                TaskDatabaseHelper.getInstance().delete(taskInfo);
+            } else {
+                mDownloadingTasks.remove(resKey);
+                TaskDatabaseHelper.getInstance().insertOrUpdate(taskInfo);
             }
-            if (this.taskInfo == null) {
-                return 1;
-            }
-            TaskWrapper that = (TaskWrapper) o;
-            if (that.taskInfo == null) {
-                return 1;
-            }
-            if (this.taskInfo.getPriority() > that.taskInfo.getPriority()) {
-                return -1;
-            }
-            return 1;
         }
     }
-
 
     private static class TaskHandlerManager {
 
@@ -519,68 +379,6 @@ public abstract class SuperDownloadProxy implements IDownloadProxy {
 
         boolean isTaskAlive(String resKey) {
             return mAliveTaskMap.containsKey(resKey);
-        }
-    }
-
-    private static class AliveTaskManager {
-
-        private Map<String, TaskWrapper> mAliveTaskMap = new ConcurrentHashMap<>();
-
-        private PriorityBlockingQueue<TaskWrapper> mWaitingTasks = new PriorityBlockingQueue<>();
-
-        private Map<String, AbstractHttpCallback> mHttpCallbackMap = new ConcurrentHashMap<>();
-
-        private List<String> mRunningTasks = new CopyOnWriteArrayList<>();
-
-        void addRunningTask(String resKey) {
-            if (!mRunningTasks.contains(resKey)) {
-                mRunningTasks.add(resKey);
-            }
-        }
-
-        int getRunningTaskNum() {
-            return mRunningTasks.size();
-        }
-
-        TaskWrapper pollNextTask() {
-            if (mWaitingTasks.isEmpty()) {
-                return null;
-            }
-            return mWaitingTasks.poll();
-        }
-
-        void addTask(TaskWrapper taskWrapper) {
-            mAliveTaskMap.put(taskWrapper.resKey, taskWrapper);
-        }
-
-        void addWaitingTask(TaskWrapper taskWrapper) {
-            if (!mWaitingTasks.contains(taskWrapper)) {
-                mWaitingTasks.add(taskWrapper);
-            }
-        }
-
-        void putHttpCallback(String resKey, AbstractHttpCallback httpCallback) {
-            mHttpCallbackMap.put(resKey, httpCallback);
-        }
-
-        AbstractHttpCallback removeHttpCallback(String resKey) {
-            return mHttpCallbackMap.remove(resKey);
-        }
-
-        TaskWrapper removeTask(String resKey) {
-            TaskWrapper taskWrapper = mAliveTaskMap.remove(resKey);
-            mRunningTasks.remove(resKey);
-            mWaitingTasks.remove(new TaskWrapper(resKey));
-            mHttpCallbackMap.remove(resKey);
-            return taskWrapper;
-        }
-
-        boolean isTaskAlive(String resKey) {
-            return mAliveTaskMap.containsKey(resKey);
-        }
-
-        TaskWrapper getTaskWrapper(String resKey) {
-            return mAliveTaskMap.get(resKey);
         }
     }
 }

@@ -3,7 +3,6 @@ package com.hyh.download.core;
 import android.os.SystemClock;
 
 import com.hyh.download.net.HttpResponse;
-import com.hyh.download.utils.L;
 import com.hyh.download.utils.StreamUtil;
 
 import java.io.BufferedInputStream;
@@ -50,7 +49,7 @@ class MultiFileWriteTask implements FileWrite {
         RandomAccessFile fileRaf = null;
         RandomAccessFile tempFileRaf = null;
         BufferedOutputStream bos = null;
-        boolean isException = false;
+        Exception exception = null;
         try {
             BufferedInputStream bis = new BufferedInputStream(response.inputStream());
             fileRaf = new RandomAccessFile(filePath, "rw");
@@ -63,7 +62,6 @@ class MultiFileWriteTask implements FileWrite {
             int len;
             while ((len = bis.read(buffer)) != -1) {
                 fileRaf.write(buffer, 0, len);
-                L.d("MultiFileWriteTask write:" + len);
                 startPosition += len;
                 listener.onWriteFile(len);
 
@@ -76,14 +74,14 @@ class MultiFileWriteTask implements FileWrite {
             }
             sync(bos, fd, tempFileRaf);
         } catch (Exception e) {
-            isException = true;
+            exception = e;
         }
         StreamUtil.close(bos, fileRaf, tempFileRaf, response);
         if (stop) {
             return;
         }
-        if (isException) {
-            listener.onWriteFailure();
+        if (exception != null) {
+            listener.onWriteFailure(exception);
         } else if (startPosition == endPosition + 1) {
             listener.onWriteFinish();
         } else {

@@ -1,8 +1,14 @@
 package com.hyh.download.core;
 
 import android.content.Context;
+import android.os.RemoteException;
 
+import com.hyh.download.FailureCode;
+import com.hyh.download.IFileChecker;
+import com.hyh.download.State;
+import com.hyh.download.db.TaskDatabaseHelper;
 import com.hyh.download.db.bean.TaskInfo;
+import com.hyh.download.exception.ExceptionHelper;
 import com.hyh.download.net.HttpCall;
 import com.hyh.download.net.HttpClient;
 import com.hyh.download.net.HttpResponse;
@@ -21,16 +27,19 @@ import java.util.Map;
 
 public class MultiHttpCallbackImpl extends AbstractHttpCallback {
 
+    private final Context context;
 
-    private Context context;
+    private final HttpClient client;
 
-    private HttpClient client;
+    private final TaskInfo taskInfo;
 
-    private TaskInfo taskInfo;
+    private final DownloadCallback downloadCallback;
 
-    private DownloadCallback downloadCallback;
+    private final DownloadCallback downloadCallbackImpl = new DownloadCallbackImpl();
 
-    private IRetryStrategy retryStrategy;
+    private final IFileChecker fileChecker;
+
+    private final IRetryStrategy retryStrategy;
 
     private volatile boolean cancel;
 
@@ -38,11 +47,20 @@ public class MultiHttpCallbackImpl extends AbstractHttpCallback {
 
     private volatile AbstractHttpCallback downloadHttpCallback;
 
-    public MultiHttpCallbackImpl(Context context, HttpClient client, TaskInfo taskInfo, DownloadCallback downloadCallback) {
+    private boolean isConnected;
+
+    private boolean isRetryInvalidFileTask;
+
+    MultiHttpCallbackImpl(Context context,
+                          HttpClient client,
+                          TaskInfo taskInfo,
+                          DownloadCallback downloadCallback,
+                          IFileChecker fileChecker) {
         this.context = context;
         this.client = client;
         this.taskInfo = taskInfo;
         this.downloadCallback = downloadCallback;
+        this.fileChecker = fileChecker;
         this.retryStrategy = new RetryStrategyImpl(context, taskInfo.isPermitRetryInMobileData());
     }
 
@@ -57,10 +75,10 @@ public class MultiHttpCallbackImpl extends AbstractHttpCallback {
         }
 
         if (!response.isSuccessful()) {
-            if (!retryDownload()) {
+            if (!retryDownload(FailureCode.HTTP_ERROR, false)) {
                 if (!cancel) {
                     //通知失败
-                    handleFailure();
+                    notifyFailure(FailureCode.HTTP_ERROR);
                 }
             }
             return;
@@ -73,10 +91,10 @@ public class MultiHttpCallbackImpl extends AbstractHttpCallback {
             taskInfo.setRangeNum(curRangeNum);
             taskInfo.setTotalSize(curTotalSize);
             if (curRangeNum <= 1) {//单线程下载
-                downloadHttpCallback = new SingleHttpCallbackImpl(context, client, taskInfo, downloadCallback);
+                downloadHttpCallback = new SingleHttpCallbackImpl(context, client, taskInfo, downloadCallback, fileChecker);
                 downloadHttpCallback.onResponse(call, response);
             } else {//多线程下载
-                downloadHttpCallback = new MultiHttpCallbackWrapper(context, client, taskInfo, downloadCallback);
+                downloadHttpCallback = new MultiHttpCallbackWrapper(context, client, taskInfo, downloadCallbackImpl);
 
                 handleConnected(response);
 
@@ -90,7 +108,7 @@ public class MultiHttpCallbackImpl extends AbstractHttpCallback {
                 }
             }
         } else {//表示之前是多线程下载
-            downloadHttpCallback = new MultiHttpCallbackWrapper(context, client, taskInfo, downloadCallback);
+            downloadHttpCallback = new MultiHttpCallbackWrapper(context, client, taskInfo, downloadCallbackImpl);
 
             handleConnected(response);
 
@@ -107,10 +125,11 @@ public class MultiHttpCallbackImpl extends AbstractHttpCallback {
 
     @Override
     public void onFailure(HttpCall call, Exception e) {
-        if (!retryDownload()) {
+        int failureCode = ExceptionHelper.convertFailureCode(e);
+        if (!retryDownload(failureCode, false)) {
             if (!cancel) {
                 //通知失败
-                handleFailure();
+                notifyFailure(failureCode);
             }
         }
     }
@@ -125,33 +144,74 @@ public class MultiHttpCallbackImpl extends AbstractHttpCallback {
     }
 
     private void handleConnected(HttpResponse response) {
+        isConnected = true;
+
         DownloadFileHelper.fixFilePath(response, taskInfo);
         taskInfo.setTargetUrl(response.url());
         taskInfo.setCacheRequestUrl(taskInfo.getRequestUrl());
         taskInfo.setCacheTargetUrl(response.url());
+
+        taskInfo.setContentMD5(response.header(NetworkHelper.CONTENT_MD5));
+        taskInfo.setContentType(NetworkHelper.CONTENT_TYPE);
         taskInfo.setETag(response.header(NetworkHelper.ETAG));
         taskInfo.setLastModified(response.header(NetworkHelper.LAST_MODIFIED));
-        downloadCallback.onConnected(taskInfo, response.headers());
+
+        notifyConnected(response.headers());
     }
 
     private void handleSuccess() {
-        downloadCallback.onSuccess(taskInfo);
+        if (checkSuccessFile()) {
+            notifySuccess();
+        } else {
+            if (!isRetryInvalidFileTask && taskInfo.isPermitRetryInvalidFileTask()) {
+                isRetryInvalidFileTask = true;
+                DownloadFileHelper.deleteDownloadFile(taskInfo);
+                TaskDatabaseHelper.getInstance().insertOrUpdate(taskInfo);
+                if (!retryDownload(FailureCode.FILE_CHECK_FAILURE, true)) {
+                    notifyFailure(FailureCode.FILE_CHECK_FAILURE);
+                }
+            } else {
+                notifyFailure(FailureCode.FILE_CHECK_FAILURE);
+            }
+        }
     }
 
-    private void handleFailure() {
-        downloadCallback.onFailure(taskInfo);
+    private void notifyConnected(Map<String, List<String>> responseHeaderFields) {
+        taskInfo.setCurrentStatus(State.CONNECTED);
+        downloadCallback.onConnected(responseHeaderFields);
+    }
+
+    private void notifyDownloading(long currentSize) {
+        taskInfo.setCurrentStatus(State.DOWNLOADING);
+        downloadCallback.onDownloading(currentSize);
+    }
+
+    private void notifyRetrying(int failureCode, boolean deleteFile) {
+        taskInfo.setCurrentStatus(State.RETRYING);
+        taskInfo.setFailureCode(failureCode);
+        downloadCallback.onRetrying(failureCode, deleteFile);
+    }
+
+    private void notifySuccess() {
+        taskInfo.setCurrentStatus(State.SUCCESS);
+        downloadCallback.onSuccess();
+    }
+
+    private void notifyFailure(int failureCode) {
+        taskInfo.setCurrentStatus(State.FAILURE);
+        taskInfo.setFailureCode(failureCode);
+        downloadCallback.onFailure(failureCode);
     }
 
 
-    private boolean retryDownload() {
+    private boolean retryDownload(final int failureCode, final boolean deleteFile) {
         if (call != null && !call.isCanceled()) {
             call.cancel();
         }
-        boolean shouldRetry = retryStrategy.shouldRetry(new IRetryStrategy.onWaitingListener() {
-            @Override
-            public void onWaiting() {
-            }
-        });
+        if (isConnected) {
+            notifyRetrying(failureCode, deleteFile);
+        }
+        boolean shouldRetry = retryStrategy.shouldRetry();
         if (shouldRetry) {
             if (!cancel) {
                 HttpCall call = client.newCall(taskInfo.getResKey(), taskInfo.getRequestUrl(), -1);
@@ -159,6 +219,45 @@ public class MultiHttpCallbackImpl extends AbstractHttpCallback {
             }
         }
         return shouldRetry;
+    }
+
+
+    private class DownloadCallbackImpl implements DownloadCallback {
+
+        @Override
+        public void onConnected(Map<String, List<String>> responseHeaderFields) {
+        }
+
+        @Override
+        public void onDownloading(long currentSize) {
+            notifyDownloading(currentSize);
+        }
+
+        @Override
+        public void onRetrying(int failureCode, boolean deleteFile) {
+            notifyRetrying(failureCode, deleteFile);
+        }
+
+        @Override
+        public void onSuccess() {
+            handleSuccess();
+        }
+
+        @Override
+        public void onFailure(int failureCode) {
+            notifyFailure(failureCode);
+        }
+    }
+
+    private boolean checkSuccessFile() {
+        if (fileChecker == null) {
+            return true;
+        }
+        try {
+            return fileChecker.isValidFile(taskInfo.toDownloadInfo());
+        } catch (RemoteException e) {
+            return true;
+        }
     }
 
     private List<RangeInfo> getRangeInfoList(TaskInfo taskInfo, boolean isNewTask) {
@@ -191,7 +290,6 @@ public class MultiHttpCallbackImpl extends AbstractHttpCallback {
                 currentSize += rangeSize;
             }
             taskInfo.setCurrentSize(currentSize);
-            taskInfo.setProgress(RangeUtil.computeProgress(currentSize, taskInfo.getTotalSize()));
         }
         return rangeInfoList;
     }

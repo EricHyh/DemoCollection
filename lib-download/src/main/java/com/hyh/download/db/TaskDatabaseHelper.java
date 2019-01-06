@@ -100,7 +100,6 @@ public class TaskDatabaseHelper {
                 DownloadFileHelper.deleteDownloadFile(taskInfo);
             } else {
                 taskInfo.setCurrentSize(fileLength);
-                taskInfo.setProgress(RangeUtil.computeProgress(fileLength, totalSize));
             }
         } else {
             if (taskInfo.getRangeNum() > 1) {
@@ -108,14 +107,10 @@ public class TaskDatabaseHelper {
                 String tempFilePath = DownloadFileHelper.getTempFilePath(filePath);
                 long currentSize = readCurrentSizeFromTempFile(tempFilePath, taskInfo.getTotalSize(), taskInfo.getRangeNum());
                 taskInfo.setCurrentSize(currentSize);
-                long totalSize = taskInfo.getTotalSize();
-                taskInfo.setProgress(RangeUtil.computeProgress(currentSize, totalSize));
             } else {
                 String filePath = taskInfo.getFilePath();
                 long fileLength = DownloadFileHelper.getFileLength(filePath);
                 taskInfo.setCurrentSize(fileLength);
-                long totalSize = taskInfo.getTotalSize();
-                taskInfo.setProgress(RangeUtil.computeProgress(fileLength, totalSize));
             }
         }
     }

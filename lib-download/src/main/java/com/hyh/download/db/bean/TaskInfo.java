@@ -8,7 +8,7 @@ import com.hyh.download.db.annotation.Column;
 import com.hyh.download.db.annotation.Id;
 import com.hyh.download.db.annotation.NotNull;
 import com.hyh.download.db.annotation.Unique;
-import com.hyh.download.utils.L;
+import com.hyh.download.utils.RangeUtil;
 
 /**
  * Created by Administrator on 2017/3/14.
@@ -57,13 +57,10 @@ public class TaskInfo implements Parcelable {
     private int rangeNum;
 
     @Column(nameInDb = "totalSize")
-    private long totalSize;
+    private volatile long totalSize;
 
     @Column(nameInDb = "currentSize")
     private volatile long currentSize;
-
-    @Column(nameInDb = "progress")
-    private volatile int progress;
 
     @Column(nameInDb = "currentStatus")
     private volatile int currentStatus;
@@ -89,6 +86,12 @@ public class TaskInfo implements Parcelable {
     @Column(nameInDb = "failureCode")
     private int failureCode;
 
+    @Column(nameInDb = "contentMD5")
+    private String contentMD5;
+
+    @Column(nameInDb = "contentType")
+    private String contentType;
+
     @Column(nameInDb = "eTag")
     private String eTag;
 
@@ -103,7 +106,6 @@ public class TaskInfo implements Parcelable {
 
     public TaskInfo() {
     }
-
 
     protected TaskInfo(Parcel in) {
         id = in.readLong();
@@ -120,38 +122,20 @@ public class TaskInfo implements Parcelable {
         rangeNum = in.readInt();
         totalSize = in.readLong();
         currentSize = in.readLong();
-        progress = in.readInt();
         currentStatus = in.readInt();
+        onlyWifiDownload = in.readByte() != 0;
         wifiAutoRetry = in.readByte() != 0;
         permitRetryInMobileData = in.readByte() != 0;
         permitRetryInvalidFileTask = in.readByte() != 0;
         permitRecoverTask = in.readByte() != 0;
         responseCode = in.readInt();
         failureCode = in.readInt();
+        contentMD5 = in.readString();
+        contentType = in.readString();
         eTag = in.readString();
         lastModified = in.readString();
         updateTimeMillis = in.readLong();
         tag = in.readString();
-    }
-
-    public static final Creator<TaskInfo> CREATOR = new Creator<TaskInfo>() {
-        @Override
-        public TaskInfo createFromParcel(Parcel in) {
-            return new TaskInfo(in);
-        }
-
-        @Override
-        public TaskInfo[] newArray(int size) {
-            return new TaskInfo[size];
-        }
-    };
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        TaskInfo that = (TaskInfo) o;
-        return resKey.equals(that.resKey);
     }
 
     @Override
@@ -175,20 +159,41 @@ public class TaskInfo implements Parcelable {
         dest.writeInt(rangeNum);
         dest.writeLong(totalSize);
         dest.writeLong(currentSize);
-        dest.writeInt(progress);
         dest.writeInt(currentStatus);
+        dest.writeByte((byte) (onlyWifiDownload ? 1 : 0));
         dest.writeByte((byte) (wifiAutoRetry ? 1 : 0));
         dest.writeByte((byte) (permitRetryInMobileData ? 1 : 0));
         dest.writeByte((byte) (permitRetryInvalidFileTask ? 1 : 0));
         dest.writeByte((byte) (permitRecoverTask ? 1 : 0));
         dest.writeInt(responseCode);
         dest.writeInt(failureCode);
+        dest.writeString(contentMD5);
+        dest.writeString(contentType);
         dest.writeString(eTag);
         dest.writeString(lastModified);
         dest.writeLong(updateTimeMillis);
         dest.writeString(tag);
     }
 
+    public static final Creator<TaskInfo> CREATOR = new Creator<TaskInfo>() {
+        @Override
+        public TaskInfo createFromParcel(Parcel in) {
+            return new TaskInfo(in);
+        }
+
+        @Override
+        public TaskInfo[] newArray(int size) {
+            return new TaskInfo[size];
+        }
+    };
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        TaskInfo that = (TaskInfo) o;
+        return resKey.equals(that.resKey);
+    }
 
     public long getId() {
         return id;
@@ -270,14 +275,6 @@ public class TaskInfo implements Parcelable {
         this.filePath = filePath;
     }
 
-    public int getProgress() {
-        return progress;
-    }
-
-    public void setProgress(int progress) {
-        this.progress = progress;
-    }
-
     public boolean isByMultiThread() {
         return byMultiThread;
     }
@@ -307,9 +304,6 @@ public class TaskInfo implements Parcelable {
     }
 
     public void setCurrentSize(long currentSize) {
-        if (totalSize > 0 && currentSize > totalSize) {
-            L.d("totalSize = " + totalSize + ", currentSize = " + currentSize);
-        }
         this.currentSize = currentSize;
     }
 
@@ -377,6 +371,22 @@ public class TaskInfo implements Parcelable {
         this.failureCode = failureCode;
     }
 
+    public String getContentMD5() {
+        return contentMD5;
+    }
+
+    public void setContentMD5(String contentMD5) {
+        this.contentMD5 = contentMD5;
+    }
+
+    public String getContentType() {
+        return contentType;
+    }
+
+    public void setContentType(String contentType) {
+        this.contentType = contentType;
+    }
+
     public String getETag() {
         return eTag;
     }
@@ -417,10 +427,23 @@ public class TaskInfo implements Parcelable {
         downloadInfo.setVersionCode(this.versionCode);
         downloadInfo.setPriority(this.priority);
         downloadInfo.setFilePath(this.filePath);
-        downloadInfo.setCurrentStatus(this.currentStatus);
+
+        downloadInfo.setByMultiThread(this.byMultiThread);
+        downloadInfo.setOnlyWifiDownload(this.onlyWifiDownload);
+        downloadInfo.setWifiAutoRetry(this.wifiAutoRetry);
+        downloadInfo.setPermitRetryInMobileData(this.permitRetryInMobileData);
+        downloadInfo.setPermitRetryInvalidFileTask(this.permitRetryInvalidFileTask);
+        downloadInfo.setPermitRecoverTask(this.permitRecoverTask);
+
         downloadInfo.setTotalSize(this.totalSize);
         downloadInfo.setCurrentSize(this.currentSize);
-        downloadInfo.setProgress(this.progress);
+        downloadInfo.setProgress(RangeUtil.computeProgress(this.currentSize, this.totalSize));
+
+        downloadInfo.setCurrentStatus(this.currentStatus);
+
+        downloadInfo.setResponseCode(this.responseCode);
+        downloadInfo.setFailureCode(this.failureCode);
+        downloadInfo.setContentType(this.contentType);
         downloadInfo.setTag(this.tag);
         return downloadInfo;
     }

@@ -8,15 +8,9 @@ package com.hyh.download.core;
 
 public interface IRetryStrategy {
 
-    boolean shouldRetry(onWaitingListener listener);
+    boolean shouldRetry();
 
     void clearCurrentRetryTimes();
 
     void cancel();
-
-    interface onWaitingListener {
-
-        void onWaiting();
-
-    }
 }

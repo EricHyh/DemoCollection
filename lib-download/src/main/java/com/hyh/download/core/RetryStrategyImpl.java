@@ -48,7 +48,7 @@ public class RetryStrategyImpl implements IRetryStrategy {
         this.searchSuitableNetDelay = searchSuitableNetDelay;
     }
 
-    private boolean waitingSuitableNetworkType(onWaitingListener listener) {
+    private boolean waitingSuitableNetworkType() {
         int waitingNumber = 0;
         while (true) {
             if (cancel) {
@@ -57,7 +57,6 @@ public class RetryStrategyImpl implements IRetryStrategy {
             if (isSuitableNetworkType()) {
                 return true;
             }
-            listener.onWaiting();
             SystemClock.sleep(searchSuitableNetDelay);
             waitingNumber++;
             if (waitingNumber == searchSuitableNetMaxTimes) {
@@ -72,7 +71,7 @@ public class RetryStrategyImpl implements IRetryStrategy {
     }
 
     @Override
-    public boolean shouldRetry(onWaitingListener listener) {
+    public boolean shouldRetry() {
         for (; ; ) {
             if (cancel) {
                 return false;
@@ -83,13 +82,11 @@ public class RetryStrategyImpl implements IRetryStrategy {
             currentRetryTimes++;
             totalRetryTimes++;
 
-            if (waitingSuitableNetworkType(listener)) {
+            if (waitingSuitableNetworkType()) {
                 if (currentRetryTimes == 0 || currentRetryTimes == 1) {
-                    listener.onWaiting();
                     SystemClock.sleep(retryBaseDelay);
                 }
                 if (currentRetryTimes == 2) {
-                    listener.onWaiting();
                     SystemClock.sleep(2 * retryBaseDelay);
                 }
                 return !cancel;

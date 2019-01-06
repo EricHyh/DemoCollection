@@ -4,8 +4,9 @@ import android.annotation.SuppressLint;
 import android.content.Context;
 import android.text.TextUtils;
 
+import com.hyh.download.core.DownloadProxyConfig;
+import com.hyh.download.core.DownloadProxyImpl;
 import com.hyh.download.core.IDownloadProxy;
-import com.hyh.download.core.LocalDownloadProxyImpl;
 import com.hyh.download.core.ServiceBridge;
 import com.hyh.download.core.TaskListenerManager;
 import com.hyh.download.db.bean.TaskInfo;
@@ -100,28 +101,28 @@ public class FileDownloader {
         startTask(request, null);
     }
 
-    public synchronized void startTask(final FileRequest request, final Callback callback) {
+    public synchronized void startTask(final FileRequest request, final TaskListener listener) {
         waitingForInitProxyFinish();
         String key = request.key();
 
         if (isTaskAlive(request.key())) {
-            if (callback != null) {
-                mListenerManager.addSingleTaskCallback(request.key(), callback);
+            if (listener != null) {
+                mListenerManager.addSingleTaskListener(request.key(), listener);
             }
             return;
         }
 
 
         if (!request.forceDownload() && isFileDownloaded(key, request.versionCode(), request.fileChecker())) {
-            if (callback != null) {
-                callback.onSuccess(mDownloadProxy.getTaskInfoByKey(key).toDownloadInfo());
+            if (listener != null) {
+                listener.onSuccess(mDownloadProxy.getTaskInfoByKey(key).toDownloadInfo());
             }
             return;
         }
 
         final TaskInfo taskInfo = getTaskInfo(request);
-        if (callback != null) {
-            mListenerManager.addSingleTaskCallback(request.key(), callback);
+        if (listener != null) {
+            mListenerManager.addSingleTaskListener(request.key(), listener);
         }
         mDownloadProxy.startTask(taskInfo, request.fileChecker());
     }
@@ -189,12 +190,12 @@ public class FileDownloader {
         return taskInfo.toDownloadInfo();
     }
 
-    public void addDownloadListener(String resKey, Callback callback) {
-        mListenerManager.addSingleTaskCallback(resKey, callback);
+    public void addDownloadListener(String resKey, TaskListener listener) {
+        mListenerManager.addSingleTaskListener(resKey, listener);
     }
 
-    public void removeDownloadListener(String resKey, Callback callback) {
-        mListenerManager.removeSingleTaskCallback(resKey, callback);
+    public void removeDownloadListener(String resKey, TaskListener listener) {
+        mListenerManager.removeSingleTaskListener(resKey, listener);
     }
 
     public void removeDownloadListeners(String resKey) {
@@ -208,9 +209,10 @@ public class FileDownloader {
                     mDownloaderConfig,
                     mListenerManager);
         } else {
-            proxy = new LocalDownloadProxyImpl(mContext,
-                    mDownloaderConfig,
-                    mListenerManager);
+            proxy = new DownloadProxyImpl(mContext,
+                    DownloadProxyConfig.create(mDownloaderConfig),
+                    mListenerManager,
+                    mDownloaderConfig.getGlobalFileChecker());
         }
         return proxy;
     }

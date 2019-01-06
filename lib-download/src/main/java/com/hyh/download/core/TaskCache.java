@@ -24,12 +24,6 @@ public class TaskCache {
         this.fileChecker = fileChecker;
     }
 
-    TaskCache(String resKey, TaskInfo taskInfo, IFileChecker fileChecker) {
-        this.resKey = resKey;
-        this.taskInfo = taskInfo;
-        this.fileChecker = fileChecker;
-    }
-
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

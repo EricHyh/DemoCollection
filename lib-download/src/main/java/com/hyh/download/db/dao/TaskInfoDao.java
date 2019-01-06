@@ -34,9 +34,9 @@ public class TaskInfoDao {
     private final static String[] sColumnNames = {"_id", "resKey",
             "requestUrl", "targetUrl", "cacheRequestUrl", "cacheTargetUrl",
             "versionCode", "priority", "fileDir", "filePath", "byMultiThread",
-            "rangeNum", "totalSize", "currentSize", "progress", "currentStatus",
+            "rangeNum", "totalSize", "currentSize", "currentStatus",
             "onlyWifiDownload", "wifiAutoRetry", "permitRetryInMobileData", "permitRetryInvalidFileTask", "permitRecoverTask",
-            "responseCode", "failureCode", "eTag", "lastModified", "updateTimeMillis", "tag"};
+            "responseCode", "failureCode", "contentMD5", "contentType", "eTag", "lastModified", "updateTimeMillis", "tag"};
 
     private static Map<String, ColumnInfo> sColumns = new TreeMap<>(new Comparator<String>() {
         @Override
@@ -294,22 +294,24 @@ public class TaskInfoDao {
 
         taskInfo.setTotalSize(cursor.getLong(12));
         taskInfo.setCurrentSize(cursor.getLong(13));
-        taskInfo.setProgress(cursor.getInt(14));
+        taskInfo.setCurrentStatus(cursor.getInt(14));
 
-        taskInfo.setCurrentStatus(cursor.getInt(15));
+        taskInfo.setOnlyWifiDownload(cursor.getInt(15) == 1);
+        taskInfo.setWifiAutoRetry(cursor.getInt(16) == 1);
+        taskInfo.setPermitRetryInMobileData(cursor.getInt(17) == 1);
+        taskInfo.setPermitRetryInvalidFileTask(cursor.getInt(18) == 1);
+        taskInfo.setPermitRecoverTask(cursor.getInt(19) == 1);
 
-        taskInfo.setOnlyWifiDownload(cursor.getInt(16) == 1);
-        taskInfo.setWifiAutoRetry(cursor.getInt(17) == 1);
-        taskInfo.setPermitRetryInMobileData(cursor.getInt(18) == 1);
-        taskInfo.setPermitRetryInvalidFileTask(cursor.getInt(19) == 1);
-        taskInfo.setPermitRecoverTask(cursor.getInt(20) == 1);
+        taskInfo.setResponseCode(cursor.getInt(20));
+        taskInfo.setFailureCode(cursor.getInt(21));
 
-        taskInfo.setResponseCode(cursor.getInt(21));
-        taskInfo.setFailureCode(cursor.getInt(22));
-        taskInfo.setETag(cursor.getString(23));
-        taskInfo.setLastModified(cursor.getString(24));
-        taskInfo.setUpdateTimeMillis(cursor.getLong(25));
-        taskInfo.setTag(cursor.getString(26));
+        taskInfo.setContentMD5(cursor.getString(22));
+        taskInfo.setContentType(cursor.getString(23));
+        taskInfo.setETag(cursor.getString(24));
+        taskInfo.setLastModified(cursor.getString(25));
+
+        taskInfo.setUpdateTimeMillis(cursor.getLong(26));
+        taskInfo.setTag(cursor.getString(27));
         return taskInfo;
     }
 
@@ -334,7 +336,6 @@ public class TaskInfoDao {
         contentValues.put("rangeNum", taskInfo.getRangeNum());
         contentValues.put("totalSize", taskInfo.getTotalSize());
         contentValues.put("currentSize", taskInfo.getCurrentSize());
-        contentValues.put("progress", taskInfo.getProgress());
         contentValues.put("currentStatus", taskInfo.getCurrentStatus());
 
         contentValues.put("onlyWifiDownload", taskInfo.isOnlyWifiDownload() ? 1 : 0);
@@ -345,8 +346,12 @@ public class TaskInfoDao {
 
         contentValues.put("responseCode", taskInfo.getResponseCode());
         contentValues.put("failureCode", taskInfo.getFailureCode());
+
+        contentValues.put("contentMD5", taskInfo.getContentMD5());
+        contentValues.put("contentType", taskInfo.getContentType());
         contentValues.put("eTag", taskInfo.getETag());
         contentValues.put("lastModified", taskInfo.getLastModified());
+
         contentValues.put("updateTimeMillis", taskInfo.getUpdateTimeMillis());
         contentValues.put("tag", taskInfo.getTag());
         return contentValues;

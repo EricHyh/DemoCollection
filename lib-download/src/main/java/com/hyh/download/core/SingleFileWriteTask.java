@@ -41,7 +41,7 @@ class SingleFileWriteTask implements FileWrite {
         stop = false;
         BufferedInputStream bis = null;
         BufferedOutputStream bos = null;
-        boolean isException = false;
+        Exception exception = null;
         try {
             bis = new BufferedInputStream(response.inputStream());
             bos = new BufferedOutputStream(new FileOutputStream(filePath, true));
@@ -60,14 +60,14 @@ class SingleFileWriteTask implements FileWrite {
             }
             sync(bos);
         } catch (Exception e) {
-            isException = true;
+            exception = e;
         }
         StreamUtil.close(bos, bis, response);
         if (stop) {
             return;
         }
-        if (isException) {
-            listener.onWriteFailure();
+        if (exception != null) {
+            listener.onWriteFailure(exception);
         } else if (startPosition == endPosition || endPosition <= 0) {
             listener.onWriteFinish();
         } else {

@@ -3,6 +3,8 @@ package com.hyh.download.core;
 import android.os.Parcel;
 import android.os.Parcelable;
 
+import com.hyh.download.DownloaderConfig;
+
 /**
  * Created by Eric_He on 2018/12/23.
  */
@@ -13,9 +15,14 @@ public class DownloadProxyConfig implements Parcelable {
 
     private int threadMode;
 
-    public DownloadProxyConfig(int maxSyncDownloadNum, int threadMode) {
-        this.maxSyncDownloadNum = maxSyncDownloadNum;
-        this.threadMode = threadMode;
+    public static DownloadProxyConfig create(DownloaderConfig downloaderConfig) {
+        DownloadProxyConfig downloadProxyConfig = new DownloadProxyConfig();
+        downloadProxyConfig.maxSyncDownloadNum = downloaderConfig.getMaxSyncDownloadNum();
+        downloadProxyConfig.threadMode = downloaderConfig.getThreadMode();
+        return downloadProxyConfig;
+    }
+
+    private DownloadProxyConfig() {
     }
 
     public int getMaxSyncDownloadNum() {

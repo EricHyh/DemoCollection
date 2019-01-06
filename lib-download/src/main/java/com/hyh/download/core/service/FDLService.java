@@ -5,15 +5,18 @@ import android.content.Intent;
 import android.os.IBinder;
 import android.os.RemoteException;
 
-import com.hyh.download.IClient;
 import com.hyh.download.IFileChecker;
 import com.hyh.download.IRequest;
+import com.hyh.download.ITaskListener;
+import com.hyh.download.TaskListener;
 import com.hyh.download.core.DownloadProxyConfig;
+import com.hyh.download.core.DownloadProxyImpl;
 import com.hyh.download.core.IDownloadProxy;
-import com.hyh.download.core.ServiceDownloadProxyImpl;
+import com.hyh.download.core.ITaskListenerWrapper;
 import com.hyh.download.db.bean.TaskInfo;
 import com.hyh.download.utils.L;
 
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -24,7 +27,9 @@ public class FDLService extends Service {
 
     private final Object mInitProxyLock = new Object();
 
-    private final ConcurrentHashMap<Integer, IClient> mClients = new ConcurrentHashMap<>();
+    private final Map<Integer, ITaskListener> mListenerMap = new ConcurrentHashMap<>();
+
+    private final TaskListener mTaskListener = new ITaskListenerWrapper(mListenerMap);
 
     private volatile IDownloadProxy mServiceProxy;
 
@@ -40,10 +45,10 @@ public class FDLService extends Service {
         @Override
         public synchronized void initDownloadProxy(DownloadProxyConfig downloadProxyConfig, IFileChecker globalFileChecker) throws RemoteException {
             if (mServiceProxy != null) {
-                mServiceProxy = new ServiceDownloadProxyImpl(
+                mServiceProxy = new DownloadProxyImpl(
                         getApplicationContext(),
-                        mClients,
                         downloadProxyConfig,
+                        mTaskListener,
                         globalFileChecker);
                 initProxy();
             }
@@ -51,9 +56,9 @@ public class FDLService extends Service {
         }
 
         @Override
-        public void register(int pid, IClient client) throws RemoteException {
+        public void register(int pid, ITaskListener listener) throws RemoteException {
             waitingForInitProxy();
-            mClients.put(pid, client);
+            mListenerMap.put(pid, listener);
         }
 
         @Override

@@ -117,9 +117,10 @@ public class DownloadFileHelper {
 
 
     public static void deleteDownloadFile(TaskInfo taskInfo) {
-        taskInfo.setProgress(0);
         taskInfo.setCurrentSize(0);
         taskInfo.setTotalSize(0);
+        taskInfo.setContentMD5(null);
+        taskInfo.setContentType(null);
         taskInfo.setETag(null);
         taskInfo.setLastModified(null);
         taskInfo.setCurrentStatus(State.NONE);

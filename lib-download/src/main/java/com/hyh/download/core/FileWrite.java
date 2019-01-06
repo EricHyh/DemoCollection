@@ -20,7 +20,7 @@ interface FileWrite {
 
         void onWriteFinish();
 
-        void onWriteFailure();
+        void onWriteFailure(Exception e);
 
         void onWriteLengthError(long startPosition, long endPosition);
     }

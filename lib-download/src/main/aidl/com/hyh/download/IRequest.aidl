@@ -4,7 +4,7 @@ package com.hyh.download;
 // Declare any non-default types here with import statements
 import  com.hyh.download.core.DownloadProxyConfig;
 import  com.hyh.download.db.bean.TaskInfo;
-import com.hyh.download.IClient;
+import com.hyh.download.ITaskListener;
 import com.hyh.download.IFileChecker;
 //import java.util.Map;
 interface IRequest {
@@ -18,7 +18,7 @@ interface IRequest {
 
     void insertOrUpdate(in TaskInfo taskInfo);
 
-    void register(int pid, in IClient client);
+    void register(int pid, in ITaskListener listener);
 
     boolean isTaskAlive(String resKey);
 
