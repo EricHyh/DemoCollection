@@ -146,7 +146,7 @@ public class DownloadProxyImpl implements IDownloadProxy {
     @Override
     public void pauseTask(final String resKey) {
         synchronized (mTaskLock) {
-            TaskHandler taskHandler = mTaskHandlerManager.removeTask(resKey);
+            TaskHandler taskHandler = mTaskHandlerManager.getTask(resKey);
             if (taskHandler != null) {
                 taskHandler.pause();
             }
@@ -156,7 +156,7 @@ public class DownloadProxyImpl implements IDownloadProxy {
     @Override
     public void deleteTask(final String resKey) {
         synchronized (mTaskLock) {
-            TaskHandler taskHandler = mTaskHandlerManager.removeTask(resKey);
+            TaskHandler taskHandler = mTaskHandlerManager.getTask(resKey);
             if (taskHandler != null) {
                 taskHandler.delete();
             } else {
@@ -246,8 +246,14 @@ public class DownloadProxyImpl implements IDownloadProxy {
     }
 
     private void startNextTask() {
+        if (mTaskHandlerManager.getRunningTaskNum() > mDownloadProxyConfig.getMaxSyncDownloadNum()) {
+            return;
+        }
         synchronized (mTaskLock) {
             L.d("startNextTask execute run");
+            if (mTaskHandlerManager.getRunningTaskNum() > mDownloadProxyConfig.getMaxSyncDownloadNum()) {
+                return;
+            }
             TaskHandler taskHandler = mTaskHandlerManager.pollTask();
             if (taskHandler != null) {
                 mTaskHandlerManager.addRunningTask(taskHandler.getResKey());
@@ -293,24 +299,28 @@ public class DownloadProxyImpl implements IDownloadProxy {
 
         @Override
         public void onPause(TaskInfo taskInfo) {
+            mTaskHandlerManager.removeTask(taskInfo.getResKey());
             handleDatabase(taskInfo);
             startNextTask();
         }
 
         @Override
         public void onDelete(TaskInfo taskInfo) {
+            mTaskHandlerManager.removeTask(taskInfo.getResKey());
             handleDatabase(taskInfo);
             startNextTask();
         }
 
         @Override
         public void onSuccess(TaskInfo taskInfo) {
+            mTaskHandlerManager.removeTask(taskInfo.getResKey());
             handleDatabase(taskInfo);
             startNextTask();
         }
 
         @Override
         public void onFailure(TaskInfo taskInfo) {
+            mTaskHandlerManager.removeTask(taskInfo.getResKey());
             handleDatabase(taskInfo);
             startNextTask();
         }
@@ -370,11 +380,14 @@ public class DownloadProxyImpl implements IDownloadProxy {
             }
         }
 
-        TaskHandler removeTask(String resKey) {
-            TaskHandler taskHandler = mAliveTaskMap.remove(resKey);
+        TaskHandler getTask(String resKey) {
+            return mAliveTaskMap.get(resKey);
+        }
+
+        void removeTask(String resKey) {
+            mAliveTaskMap.remove(resKey);
             mRunningTasks.remove(resKey);
             mWaitingTasks.remove(new TaskHandler(resKey));
-            return taskHandler;
         }
 
         boolean isTaskAlive(String resKey) {
