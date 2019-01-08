@@ -61,12 +61,23 @@ public class TaskListenerManager implements TaskListener {
     }
 
     @Override
-    public void onWaitingInQueue(final DownloadInfo downloadInfo) {
+    public void onWaitingStart(final DownloadInfo downloadInfo) {
         String resKey = downloadInfo.getResKey();
         List<TaskListener> singleListeners = getSingleListeners(resKey);
         if (singleListeners != null) {
             for (TaskListener listener : singleListeners) {
-                listener.onWaitingInQueue(downloadInfo);
+                listener.onWaitingStart(downloadInfo);
+            }
+        }
+    }
+
+    @Override
+    public void onWaitingEnd(DownloadInfo downloadInfo) {
+        String resKey = downloadInfo.getResKey();
+        List<TaskListener> singleListeners = getSingleListeners(resKey);
+        if (singleListeners != null) {
+            for (TaskListener listener : singleListeners) {
+                listener.onWaitingEnd(downloadInfo);
             }
         }
     }

@@ -11,7 +11,9 @@ public interface TaskListener {
 
     void onPrepare(DownloadInfo downloadInfo);
 
-    void onWaitingInQueue(DownloadInfo downloadInfo);
+    void onWaitingStart(DownloadInfo downloadInfo);
+
+    void onWaitingEnd(DownloadInfo downloadInfo);
 
     void onConnected(DownloadInfo downloadInfo, Map<String, List<String>> responseHeaderFields);
 

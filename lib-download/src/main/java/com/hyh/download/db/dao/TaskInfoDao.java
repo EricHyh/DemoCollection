@@ -183,11 +183,13 @@ public class TaskInfoDao {
         List<TaskInfo> taskInfoList = null;
         SQLiteDatabase db = mSqLiteHelper.getReadableDatabase();
         String[] columns = sColumnNames;
-        String selection = "currentStatus in (?, ?, ?, ?)";
+        String selection = "currentStatus in (?, ?, ?, ?, ?, ?)";
         String[] selectionArgs = {String.valueOf(State.PREPARE),
-                String.valueOf(State.WAITING_IN_QUEUE),
+                String.valueOf(State.WAITING_START),
+                String.valueOf(State.WAITING_END),
                 String.valueOf(State.CONNECTED),
-                String.valueOf(State.DOWNLOADING)};
+                String.valueOf(State.DOWNLOADING),
+                String.valueOf(State.RETRYING)};
         String groupBy = null;
         String having = null;
         String orderBy = null;

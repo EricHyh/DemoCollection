@@ -42,7 +42,7 @@ public class ITaskListenerWrapper implements TaskListener {
     }
 
     @Override
-    public void onWaitingInQueue(DownloadInfo downloadInfo) {
+    public void onWaitingStart(DownloadInfo downloadInfo) {
         if (mTaskListenerMap.isEmpty()) return;
         Set<Map.Entry<Integer, ITaskListener>> entries = mTaskListenerMap.entrySet();
         Iterator<Map.Entry<Integer, ITaskListener>> iterator = entries.iterator();
@@ -50,7 +50,25 @@ public class ITaskListenerWrapper implements TaskListener {
             Map.Entry<Integer, ITaskListener> entry = iterator.next();
             ITaskListener listener = entry.getValue();
             try {
-                listener.onWaitingInQueue(downloadInfo);
+                listener.onWaitingStart(downloadInfo);
+            } catch (RemoteException e) {
+                if (!isAlive(listener)) {
+                    iterator.remove();
+                }
+            }
+        }
+    }
+
+    @Override
+    public void onWaitingEnd(DownloadInfo downloadInfo) {
+        if (mTaskListenerMap.isEmpty()) return;
+        Set<Map.Entry<Integer, ITaskListener>> entries = mTaskListenerMap.entrySet();
+        Iterator<Map.Entry<Integer, ITaskListener>> iterator = entries.iterator();
+        while (iterator.hasNext()) {
+            Map.Entry<Integer, ITaskListener> entry = iterator.next();
+            ITaskListener listener = entry.getValue();
+            try {
+                listener.onWaitingEnd(downloadInfo);
             } catch (RemoteException e) {
                 if (!isAlive(listener)) {
                     iterator.remove();

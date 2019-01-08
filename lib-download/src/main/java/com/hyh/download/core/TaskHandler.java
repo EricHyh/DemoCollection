@@ -108,20 +108,39 @@ public class TaskHandler implements Comparable<TaskHandler> {
         }
     }
 
-    void waiting() {
+    void waitingStart() {
         synchronized (mLock) {
 
-            mTaskInfo.setCurrentStatus(State.WAITING_IN_QUEUE);
+            mTaskInfo.setCurrentStatus(State.WAITING_START);
 
             mInnerTaskListener.onWaitingInQueue(mTaskInfo);
 
             DownloadInfo downloadInfo = mTaskInfo.toDownloadInfo();
             if (mPostHandler != null) {
-                Message message = mPostHandler.obtainMessage(State.WAITING_IN_QUEUE);
+                Message message = mPostHandler.obtainMessage(State.WAITING_START);
                 message.obj = downloadInfo;
                 sendMessage(message);
             } else {
-                notifyWaitingInQueue(downloadInfo);
+                notifyWaitingStart(downloadInfo);
+            }
+        }
+    }
+
+
+    void waitingEnd() {
+        synchronized (mLock) {
+
+            mTaskInfo.setCurrentStatus(State.WAITING_END);
+
+            mInnerTaskListener.onWaitingInQueue(mTaskInfo);
+
+            DownloadInfo downloadInfo = mTaskInfo.toDownloadInfo();
+            if (mPostHandler != null) {
+                Message message = mPostHandler.obtainMessage(State.WAITING_END);
+                message.obj = downloadInfo;
+                sendMessage(message);
+            } else {
+                notifyWaitingStart(downloadInfo);
             }
         }
     }
@@ -210,8 +229,14 @@ public class TaskHandler implements Comparable<TaskHandler> {
         mOuterTaskListener.onPrepare(downloadInfo);
     }
 
-    private void notifyWaitingInQueue(DownloadInfo downloadInfo) {
-        mOuterTaskListener.onWaitingInQueue(downloadInfo);
+    private void notifyWaitingStart(DownloadInfo downloadInfo) {
+        mOuterTaskListener.onWaitingStart(downloadInfo);
+    }
+
+    private void notifyWaitingEnd(DownloadInfo downloadInfo) {
+        if (!checkPrepare()) return;
+
+        mOuterTaskListener.onWaitingEnd(downloadInfo);
     }
 
     private void notifyConnected(DownloadInfo downloadInfo, Map<String, List<String>> responseHeaderFields) {
@@ -316,8 +341,12 @@ public class TaskHandler implements Comparable<TaskHandler> {
                     notifyPrepare((DownloadInfo) msg.obj);
                     break;
                 }
-                case State.WAITING_IN_QUEUE: {
-                    notifyWaitingInQueue((DownloadInfo) msg.obj);
+                case State.WAITING_START: {
+                    notifyWaitingStart((DownloadInfo) msg.obj);
+                    break;
+                }
+                case State.WAITING_END: {
+                    notifyWaitingEnd((DownloadInfo) msg.obj);
                     break;
                 }
                 case State.CONNECTED: {

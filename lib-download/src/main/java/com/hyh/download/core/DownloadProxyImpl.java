@@ -123,7 +123,7 @@ public class DownloadProxyImpl implements IDownloadProxy {
             if (runningTaskNum >= mDownloadProxyConfig.getMaxSyncDownloadNum()) {
 
                 mTaskHandlerManager.addWaitingTask(taskHandler);
-                taskHandler.waiting();
+                taskHandler.waitingStart();
 
                 return;
             }
@@ -260,6 +260,7 @@ public class DownloadProxyImpl implements IDownloadProxy {
             if (taskHandler != null) {
                 L.d("startNextTask resKey is " + taskHandler.getResKey());
                 mTaskHandlerManager.addRunningTask(taskHandler.getResKey());
+                taskHandler.waitingEnd();
                 taskHandler.run();
             } else {
                 if (mTaskHandlerManager.getRunningTaskNum() == 0) {

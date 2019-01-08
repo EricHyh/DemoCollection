@@ -2,32 +2,26 @@ package com.hyh.download.sample.activity;
 
 import android.content.Context;
 import android.os.Bundle;
-import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.DividerItemDecoration;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
-import android.text.TextUtils;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.TextView;
-import android.widget.Toast;
 
-import com.hyh.download.DownloadInfo;
-import com.hyh.download.FileDownloader;
-import com.hyh.download.State;
-import com.hyh.download.TaskListener;
 import com.hyh.download.sample.bean.DownloadBean;
 import com.hyh.download.sample.model.TestDownlodModel;
-import com.hyh.download.sample.widget.ProgressButton;
+import com.hyh.download.sample.presenter.DownloadItemPresenter;
+import com.hyh.download.sample.presenter.IDownloadItemPresenter;
+import com.hyh.download.sample.view.DownloadItemView;
+import com.hyh.download.sample.view.IDownloadItemView;
 import com.yly.mob.ssp.downloadsample.R;
 
-import java.io.File;
-import java.text.DecimalFormat;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 /**
  * @author Administrator
@@ -36,6 +30,8 @@ import java.util.Map;
  */
 
 public class ListDownloadActivity extends AppCompatActivity {
+
+    private static final String TAG = "ListDownloadActivity";
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -54,11 +50,16 @@ public class ListDownloadActivity extends AppCompatActivity {
 
         private Context mContext;
 
-        private List<DownloadBean> mDownloadBeanList;
+        private List<IDownloadItemPresenter> mDownloadItemPresenters;
 
-        public DownloadListAdapter(Context context, List<DownloadBean> downloadBeanList) {
+        DownloadListAdapter(Context context, List<DownloadBean> downloadBeanList) {
             mContext = context;
-            mDownloadBeanList = downloadBeanList;
+            if (downloadBeanList != null && !downloadBeanList.isEmpty()) {
+                mDownloadItemPresenters = new ArrayList<>(downloadBeanList.size());
+                for (DownloadBean downloadBean : downloadBeanList) {
+                    mDownloadItemPresenters.add(new DownloadItemPresenter(mContext, downloadBean));
+                }
+            }
         }
 
         @Override
@@ -69,282 +70,37 @@ public class ListDownloadActivity extends AppCompatActivity {
 
         @Override
         public void onBindViewHolder(DownloadHolder holder, int position) {
-            holder.bindViewHolder(mDownloadBeanList.get(position));
+            Log.d(TAG, "onBindViewHolder: position = " + position);
+            holder.bindViewHolder(mDownloadItemPresenters.get(position));
         }
 
         @Override
         public void onViewAttachedToWindow(DownloadHolder holder) {
             super.onViewAttachedToWindow(holder);
-            holder.onViewAttachedToWindow();
         }
 
         @Override
         public void onViewDetachedFromWindow(DownloadHolder holder) {
             super.onViewDetachedFromWindow(holder);
-            holder.onViewDetachedFromWindow();
         }
 
         @Override
         public int getItemCount() {
-            return mDownloadBeanList == null ? 0 : mDownloadBeanList.size();
+            return mDownloadItemPresenters == null ? 0 : mDownloadItemPresenters.size();
         }
     }
 
-    private static class DownloadHolder extends RecyclerView.ViewHolder implements TaskListener, View.OnClickListener {
+    private static class DownloadHolder extends RecyclerView.ViewHolder {
 
-        private final TextView mTitle;
-        private final TextView mName;
-        private final TextView mSize;
-        private final TextView mSpeed;
-        private final ProgressButton mProgress;
-        private DownloadBean mOldDownloadBean;
-        private int mDownloadStatus;
+        private final IDownloadItemView mDownloadItemView;
 
         DownloadHolder(View itemView) {
             super(itemView);
-            mTitle = itemView.findViewById(R.id.item_download_tv_title);
-            mName = itemView.findViewById(R.id.item_download_tv_name);
-            mSize = itemView.findViewById(R.id.item_download_tv_size);
-            mSpeed = itemView.findViewById(R.id.item_download_tv_speed);
-            mProgress = itemView.findViewById(R.id.item_download_pb_progress);
-
-            mProgress.setOnClickListener(this);
+            mDownloadItemView = new DownloadItemView(itemView);
         }
 
-
-        void onViewAttachedToWindow() {
-            if (mOldDownloadBean != null) {
-                String url = mOldDownloadBean.url;
-                FileDownloader.getInstance().addDownloadListener(url, this);
-            }
-        }
-
-        void onViewDetachedFromWindow() {
-            if (mOldDownloadBean != null) {
-                String url = mOldDownloadBean.url;
-                FileDownloader.getInstance().removeDownloadListener(url, this);
-            }
-        }
-
-        void bindViewHolder(DownloadBean downloadBean) {
-            if (mOldDownloadBean != null) {
-                String url = mOldDownloadBean.url;
-                FileDownloader.getInstance().removeDownloadListener(url, this);
-            }
-            mOldDownloadBean = downloadBean;
-
-            mTitle.setText(downloadBean.title);
-
-            String url = downloadBean.url;
-            DownloadInfo downloadInfo = FileDownloader.getInstance().getDownloadInfo(url);
-
-            if (downloadInfo != null) {
-                mDownloadStatus = downloadInfo.getCurrentStatus();
-                String filePath = downloadInfo.getFilePath();
-                if(!TextUtils.isEmpty(filePath)){
-                    mName.setText(new File(filePath).getName());
-                }
-
-                long totalSize = downloadInfo.getTotalSize();
-                float mb = totalSize / 1024.0f / 1024.0f;
-                mSize.setText(mb + " MB");
-
-                mProgress.setProgress(downloadInfo.getProgress());
-                mSpeed.setText(0.0 + "K/s");
-                String text = getProgressBtnText(mDownloadStatus);
-                mProgress.setText(text);
-            } else {
-                mDownloadStatus = State.NONE;
-                mName.setText(null);
-                mSize.setText(null);
-                mProgress.setProgress(0);
-                mSpeed.setText(0.0 + "K/s");
-                mProgress.setText("下载");
-            }
-
-            FileDownloader.getInstance().addDownloadListener(url, this);
-        }
-
-        @Override
-        public void onPrepare(DownloadInfo downloadInfo) {
-            mDownloadStatus = downloadInfo.getCurrentStatus();
-            mProgress.setText("准备中");
-            mProgress.setProgress(downloadInfo.getProgress());
-            mSpeed.setText(getSpeedStr(0));
-        }
-
-
-        @Override
-        public void onWaitingInQueue(DownloadInfo downloadInfo) {
-            mDownloadStatus = downloadInfo.getCurrentStatus();
-            mProgress.setText("等待中");
-            mProgress.setProgress(downloadInfo.getProgress());
-            mSpeed.setText(getSpeedStr(0));
-        }
-
-        @Override
-        public void onConnected(DownloadInfo downloadInfo, Map<String, List<String>> responseHeaderFields) {
-            mName.setText(new File(downloadInfo.getFilePath()).getName());
-            float mb = downloadInfo.getTotalSize() / 1024.0f / 1024.0f;
-            mSize.setText(mb + " MB");
-        }
-
-        @Override
-        public void onDownloading(String resKey, long totalSize, long currentSize, int progress, float speed) {
-            mDownloadStatus = State.DOWNLOADING;
-            mProgress.setText("下载中");
-            mProgress.setProgress(progress);
-            mSpeed.setText(getSpeedStr(speed));
-        }
-
-        @Override
-        public void onRetrying(DownloadInfo downloadInfo, boolean deleteFile) {
-            mDownloadStatus = downloadInfo.getCurrentStatus();
-            mProgress.setText("重试中");
-            mProgress.setProgress(downloadInfo.getProgress());
-            mSpeed.setText(getSpeedStr(0));
-        }
-
-        @Override
-        public void onPause(DownloadInfo downloadInfo) {
-            mDownloadStatus = downloadInfo.getCurrentStatus();
-            mProgress.setText("继续");
-            mProgress.setProgress(downloadInfo.getProgress());
-            mSpeed.setText(getSpeedStr(0));
-        }
-
-        @Override
-        public void onDelete(DownloadInfo downloadInfo) {
-            mDownloadStatus = downloadInfo.getCurrentStatus();
-            mProgress.setText("下载");
-            mProgress.setProgress(downloadInfo.getProgress());
-            mSpeed.setText(getSpeedStr(0));
-        }
-
-        @Override
-        public void onSuccess(DownloadInfo downloadInfo) {
-            mDownloadStatus = downloadInfo.getCurrentStatus();
-            mProgress.setText("成功");
-            mProgress.setProgress(downloadInfo.getProgress());
-            mSpeed.setText(getSpeedStr(0));
-        }
-
-        @Override
-        public void onFailure(DownloadInfo downloadInfo) {
-            mDownloadStatus = downloadInfo.getCurrentStatus();
-            mProgress.setText("重试");
-            mProgress.setProgress(downloadInfo.getProgress());
-            mSpeed.setText(getSpeedStr(0));
-        }
-
-        @Override
-        public void onClick(View v) {
-            switch (mDownloadStatus) {
-                case State.NONE: {
-                    startDownload(mOldDownloadBean);
-                    break;
-                }
-                case State.PREPARE: {
-                    FileDownloader.getInstance().pauseTask(mOldDownloadBean.url);
-                    break;
-                }
-                case State.WAITING_IN_QUEUE: {
-                    FileDownloader.getInstance().pauseTask(mOldDownloadBean.url);
-                    break;
-                }
-                case State.DOWNLOADING: {
-                    FileDownloader.getInstance().pauseTask(mOldDownloadBean.url);
-                    break;
-                }
-                case State.DELETE: {
-                    startDownload(mOldDownloadBean);
-                    break;
-                }
-                case State.PAUSE: {
-                    startDownload(mOldDownloadBean);
-                    break;
-                }
-                case State.SUCCESS: {
-                    Toast.makeText(mTitle.getContext(), "已下载完成", Toast.LENGTH_SHORT).show();
-                    break;
-                }
-                case State.FAILURE: {
-                    startDownload(mOldDownloadBean);
-                    break;
-                }
-            }
-        }
-
-        private void startDownload(DownloadBean downloadBean) {
-            String url = downloadBean.url;
-            DownloadInfo downloadInfo = FileDownloader.getInstance().getDownloadInfo(url);
-
-            if (downloadInfo != null) {
-                mDownloadStatus = downloadInfo.getCurrentStatus();
-                String text = getProgressBtnText(mDownloadStatus);
-                mProgress.setText(text);
-                int progress = downloadInfo.getProgress();
-                mProgress.setProgress(progress);
-                mSpeed.setText(getSpeedStr(0));
-            } else {
-                mProgress.setText("下载");
-                mProgress.setProgress(0);
-                mSpeed.setText(getSpeedStr(0));
-            }
-
-            FileDownloader.getInstance().addDownloadListener(url, this);
-            FileDownloader.getInstance().startTask(url);
-        }
-
-        @NonNull
-        private String getSpeedStr(float speed) {
-            if (speed >= 1024) {
-                DecimalFormat decimalFormat = new DecimalFormat("0.0");
-                return decimalFormat.format(speed / 1024.0f) + "M/s";
-            } else {
-                DecimalFormat decimalFormat = new DecimalFormat("0.0");
-                return decimalFormat.format(speed) + "K/s";
-            }
-        }
-
-        @NonNull
-        private String getProgressBtnText(int status) {
-            String text = "下载";
-            switch (status) {
-                case State.NONE: {
-                    text = "下载";
-                    break;
-                }
-                case State.PREPARE: {
-                    text = "准备中";
-                    break;
-                }
-                case State.WAITING_IN_QUEUE: {
-                    text = "等待中";
-                    break;
-                }
-                case State.DOWNLOADING: {
-                    text = "下载中";
-                    break;
-                }
-                case State.DELETE: {
-                    text = "下载";
-                    break;
-                }
-                case State.PAUSE: {
-                    text = "继续";
-                    break;
-                }
-                case State.SUCCESS: {
-                    text = "成功";
-                    break;
-                }
-                case State.FAILURE: {
-                    text = "重试";
-                    break;
-                }
-            }
-            return text;
+        void bindViewHolder(IDownloadItemPresenter downloadItemPresenter) {
+            downloadItemPresenter.bindDownloadItemView(mDownloadItemView);
         }
     }
 }

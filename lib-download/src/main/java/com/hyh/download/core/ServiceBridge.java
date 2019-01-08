@@ -232,8 +232,13 @@ public class ServiceBridge implements IDownloadProxy {
         }
 
         @Override
-        public void onWaitingInQueue(DownloadInfo downloadInfo) throws RemoteException {
-            mTaskListener.onWaitingInQueue(downloadInfo);
+        public void onWaitingStart(DownloadInfo downloadInfo) throws RemoteException {
+            mTaskListener.onWaitingStart(downloadInfo);
+        }
+
+        @Override
+        public void onWaitingEnd(DownloadInfo downloadInfo) throws RemoteException {
+            mTaskListener.onWaitingEnd(downloadInfo);
         }
 
         @SuppressWarnings("unchecked")

@@ -10,7 +10,9 @@ interface ITaskListener {
 
     void onPrepare(in DownloadInfo downloadInfo);
 
-    void onWaitingInQueue(in DownloadInfo downloadInfo);
+    void onWaitingStart(in DownloadInfo downloadInfo);
+
+    void onWaitingEnd(in DownloadInfo downloadInfo);
 
     void onConnected(in DownloadInfo downloadInfo, in Map responseHeaderFields);
 
