@@ -43,9 +43,6 @@ public class DownloadItemPresenter implements IDownloadItemPresenter, View.OnCli
     @Override
     public void bindDownloadItemView(IDownloadItemView downloadItemView) {
         IDownloadItemView oldDownloadItemView = getDownloadItemView();
-        if (downloadItemView == oldDownloadItemView) {
-            return;
-        }
         if (oldDownloadItemView != null) {
             oldDownloadItemView.unBindDownloadItemPresenter(this);
         }
@@ -193,6 +190,7 @@ public class DownloadItemPresenter implements IDownloadItemPresenter, View.OnCli
                 downloadItemView.setProgress(downloadInfo.getProgress());
                 downloadItemView.setFileName(new File(downloadInfo.getFilePath()).getName());
                 downloadItemView.setSpeed(0.0f);
+                downloadItemView.setTotalSize(downloadInfo.getTotalSize());
             }
         });
     }

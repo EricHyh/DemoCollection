@@ -58,7 +58,6 @@ class SingleFileWriteTask implements FileWrite {
                     break;
                 }
             }
-            sync(bos);
         } catch (Exception e) {
             exception = e;
         }

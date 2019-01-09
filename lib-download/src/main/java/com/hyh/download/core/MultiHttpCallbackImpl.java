@@ -47,9 +47,9 @@ public class MultiHttpCallbackImpl extends AbstractHttpCallback {
 
     private volatile AbstractHttpCallback downloadHttpCallback;
 
-    private boolean isConnected;
+    private volatile boolean isConnected;
 
-    private boolean isRetryInvalidFileTask;
+    private volatile boolean isRetryInvalidFileTask;
 
     MultiHttpCallbackImpl(Context context,
                           HttpClient client,

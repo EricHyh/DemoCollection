@@ -72,10 +72,10 @@ class MultiFileWriteTask implements FileWrite {
                     break;
                 }
             }
-            sync(bos, fd, tempFileRaf);
         } catch (Exception e) {
             exception = e;
         }
+        writeStartPositionWithCatch(tempFileRaf);
         StreamUtil.close(bos, fileRaf, tempFileRaf, response);
         if (stop) {
             return;
@@ -99,10 +99,23 @@ class MultiFileWriteTask implements FileWrite {
     private void sync(BufferedOutputStream bos, FileDescriptor fd, RandomAccessFile tempFileRaf) throws IOException {
         bos.flush();
         fd.sync();
-        tempFileRaf.seek(rangeIndex * 8);
-        tempFileRaf.writeLong(startPosition);
+        writeStartPosition(tempFileRaf);
         lastSyncPosition = startPosition;
         lastSyncTimeMillis = SystemClock.elapsedRealtime();
+    }
+
+    private void writeStartPosition(RandomAccessFile tempFileRaf) throws IOException {
+        tempFileRaf.seek(rangeIndex * 8);
+        tempFileRaf.writeLong(startPosition);
+    }
+
+    private void writeStartPositionWithCatch(RandomAccessFile tempFileRaf) {
+        try {
+            tempFileRaf.seek(rangeIndex * 8);
+            tempFileRaf.writeLong(startPosition);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
