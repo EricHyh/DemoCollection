@@ -31,6 +31,8 @@ public class HttpCallBuilder {
 
     private int readTimeout;
 
+    private Object tag;
+
     HttpCallBuilder(ThreadPoolExecutor executor, String url) {
         this.executor = executor;
         this.url = url;
@@ -97,6 +99,10 @@ public class HttpCallBuilder {
         return this;
     }
 
+    public HttpCallBuilder tag(Object tag) {
+        this.tag = tag;
+        return this;
+    }
 
     public HttpCall call() {
         HttpCall httpCall = new HttpCall();
@@ -108,6 +114,7 @@ public class HttpCallBuilder {
         httpCall.requestBody = this.requestBody;
         httpCall.connectTimeout = this.connectTimeout;
         httpCall.readTimeout = this.readTimeout;
+        httpCall.tag = this.tag;
         return httpCall;
     }
 }

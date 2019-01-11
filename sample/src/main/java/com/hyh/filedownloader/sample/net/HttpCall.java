@@ -40,6 +40,8 @@ public class HttpCall implements Cloneable {
 
     int readTimeout;
 
+    Object tag;
+
     private volatile int redirectTimes;
 
     private volatile boolean cancel;
@@ -95,6 +97,10 @@ public class HttpCall implements Cloneable {
         executor.execute(new HttpTask(callback));
     }
 
+    public Object getTag() {
+        return tag;
+    }
+
     public void cancel() {
         synchronized (mLock) {
             cancel = true;
@@ -112,6 +118,7 @@ public class HttpCall implements Cloneable {
         httpCall.requestBody = this.requestBody;
         httpCall.connectTimeout = this.connectTimeout;
         httpCall.readTimeout = this.readTimeout;
+        httpCall.tag = this.tag;
         return httpCall;
     }
 

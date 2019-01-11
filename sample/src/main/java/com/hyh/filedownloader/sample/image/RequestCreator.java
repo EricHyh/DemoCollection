@@ -10,9 +10,9 @@ import android.widget.ImageView;
  * @data 2019/1/7
  */
 
-public class ImageRequest {
+public class RequestCreator {
 
-    private HappyImage mHappyImage;
+    private HappyImage happyImage;
 
     private Uri uri;
 
@@ -24,36 +24,45 @@ public class ImageRequest {
 
     private Drawable errorDrawable;
 
-    public ImageRequest(HappyImage happyImage, Uri uri) {
-        this.mHappyImage = happyImage;
+    private int[] size;
+
+    public RequestCreator(HappyImage happyImage, Uri uri) {
+        this.happyImage = happyImage;
         this.uri = uri;
     }
 
-    public ImageRequest placeholder(int placeholderResId) {
+    public RequestCreator placeholder(int placeholderResId) {
         this.placeholderResId = placeholderResId;
         return this;
     }
 
-    public ImageRequest placeholder(Drawable placeholderDrawable) {
+    public RequestCreator placeholder(Drawable placeholderDrawable) {
         this.placeholderDrawable = placeholderDrawable;
         return this;
     }
 
-    public ImageRequest error(int errorResId) {
+    public RequestCreator error(int errorResId) {
         this.errorResId = errorResId;
         return this;
     }
 
-    public ImageRequest error(Drawable errorDrawable) {
+    public RequestCreator error(Drawable errorDrawable) {
         this.errorDrawable = errorDrawable;
         return this;
     }
 
     public void into(ImageView imageView, Callback callback) {
-
+        int width = imageView.getMeasuredWidth();
     }
 
     public void into(Target target) {
-        //Drawable.createFromStream()
+
+    }
+
+
+    private String createKey() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("path:").append(uri.toString());
+        return sb.toString();
     }
 }
