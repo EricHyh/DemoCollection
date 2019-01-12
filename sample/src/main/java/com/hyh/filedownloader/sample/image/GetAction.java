@@ -15,19 +15,19 @@
  */
 package com.hyh.filedownloader.sample.image;
 
-public interface Callback {
-    void onSuccess();
+import android.graphics.Bitmap;
 
-    void onError(Exception e);
+class GetAction extends Action<Void> {
+    GetAction(NativePicasso picasso, Request data, int memoryPolicy, int networkPolicy, Object tag,
+              String key) {
+        super(picasso, null, data, memoryPolicy, networkPolicy, 0, null, key, tag, false);
+    }
 
-    class EmptyCallback implements Callback {
+    @Override
+    void complete(Bitmap result, NativePicasso.LoadedFrom from) {
+    }
 
-        @Override
-        public void onSuccess() {
-        }
-
-        @Override
-        public void onError(Exception e) {
-        }
+    @Override
+    public void error(Exception e) {
     }
 }

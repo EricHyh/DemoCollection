@@ -1,8 +1,6 @@
 package com.hyh.filedownloader.sample.net;
 
 
-import com.hyh.filedownloader.sample.utils.StreamUtil;
-
 import java.io.IOException;
 import java.io.InputStream;
 
@@ -44,5 +42,11 @@ public class ResponseBody {
 
     public final byte[] bytes() throws IOException {
         return StreamUtil.stream2Bytes(inputStream);
+    }
+
+    public void close() throws IOException {
+        if (inputStream != null) {
+            inputStream.close();
+        }
     }
 }

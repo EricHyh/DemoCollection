@@ -28,11 +28,28 @@ import android.graphics.drawable.Drawable;
  * adapter to ensure correct recycling behavior.
  */
 public interface Target {
+    /**
+     * Callback when an image has been successfully loaded.
+     * <p>
+     * <strong>Note:</strong> You must not recycle the bitmap.
+     */
+    void onBitmapLoaded(Bitmap bitmap, NativePicasso.LoadedFrom from);
 
-  void onPrepareLoad(Drawable placeHolderDrawable);
+    /**
+     * Callback indicating the image could not be successfully loaded.
+     * <p>
+     * <strong>Note:</strong> The passed {@link Drawable} may be {@code null} if none has been
+     * specified via {@link RequestCreator#error(Drawable)}
+     * or {@link RequestCreator#error(int)}.
+     */
+    void onBitmapFailed(Exception e, Drawable errorDrawable);
 
-  void onBitmapLoaded(Bitmap bitmap);
-
-  void onBitmapFailed(Exception e, Drawable errorDrawable);
-
+    /**
+     * Callback invoked right before your request is submitted.
+     * <p>
+     * <strong>Note:</strong> The passed {@link Drawable} may be {@code null} if none has been
+     * specified via {@link RequestCreator#placeholder(Drawable)}
+     * or {@link RequestCreator#placeholder(int)}.
+     */
+    void onPrepareLoad(Drawable placeHolderDrawable);
 }

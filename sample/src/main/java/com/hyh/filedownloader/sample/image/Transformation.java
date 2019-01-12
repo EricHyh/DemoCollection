@@ -15,19 +15,20 @@
  */
 package com.hyh.filedownloader.sample.image;
 
-public interface Callback {
-    void onSuccess();
+import android.graphics.Bitmap;
 
-    void onError(Exception e);
+/** Image transformation. */
+public interface Transformation {
+  /**
+   * Transform the source bitmap into a new bitmap. If you create a new bitmap instance, you must
+   * call {@link Bitmap#recycle()} on {@code source}. You may return the original
+   * if no transformation is required.
+   */
+  Bitmap transform(Bitmap source);
 
-    class EmptyCallback implements Callback {
-
-        @Override
-        public void onSuccess() {
-        }
-
-        @Override
-        public void onError(Exception e) {
-        }
-    }
+  /**
+   * Returns a unique key for the transformation, used for caching purposes. If the transformation
+   * has parameters (e.g. size, scale factor, etc) then these should be part of the key.
+   */
+  String key();
 }

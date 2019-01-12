@@ -2,8 +2,6 @@ package com.hyh.filedownloader.sample.net;
 
 import android.text.TextUtils;
 
-import com.yly.mob.ssp.common.utils.Constants;
-
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -157,7 +155,7 @@ public class HttpCall implements Cloneable {
         if (isSuccessful(responseCode)) {
             return new RawResponse(connection, url, responseCode, connection.getInputStream());
         } else if (isRedirect(responseCode)) {
-            if (++redirectTimes >= Constants.Net.MAX_REDIRECT_TIMES) {//如果重定向次数达到最大允许次数就不再继续处理下去了，直接抛异常
+            if (++redirectTimes >= HappyHttp.Net.MAX_REDIRECT_TIMES) {//如果重定向次数达到最大允许次数就不再继续处理下去了，直接抛异常
                 throw new RuntimeException("redirect times reach max");
             }
             RawResponse rawResponse = new RawResponse(connection, url, responseCode, null);
@@ -188,8 +186,8 @@ public class HttpCall implements Cloneable {
                 redirectResponse = response;
                 break;
             }
-            case Constants.Net.ResponseCode.HTTP_TEMPORARY_REDIRECT:
-            case Constants.Net.ResponseCode.HTTP_PERMANENT_REDIRECT: {
+            case HappyHttp.Net.ResponseCode.HTTP_TEMPORARY_REDIRECT:
+            case HappyHttp.Net.ResponseCode.HTTP_PERMANENT_REDIRECT: {
                 RawResponse response = getRawResponse(location, lastResponse.method(), requestHeaders, null, requestBody);
                 response.lastResponse = lastResponse;
                 redirectResponse = response;
@@ -264,8 +262,8 @@ public class HttpCall implements Cloneable {
                 || responseCode == HttpURLConnection.HTTP_MOVED_PERM
                 || responseCode == HttpURLConnection.HTTP_MOVED_TEMP
                 || responseCode == HttpURLConnection.HTTP_SEE_OTHER
-                || responseCode == Constants.Net.ResponseCode.HTTP_TEMPORARY_REDIRECT
-                || responseCode == Constants.Net.ResponseCode.HTTP_PERMANENT_REDIRECT;
+                || responseCode == HappyHttp.Net.ResponseCode.HTTP_TEMPORARY_REDIRECT
+                || responseCode == HappyHttp.Net.ResponseCode.HTTP_PERMANENT_REDIRECT;
     }
 
 

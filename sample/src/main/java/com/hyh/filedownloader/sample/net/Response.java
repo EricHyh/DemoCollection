@@ -46,4 +46,8 @@ public class Response {
     public ResponseBody body() {
         return responseBody;
     }
+
+    public Response cacheResponse() {
+        return null;
+    }
 }
