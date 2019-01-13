@@ -4,7 +4,6 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
-import android.text.TextUtils;
 
 import com.hyh.download.State;
 import com.hyh.download.db.annotation.Column;
@@ -15,11 +14,11 @@ import com.hyh.download.db.bean.TaskInfo;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
+import java.util.TreeSet;
 
 /**
  * @author Administrator
@@ -31,29 +30,19 @@ public class TaskInfoDao {
 
     private static final String TABLE_NAME = "TaskInfo";
 
-    private final static String[] sColumnNames = {"_id", "resKey",
-            "requestUrl", "targetUrl", "cacheRequestUrl", "cacheTargetUrl",
-            "versionCode", "priority", "fileDir", "filePath", "byMultiThread",
-            "rangeNum", "totalSize", "currentSize", "currentStatus",
-            "onlyWifiDownload", "wifiAutoRetry", "permitRetryInMobileData", "permitRetryInvalidFileTask", "permitRecoverTask",
-            "responseCode", "failureCode", "contentMD5", "contentType", "eTag", "lastModified", "updateTimeMillis", "tag"};
-
-    private static Map<String, ColumnInfo> sColumns = new TreeMap<>(new Comparator<String>() {
+    private final static Set<ColumnInfo> sColumns = new TreeSet<>(new Comparator<ColumnInfo>() {
         @Override
-        public int compare(String o1, String o2) {
-            if (TextUtils.equals(o1, "_id")) {
-                return -1;
-            }
-            return 1;
+        public int compare(ColumnInfo o1, ColumnInfo o2) {
+            return o1.index - o2.index;
         }
     });
 
-    static {
-        loadColumns();
-    }
+    private final static String[] sColumnNames;
 
-    private static void loadColumns() {
+    static {
         Field[] declaredFields = TaskInfo.class.getDeclaredFields();
+        TreeMap<Integer, String> columnNameMap = new TreeMap<>();
+
         for (Field declaredField : declaredFields) {
             declaredField.setAccessible(true);
             Column column = declaredField.getAnnotation(Column.class);
@@ -62,6 +51,7 @@ public class TaskInfoDao {
             }
             Class<?> type = declaredField.getType();
             String columnName = column.nameInDb();
+            int index = column.indexInDb();
 
             boolean primaryKey = false;
             boolean notNull = false;
@@ -79,24 +69,25 @@ public class TaskInfoDao {
             if (Unique != null) {
                 unique = true;
             }
-            sColumns.put(columnName, new ColumnInfo(declaredField, type, columnName, primaryKey, notNull, unique));
+            sColumns.add(new ColumnInfo(declaredField, type, index, columnName, primaryKey, notNull, unique));
+            columnNameMap.put(index, columnName);
         }
+        sColumnNames = columnNameMap.values().toArray(new String[columnNameMap.size()]);
     }
 
     static void createTable(SQLiteDatabase db, boolean ifNotExists) {
         String constraint = ifNotExists ? "IF NOT EXISTS " : "";
         StringBuilder sb = new StringBuilder("CREATE TABLE " + constraint + " " + TABLE_NAME + " (");
-        Collection<ColumnInfo> columnInfos = sColumns.values();
-        for (ColumnInfo columnInfo : columnInfos) {
-            Class<?> type = columnInfo.getType();
-            String columnName = columnInfo.getColumnName();
+        for (ColumnInfo columnInfo : sColumns) {
+            Class<?> type = columnInfo.type;
+            String columnName = columnInfo.columnName;
             String columnType = getColumnType(type);
             sb.append(columnName).append(" ").append(columnType);
-            if (columnInfo.isPrimaryKey()) {
+            if (columnInfo.primaryKey) {
                 sb.append(" PRIMARY KEY AUTOINCREMENT");
             } else {
-                boolean unique = columnInfo.isUnique();
-                boolean notNull = columnInfo.isNotNull();
+                boolean unique = columnInfo.unique;
+                boolean notNull = columnInfo.notNull;
                 if (notNull) {
                     sb.append(" NOT NULL");
                 }
@@ -163,13 +154,12 @@ public class TaskInfoDao {
     public synchronized TaskInfo getTaskInfoByKey(String resKey) {
         TaskInfo taskInfo = null;
         SQLiteDatabase db = mSqLiteHelper.getReadableDatabase();
-        String[] columns = sColumnNames;
         String selection = "resKey=?";
         String[] selectionArgs = {resKey};
         String groupBy = null;
         String having = null;
         String orderBy = null;
-        Cursor cursor = db.query(TABLE_NAME, columns, selection, selectionArgs, groupBy, having, orderBy);
+        Cursor cursor = db.query(TABLE_NAME, sColumnNames, selection, selectionArgs, groupBy, having, orderBy);
         if (cursor != null && cursor.getCount() > 0 && cursor.moveToFirst()) {
             taskInfo = readTaskInfo(cursor);
             cursor.close();
@@ -182,7 +172,6 @@ public class TaskInfoDao {
     public synchronized List<TaskInfo> queryInterruptedTask() {
         List<TaskInfo> taskInfoList = null;
         SQLiteDatabase db = mSqLiteHelper.getReadableDatabase();
-        String[] columns = sColumnNames;
         String selection = "currentStatus in (?, ?, ?, ?, ?, ?)";
         String[] selectionArgs = {String.valueOf(State.PREPARE),
                 String.valueOf(State.WAITING_START),
@@ -193,7 +182,7 @@ public class TaskInfoDao {
         String groupBy = null;
         String having = null;
         String orderBy = null;
-        Cursor cursor = db.query(TABLE_NAME, columns, selection, selectionArgs, groupBy, having, orderBy);
+        Cursor cursor = db.query(TABLE_NAME, sColumnNames, selection, selectionArgs, groupBy, having, orderBy);
         if (null != cursor) {
             int count = cursor.getCount();
             if (count > 0 && cursor.moveToFirst()) {
@@ -211,13 +200,12 @@ public class TaskInfoDao {
     public synchronized List<TaskInfo> queryAllTask() {
         List<TaskInfo> taskInfoList = null;
         SQLiteDatabase db = mSqLiteHelper.getReadableDatabase();
-        String[] columns = sColumnNames;
         String selection = null;
         String[] selectionArgs = null;
         String groupBy = null;
         String having = null;
         String orderBy = null;
-        Cursor cursor = db.query(TABLE_NAME, columns, selection, selectionArgs, groupBy, having, orderBy);
+        Cursor cursor = db.query(TABLE_NAME, sColumnNames, selection, selectionArgs, groupBy, having, orderBy);
         if (null != cursor) {
             int count = cursor.getCount();
             if (count > 0 && cursor.moveToFirst()) {
@@ -277,43 +265,43 @@ public class TaskInfoDao {
      */
     private TaskInfo readTaskInfo(Cursor cursor) {
         TaskInfo taskInfo = new TaskInfo();
-        taskInfo.setId(cursor.getLong(0));
-        taskInfo.setResKey(cursor.getString(1));
+        int columnIndex = -1;
+        taskInfo.setId(cursor.getLong(++columnIndex));
+        taskInfo.setResKey(cursor.getString(++columnIndex));
 
-        taskInfo.setRequestUrl(cursor.getString(2));
-        taskInfo.setTargetUrl(cursor.getString(3));
-        taskInfo.setCacheTargetUrl(cursor.getString(4));
-        taskInfo.setCacheTargetUrl(cursor.getString(5));
+        taskInfo.setRequestUrl(cursor.getString(++columnIndex));
+        taskInfo.setTargetUrl(cursor.getString(++columnIndex));
+        taskInfo.setCacheTargetUrl(cursor.getString(++columnIndex));
+        taskInfo.setCacheTargetUrl(cursor.getString(++columnIndex));
 
-        taskInfo.setVersionCode(cursor.getInt(6));
-        taskInfo.setPriority(cursor.getInt(7));
+        taskInfo.setPriority(cursor.getInt(++columnIndex));
 
-        taskInfo.setFileDir(cursor.getString(8));
-        taskInfo.setFilePath(cursor.getString(9));
+        taskInfo.setFileDir(cursor.getString(++columnIndex));
+        taskInfo.setFileName(cursor.getString(++columnIndex));
 
-        taskInfo.setByMultiThread(cursor.getInt(10) == 1);
-        taskInfo.setRangeNum(cursor.getInt(11));
+        taskInfo.setByMultiThread(cursor.getInt(++columnIndex) == 1);
+        taskInfo.setRangeNum(cursor.getInt(++columnIndex));
 
-        taskInfo.setTotalSize(cursor.getLong(12));
-        taskInfo.setCurrentSize(cursor.getLong(13));
-        taskInfo.setCurrentStatus(cursor.getInt(14));
+        taskInfo.setTotalSize(cursor.getLong(++columnIndex));
+        taskInfo.setCurrentSize(cursor.getLong(++columnIndex));
+        taskInfo.setCurrentStatus(cursor.getInt(++columnIndex));
 
-        taskInfo.setOnlyWifiDownload(cursor.getInt(15) == 1);
-        taskInfo.setWifiAutoRetry(cursor.getInt(16) == 1);
-        taskInfo.setPermitRetryInMobileData(cursor.getInt(17) == 1);
-        taskInfo.setPermitRetryInvalidFileTask(cursor.getInt(18) == 1);
-        taskInfo.setPermitRecoverTask(cursor.getInt(19) == 1);
+        taskInfo.setOnlyWifiDownload(cursor.getInt(++columnIndex) == 1);
+        taskInfo.setWifiAutoRetry(cursor.getInt(++columnIndex) == 1);
+        taskInfo.setPermitRetryInMobileData(cursor.getInt(++columnIndex) == 1);
+        taskInfo.setPermitRetryInvalidFileTask(cursor.getInt(++columnIndex) == 1);
+        taskInfo.setPermitRecoverTask(cursor.getInt(++columnIndex) == 1);
 
-        taskInfo.setResponseCode(cursor.getInt(20));
-        taskInfo.setFailureCode(cursor.getInt(21));
+        taskInfo.setResponseCode(cursor.getInt(++columnIndex));
+        taskInfo.setFailureCode(cursor.getInt(++columnIndex));
 
-        taskInfo.setContentMD5(cursor.getString(22));
-        taskInfo.setContentType(cursor.getString(23));
-        taskInfo.setETag(cursor.getString(24));
-        taskInfo.setLastModified(cursor.getString(25));
+        taskInfo.setContentMD5(cursor.getString(++columnIndex));
+        taskInfo.setContentType(cursor.getString(++columnIndex));
+        taskInfo.setETag(cursor.getString(++columnIndex));
+        taskInfo.setLastModified(cursor.getString(++columnIndex));
 
-        taskInfo.setUpdateTimeMillis(cursor.getLong(26));
-        taskInfo.setTag(cursor.getString(27));
+        taskInfo.setUpdateTimeMillis(cursor.getLong(++columnIndex));
+        taskInfo.setTag(cursor.getString(++columnIndex));
         return taskInfo;
     }
 
@@ -330,10 +318,9 @@ public class TaskInfoDao {
         contentValues.put("cacheRequestUrl", taskInfo.getCacheRequestUrl());
         contentValues.put("cacheTargetUrl", taskInfo.getCacheTargetUrl());
 
-        contentValues.put("versionCode", taskInfo.getVersionCode());
         contentValues.put("priority", taskInfo.getPriority());
         contentValues.put("fileDir", taskInfo.getFileDir());
-        contentValues.put("filePath", taskInfo.getFilePath());
+        contentValues.put("fileName", taskInfo.getFileName());
         contentValues.put("byMultiThread", taskInfo.isByMultiThread() ? 1 : 0);
         contentValues.put("rangeNum", taskInfo.getRangeNum());
         contentValues.put("totalSize", taskInfo.getTotalSize());

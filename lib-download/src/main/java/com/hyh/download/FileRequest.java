@@ -1,6 +1,8 @@
 package com.hyh.download;
 
 
+import android.text.TextUtils;
+
 /**
  * Created by Administrator on 2017/3/9.
  */
@@ -25,11 +27,9 @@ public class FileRequest {
 
     private boolean forceDownload;
 
-    private int versionCode;
-
     private String fileDir;
 
-    private String filePath;
+    private String fileName;
 
     private FileChecker fileChecker;
 
@@ -82,16 +82,12 @@ public class FileRequest {
         return forceDownload;
     }
 
-    public int versionCode() {
-        return versionCode;
-    }
-
     public String fileDir() {
         return fileDir;
     }
 
-    public String filePath() {
-        return filePath;
+    public String fileName() {
+        return fileName;
     }
 
     public FileChecker fileChecker() {
@@ -122,23 +118,21 @@ public class FileRequest {
 
         private boolean forceDownload = false;
 
-        private int versionCode = -1;
-
         private String fileDir;
 
-        private String filePath;
+        private String fileName;
 
         private String tag;
 
         private FileChecker fileChecker;
 
-        public Builder() {
-
-        }
-
         public FileRequest build() {
             FileRequest fileRequest = new FileRequest();
-            fileRequest.resKey = this.resKey;
+            if (TextUtils.isEmpty(this.resKey)) {
+                fileRequest.resKey = this.url;
+            } else {
+                fileRequest.resKey = this.resKey;
+            }
             fileRequest.url = this.url;
             fileRequest.needVerifyUrl = this.needVerifyUrl;
             fileRequest.byMultiThread = this.byMultiThread;
@@ -147,9 +141,8 @@ public class FileRequest {
             fileRequest.permitRetryInvalidFileTask = this.permitRetryInvalidFileTask;
             fileRequest.permitRecoverTask = this.permitRecoverTask;
             fileRequest.forceDownload = this.forceDownload;
-            fileRequest.versionCode = this.versionCode;
             fileRequest.fileDir = fileDir;
-            fileRequest.filePath = filePath;
+            fileRequest.fileName = fileName;
             fileRequest.tag = this.tag;
             fileRequest.fileChecker = this.fileChecker;
             return fileRequest;
@@ -200,18 +193,13 @@ public class FileRequest {
             return this;
         }
 
-        public Builder versionCode(int versionCode) {
-            this.versionCode = versionCode;
-            return this;
-        }
-
         public Builder fileDir(String fileDir) {
             this.fileDir = fileDir;
             return this;
         }
 
-        public Builder filePath(String filePath) {
-            this.filePath = filePath;
+        public Builder fileName(String fileName) {
+            this.fileName = fileName;
             return this;
         }
 

@@ -58,6 +58,7 @@ public class TaskDatabaseHelper {
     }
 
     public void insertOrUpdate(TaskInfo taskInfo) {
+        taskInfo.setUpdateTimeMillis(System.currentTimeMillis());
         String resKey = taskInfo.getResKey();
         mTaskInfoMap.put(resKey, taskInfo);
         mTaskInfoDao.insertOrUpdate(taskInfo);
@@ -93,8 +94,9 @@ public class TaskDatabaseHelper {
 
     private void fixTaskInfo(TaskInfo taskInfo) {
         int currentStatus = taskInfo.getCurrentStatus();
+        String taskFilePath = DownloadFileHelper.getTaskFilePath(taskInfo);
         if (currentStatus == State.SUCCESS) {
-            long fileLength = DownloadFileHelper.getFileLength(taskInfo.getFilePath());
+            long fileLength = DownloadFileHelper.getFileLength(taskFilePath);
             long totalSize = taskInfo.getTotalSize();
             if (fileLength <= 0 || (totalSize > 0 && fileLength != totalSize)) {
                 DownloadFileHelper.deleteDownloadFile(taskInfo);
@@ -103,13 +105,11 @@ public class TaskDatabaseHelper {
             }
         } else {
             if (taskInfo.getRangeNum() > 1) {
-                String filePath = taskInfo.getFilePath();
-                String tempFilePath = DownloadFileHelper.getTempFilePath(filePath);
+                String tempFilePath = DownloadFileHelper.getTempFilePath(taskFilePath);
                 long currentSize = readCurrentSizeFromTempFile(tempFilePath, taskInfo.getTotalSize(), taskInfo.getRangeNum());
                 taskInfo.setCurrentSize(currentSize);
             } else {
-                String filePath = taskInfo.getFilePath();
-                long fileLength = DownloadFileHelper.getFileLength(filePath);
+                long fileLength = DownloadFileHelper.getFileLength(taskFilePath);
                 taskInfo.setCurrentSize(fileLength);
             }
         }

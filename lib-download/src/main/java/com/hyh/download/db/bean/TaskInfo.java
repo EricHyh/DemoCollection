@@ -17,91 +17,88 @@ import com.hyh.download.utils.RangeUtil;
 public class TaskInfo implements Parcelable {
 
     @Id
-    @Column(nameInDb = "_id")
+    @Column(nameInDb = "_id", indexInDb = 0)
     private long id = -1;
 
     @NotNull
     @Unique
-    @Column(nameInDb = "resKey")
+    @Column(nameInDb = "resKey", indexInDb = 1)
     private String resKey;
 
-    @Column(nameInDb = "requestUrl")
+    @Column(nameInDb = "requestUrl", indexInDb = 2)
     private String requestUrl;
 
-    @Column(nameInDb = "targetUrl")
+    @Column(nameInDb = "targetUrl", indexInDb = 3)
     private String targetUrl;
 
-    @Column(nameInDb = "cacheRequestUrl")
+    @Column(nameInDb = "cacheRequestUrl", indexInDb = 4)
     private String cacheRequestUrl;
 
-    @Column(nameInDb = "cacheTargetUrl")
+    @Column(nameInDb = "cacheTargetUrl", indexInDb = 5)
     private String cacheTargetUrl;
 
-    @Column(nameInDb = "versionCode")
-    private int versionCode;
-
-    @Column(nameInDb = "priority")
+    @Column(nameInDb = "priority", indexInDb = 6)
     private int priority;
 
     @NotNull
-    @Column(nameInDb = "fileDir")
+    @Column(nameInDb = "fileDir", indexInDb = 7)
     private String fileDir;
 
-    @Column(nameInDb = "filePath")
-    private String filePath;
+    @Column(nameInDb = "fileName", indexInDb = 8)
+    private String fileName;
 
-    @Column(nameInDb = "byMultiThread")
+    @Column(nameInDb = "byMultiThread", indexInDb = 9)
     private boolean byMultiThread;
 
-    @Column(nameInDb = "rangeNum")
+    @Column(nameInDb = "rangeNum", indexInDb = 10)
     private int rangeNum;
 
-    @Column(nameInDb = "totalSize")
+    @Column(nameInDb = "totalSize", indexInDb = 11)
     private volatile long totalSize;
 
-    @Column(nameInDb = "currentSize")
+    @Column(nameInDb = "currentSize", indexInDb = 12)
     private volatile long currentSize;
 
-    @Column(nameInDb = "currentStatus")
+    @Column(nameInDb = "currentStatus", indexInDb = 13)
     private volatile int currentStatus;
 
-    @Column(nameInDb = "onlyWifiDownload")
+    @Column(nameInDb = "onlyWifiDownload", indexInDb = 14)
     private boolean onlyWifiDownload;
 
-    @Column(nameInDb = "wifiAutoRetry")
+    @Column(nameInDb = "wifiAutoRetry", indexInDb = 15)
     private boolean wifiAutoRetry;
 
-    @Column(nameInDb = "permitRetryInMobileData")
+    @Column(nameInDb = "permitRetryInMobileData", indexInDb = 16)
     private boolean permitRetryInMobileData;
 
-    @Column(nameInDb = "permitRetryInvalidFileTask")
+    @Column(nameInDb = "permitRetryInvalidFileTask", indexInDb = 17)
     private boolean permitRetryInvalidFileTask;
 
-    @Column(nameInDb = "permitRecoverTask")
+    @Column(nameInDb = "permitRecoverTask", indexInDb = 18)
     private boolean permitRecoverTask;
 
-    @Column(nameInDb = "responseCode")
+    @Column(nameInDb = "responseCode", indexInDb = 19)
     private int responseCode;
 
-    @Column(nameInDb = "failureCode")
+    @Column(nameInDb = "failureCode", indexInDb = 20)
     private int failureCode;
 
-    @Column(nameInDb = "contentMD5")
+    @Column(nameInDb = "contentMD5", indexInDb = 21)
     private String contentMD5;
 
-    @Column(nameInDb = "contentType")
+    @Column(nameInDb = "contentType", indexInDb = 22)
     private String contentType;
 
-    @Column(nameInDb = "eTag")
+    @Column(nameInDb = "eTag", indexInDb = 23)
     private String eTag;
 
-    @Column(nameInDb = "lastModified")
+    @Column(nameInDb = "lastModified", indexInDb = 24)
     private String lastModified;
 
-    @Column(nameInDb = "updateTimeMillis")
+    @Column(nameInDb = "updateTimeMillis", indexInDb = 25)
     private long updateTimeMillis;
 
-    @Column(nameInDb = "tag")
+    @Column(nameInDb = "tag", indexInDb = 26)
     private String tag;
 
     public TaskInfo() {
@@ -114,10 +111,9 @@ public class TaskInfo implements Parcelable {
         targetUrl = in.readString();
         cacheRequestUrl = in.readString();
         cacheTargetUrl = in.readString();
-        versionCode = in.readInt();
         priority = in.readInt();
         fileDir = in.readString();
-        filePath = in.readString();
+        fileName = in.readString();
         byMultiThread = in.readByte() != 0;
         rangeNum = in.readInt();
         totalSize = in.readLong();
@@ -151,10 +147,9 @@ public class TaskInfo implements Parcelable {
         dest.writeString(targetUrl);
         dest.writeString(cacheRequestUrl);
         dest.writeString(cacheTargetUrl);
-        dest.writeInt(versionCode);
         dest.writeInt(priority);
         dest.writeString(fileDir);
-        dest.writeString(filePath);
+        dest.writeString(fileName);
         dest.writeByte((byte) (byMultiThread ? 1 : 0));
         dest.writeInt(rangeNum);
         dest.writeLong(totalSize);
@@ -243,14 +238,6 @@ public class TaskInfo implements Parcelable {
         this.cacheTargetUrl = cacheTargetUrl;
     }
 
-    public int getVersionCode() {
-        return versionCode;
-    }
-
-    public void setVersionCode(int versionCode) {
-        this.versionCode = versionCode;
-    }
-
     public int getPriority() {
         return priority;
     }
@@ -267,12 +254,12 @@ public class TaskInfo implements Parcelable {
         this.fileDir = fileDir;
     }
 
-    public String getFilePath() {
-        return filePath;
+    public String getFileName() {
+        return fileName;
     }
 
-    public void setFilePath(String filePath) {
-        this.filePath = filePath;
+    public void setFileName(String fileName) {
+        this.fileName = fileName;
     }
 
     public boolean isByMultiThread() {
@@ -424,9 +411,9 @@ public class TaskInfo implements Parcelable {
         downloadInfo.setResKey(this.resKey);
         downloadInfo.setRequestUrl(this.requestUrl);
         downloadInfo.setTargetUrl(this.targetUrl);
-        downloadInfo.setVersionCode(this.versionCode);
         downloadInfo.setPriority(this.priority);
-        downloadInfo.setFilePath(this.filePath);
+        downloadInfo.setFileDir(this.fileDir);
+        downloadInfo.setFileName(this.fileName);
 
         downloadInfo.setByMultiThread(this.byMultiThread);
         downloadInfo.setOnlyWifiDownload(this.onlyWifiDownload);

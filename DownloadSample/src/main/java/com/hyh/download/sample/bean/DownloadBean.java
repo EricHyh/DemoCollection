@@ -12,8 +12,11 @@ public class DownloadBean {
 
     public String url;
 
-    public DownloadBean(String title, String url) {
+    public String fileName;
+
+    public DownloadBean(String title, String url, String fileName) {
         this.title = title;
         this.url = url;
+        this.fileName = fileName;
     }
 }

@@ -16,8 +16,8 @@
 package com.hyh.filedownloader.sample.image;
 
 
-import com.yly.lib.picasso.net.HappyHttp;
-import com.yly.lib.picasso.net.Response;
+import com.hyh.filedownloader.sample.net.HappyHttp;
+import com.hyh.filedownloader.sample.net.Response;
 
 import java.io.IOException;
 

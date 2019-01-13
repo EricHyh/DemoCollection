@@ -16,4 +16,6 @@ public @interface Column {
      * Name of the database column for this property. Default is field name.
      */
     String nameInDb() default "";
+
+    int indexInDb();
 }

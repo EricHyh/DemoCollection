@@ -11,6 +11,7 @@ import com.hyh.download.core.ServiceBridge;
 import com.hyh.download.core.TaskListenerManager;
 import com.hyh.download.db.bean.TaskInfo;
 import com.hyh.download.utils.DownloadFileHelper;
+import com.hyh.download.utils.L;
 
 /**
  * @author Administrator
@@ -94,7 +95,7 @@ public class FileDownloader {
     }
 
     public synchronized void startTask(String url) {
-        startTask(new FileRequest.Builder().key(url).url(url).byMultiThread(true).build(), null);
+        startTask(new FileRequest.Builder().url(url).byMultiThread(true).build(), null);
     }
 
     public synchronized void startTask(FileRequest request) {
@@ -113,7 +114,7 @@ public class FileDownloader {
         }
 
 
-        if (!request.forceDownload() && isFileDownloaded(key, request.versionCode(), request.fileChecker())) {
+        if (!request.forceDownload() && isFileDownloaded(key, request.fileChecker())) {
             if (listener != null) {
                 listener.onSuccess(mDownloadProxy.getTaskInfoByKey(key).toDownloadInfo());
             }
@@ -154,29 +155,11 @@ public class FileDownloader {
         return mDownloadProxy.isFileDownloaded(resKey, fileChecker);
     }
 
-    public synchronized boolean isFileDownloaded(String resKey, int versionCode) {
-        waitingForInitProxyFinish();
-        if (versionCode <= 0) {
-            return mDownloadProxy.isFileDownloaded(resKey, null);
-        } else {
-            return mDownloadProxy.isFileDownloaded(resKey, versionCode, null);
-        }
-    }
-
-    public synchronized boolean isFileDownloaded(String resKey, int versionCode, FileChecker fileChecker) {
-        waitingForInitProxyFinish();
-        if (versionCode <= 0) {
-            return mDownloadProxy.isFileDownloaded(resKey, fileChecker);
-        } else {
-            return mDownloadProxy.isFileDownloaded(resKey, versionCode, fileChecker);
-        }
-    }
-
     public synchronized String getFilePath(String resKey) {
         waitingForInitProxyFinish();
         TaskInfo taskInfo = mDownloadProxy.getTaskInfoByKey(resKey);
         if (taskInfo != null) {
-            return taskInfo.getFilePath();
+            return DownloadFileHelper.getTaskFilePath(taskInfo);
         }
         return null;
     }
@@ -240,13 +223,8 @@ public class FileDownloader {
 
     private boolean isRequestChanged(FileRequest request, TaskInfo taskInfo) {
         return request.forceDownload()
-                || isVersionChanged(request, taskInfo)
                 || isUrlChanged(request, taskInfo)
                 || isFilePathChanged(request, taskInfo);
-    }
-
-    private boolean isVersionChanged(FileRequest request, TaskInfo taskInfo) {
-        return request.versionCode() != taskInfo.getVersionCode();
     }
 
     private boolean isUrlChanged(FileRequest request, TaskInfo taskInfo) {
@@ -254,24 +232,24 @@ public class FileDownloader {
     }
 
     private boolean isFilePathChanged(FileRequest request, TaskInfo taskInfo) {
-        String cacheFileDir = taskInfo.getFileDir();
-        String cacheFilePath = taskInfo.getFilePath();
         String requestFileDir = request.fileDir();
-        String requestFilePath = request.filePath();
-        if (!TextUtils.isEmpty(requestFilePath)) {
-            if (!TextUtils.equals(cacheFilePath, requestFilePath)) {
-                return true;
-            }
-        } else if (!TextUtils.isEmpty(requestFileDir)) {
-            if (!TextUtils.equals(cacheFileDir, requestFileDir)) {
-                return true;
-            }
+        String requestFileName = request.fileName();
+        String cacheFileDir = taskInfo.getFileDir();
+        String cacheFileName = taskInfo.getFileName();
+        if (!TextUtils.isEmpty(requestFileDir) && !TextUtils.equals(cacheFileDir, requestFileDir)) {
+            L.d("requestFileDir:" + requestFileDir + ", cacheFileDir:" + cacheFileDir);
+            return true;
+        }
+        if (!TextUtils.isEmpty(requestFileName) && !TextUtils.equals(cacheFileDir, cacheFileName)) {
+            L.d("requestFileName:" + requestFileName + ", cacheFileName:" + cacheFileName);
+            return true;
         }
         return false;
     }
 
     private void fixRequestInfo(FileRequest request, TaskInfo taskInfo) {
         taskInfo.setRequestUrl(request.url());
+        taskInfo.setTargetUrl(null);
 
         taskInfo.setWifiAutoRetry(request.wifiAutoRetry());
         taskInfo.setPermitRetryInMobileData(request.permitRetryInMobileData());
@@ -287,13 +265,14 @@ public class FileDownloader {
         TaskInfo taskInfo = new TaskInfo();
         taskInfo.setResKey(request.key());
         taskInfo.setRequestUrl(request.url());
-        taskInfo.setVersionCode(request.versionCode());
-        taskInfo.setFileDir(createFileDir(request));
 
-        String filePath = request.filePath();
-        filePath = DownloadFileHelper.fixFileExists(filePath);
+        String fileDir = createFileDir(request);
+        taskInfo.setFileDir(fileDir);
+        String fileName = request.fileName();
 
-        taskInfo.setFilePath(filePath);
+        fileName = DownloadFileHelper.fixFileExists(fileDir, fileName);
+
+        taskInfo.setFileName(fileName);
         taskInfo.setByMultiThread(request.byMultiThread());
 
         taskInfo.setWifiAutoRetry(request.wifiAutoRetry());
@@ -306,15 +285,11 @@ public class FileDownloader {
     }
 
     private String createFileDir(FileRequest fileRequest) {
-        String fileDir;
-        String filePath = fileRequest.filePath();
-        if (!TextUtils.isEmpty(filePath)) {
-            fileDir = DownloadFileHelper.getParenFilePath(filePath);
-        } else if (!TextUtils.isEmpty(fileRequest.fileDir())) {
-            fileDir = fileRequest.fileDir();
-        } else if (!TextUtils.isEmpty(mDownloaderConfig.getDefaultFileDir())) {
+        String fileDir = fileRequest.fileDir();
+        if (TextUtils.isEmpty(fileDir)) {
             fileDir = mDownloaderConfig.getDefaultFileDir();
-        } else {
+        }
+        if (TextUtils.isEmpty(fileDir)) {
             fileDir = DownloadFileHelper.getDefaultFileDir(mContext);
         }
         DownloadFileHelper.ensureCreated(fileDir);

@@ -10,7 +10,6 @@ import android.graphics.Rect;
 import android.hardware.fingerprint.FingerprintManager;
 import android.os.Build;
 import android.os.PowerManager;
-import android.support.annotation.RequiresApi;
 import android.util.DisplayMetrics;
 import android.view.Display;
 import android.view.View;
@@ -224,7 +223,6 @@ public class DisplayUtil {
      * @param context
      * @return
      */
-    @RequiresApi(api = Build.VERSION_CODES.M)
     public static boolean isDeviceSecure(Context context) {
         KeyguardManager keyguardManager = (KeyguardManager) context.getSystemService(Context.KEYGUARD_SERVICE);
         if (keyguardManager == null) {

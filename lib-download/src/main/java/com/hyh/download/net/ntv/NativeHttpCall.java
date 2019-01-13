@@ -2,8 +2,8 @@ package com.hyh.download.net.ntv;
 
 import com.hyh.download.net.HttpCall;
 import com.hyh.download.net.HttpCallback;
+import com.hyh.download.net.HttpClient;
 import com.hyh.download.net.HttpResponse;
-import com.hyh.download.utils.NetworkHelper;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -129,7 +129,7 @@ public class NativeHttpCall implements HttpCall {
         }
         int code = connection.getResponseCode();
         String location = connection.getHeaderField("Location");
-        if (NetworkHelper.isRedirect(code)) {
+        if (isRedirect(code)) {
             if (++redirectTimes >= MAX_REDIRECT_TIMES) {
                 throw new IllegalAccessException("redirect times reach max");
             }
@@ -141,6 +141,15 @@ public class NativeHttpCall implements HttpCall {
             return getConnection(location, startPosition, endPosition);
         }
         return connection;
+    }
+
+    private boolean isRedirect(int code) {
+        return code == HttpURLConnection.HTTP_MOVED_PERM
+                || code == HttpURLConnection.HTTP_MOVED_TEMP
+                || code == HttpURLConnection.HTTP_SEE_OTHER
+                || code == HttpURLConnection.HTTP_MULT_CHOICE
+                || code == HttpClient.ResponseCode.HTTP_TEMPORARY_REDIRECT
+                || code == HttpClient.ResponseCode.HTTP_PERMANENT_REDIRECT;
     }
 
     private class RequestTask implements Runnable {

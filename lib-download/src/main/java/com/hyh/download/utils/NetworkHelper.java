@@ -8,9 +8,6 @@ import android.os.Build;
 import android.text.TextUtils;
 import android.webkit.WebSettings;
 
-import com.hyh.download.core.Constants;
-
-import java.net.HttpURLConnection;
 import java.util.Calendar;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -120,10 +117,10 @@ public class NetworkHelper {
 
     public static String getUserAgent(Context context) {
         String userAgent = null;
-        SharedPreferences preferences = context.getSharedPreferences(Constants.Preference.SHARE_NAME, Context.MODE_PRIVATE);
-        long cacheTimeMillis = preferences.getLong(Constants.Preference.Key.CACHE_USER_AGENT_TIME_MILLIS, 0);
+        SharedPreferences preferences = context.getSharedPreferences(Preference.SHARE_NAME, Context.MODE_PRIVATE);
+        long cacheTimeMillis = preferences.getLong(Preference.Key.CACHE_USER_AGENT_TIME_MILLIS, 0);
         if (isSameDay(cacheTimeMillis, System.currentTimeMillis())) {
-            userAgent = preferences.getString(Constants.Preference.Key.USER_AGENT, null);
+            userAgent = preferences.getString(Preference.Key.USER_AGENT, null);
         }
         if (!TextUtils.isEmpty(userAgent)) {
             return userAgent;
@@ -153,8 +150,8 @@ public class NetworkHelper {
         }
         if (!TextUtils.isEmpty(userAgent)) {
             SharedPreferences.Editor editor = preferences.edit();
-            editor.putString(Constants.Preference.Key.USER_AGENT, userAgent);
-            editor.putLong(Constants.Preference.Key.CACHE_USER_AGENT_TIME_MILLIS, System.currentTimeMillis());
+            editor.putString(Preference.Key.USER_AGENT, userAgent);
+            editor.putLong(Preference.Key.CACHE_USER_AGENT_TIME_MILLIS, System.currentTimeMillis());
             editor.apply();
         }
         return userAgent;
@@ -178,12 +175,21 @@ public class NetworkHelper {
         }
     }
 
-    public static boolean isRedirect(int code) {
-        return code == HttpURLConnection.HTTP_MOVED_PERM
-                || code == HttpURLConnection.HTTP_MOVED_TEMP
-                || code == HttpURLConnection.HTTP_SEE_OTHER
-                || code == HttpURLConnection.HTTP_MULT_CHOICE
-                || code == Constants.ResponseCode.HTTP_TEMPORARY_REDIRECT
-                || code == Constants.ResponseCode.HTTP_PERMANENT_REDIRECT;
+    /**
+     * @author Administrator
+     * @description
+     * @data 2018/12/12
+     */
+    public static class Preference {
+
+        static final String SHARE_NAME = "file_downloader_config";
+
+        static class Key {
+
+            static final String USER_AGENT = "user_agent";
+
+            static final String CACHE_USER_AGENT_TIME_MILLIS = "cache_user_agent_time_millis";
+
+        }
     }
 }

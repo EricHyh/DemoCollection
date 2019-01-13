@@ -146,13 +146,13 @@ public class MultiHttpCallbackImpl extends AbstractHttpCallback {
     private void handleConnected(HttpResponse response) {
         isConnected = true;
 
-        DownloadFileHelper.fixFilePath(response, taskInfo);
+        DownloadFileHelper.fixTaskFilePath(response, taskInfo);
         taskInfo.setTargetUrl(response.url());
         taskInfo.setCacheRequestUrl(taskInfo.getRequestUrl());
         taskInfo.setCacheTargetUrl(response.url());
 
         taskInfo.setContentMD5(response.header(NetworkHelper.CONTENT_MD5));
-        taskInfo.setContentType(NetworkHelper.CONTENT_TYPE);
+        taskInfo.setContentType(response.header(NetworkHelper.CONTENT_TYPE));
         taskInfo.setETag(response.header(NetworkHelper.ETAG));
         taskInfo.setLastModified(response.header(NetworkHelper.LAST_MODIFIED));
 
@@ -263,7 +263,9 @@ public class MultiHttpCallbackImpl extends AbstractHttpCallback {
     private List<RangeInfo> getRangeInfoList(TaskInfo taskInfo, boolean isNewTask) {
         long totalSize = taskInfo.getTotalSize();
         int rangeNum = taskInfo.getRangeNum();
-        String filePath = taskInfo.getFilePath();
+
+        String filePath = DownloadFileHelper.getTaskFilePath(taskInfo);
+
         List<RangeInfo> rangeInfoList = new ArrayList<>(rangeNum);
         if (isNewTask) {
             long[] startPositions = RangeUtil.computeStartPositions(totalSize, rangeNum);

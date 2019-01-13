@@ -17,8 +17,8 @@ package com.hyh.filedownloader.sample.image;
 
 import android.net.NetworkInfo;
 
-import com.yly.lib.picasso.net.Response;
-import com.yly.lib.picasso.net.ResponseBody;
+import com.hyh.filedownloader.sample.net.Response;
+import com.hyh.filedownloader.sample.net.ResponseBody;
 
 import java.io.IOException;
 

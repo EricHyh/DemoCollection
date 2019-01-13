@@ -178,34 +178,7 @@ public class DownloadProxyImpl implements IDownloadProxy {
             boolean isFileDownloaded = false;
             TaskInfo taskInfo = TaskDatabaseHelper.getInstance().getTaskInfoByKey(resKey);
             if (taskInfo != null && taskInfo.getCurrentStatus() == State.SUCCESS) {
-                String filePath = taskInfo.getFilePath();
-                long totalSize = taskInfo.getTotalSize();
-                if (totalSize <= 0) {
-                    isFileDownloaded = DownloadFileHelper.getFileLength(filePath) > 0;
-                } else {
-                    isFileDownloaded = DownloadFileHelper.getFileLength(filePath) == totalSize;
-                }
-                if (isFileDownloaded) {
-                    if (!checkSuccessFile(taskInfo, fileChecker)) {
-                        isFileDownloaded = false;
-                    }
-                }
-                if (!isFileDownloaded) {
-                    DownloadFileHelper.deleteDownloadFile(taskInfo);
-                    TaskDatabaseHelper.getInstance().insertOrUpdate(taskInfo);
-                }
-            }
-            return isFileDownloaded;
-        }
-    }
-
-    @Override
-    public boolean isFileDownloaded(String resKey, int versionCode, IFileChecker fileChecker) {
-        synchronized (mTaskLock) {
-            boolean isFileDownloaded = false;
-            TaskInfo taskInfo = TaskDatabaseHelper.getInstance().getTaskInfoByKey(resKey);
-            if (taskInfo != null && taskInfo.getCurrentStatus() == State.SUCCESS && taskInfo.getVersionCode() == versionCode) {
-                String filePath = taskInfo.getFilePath();
+                String filePath = DownloadFileHelper.getTaskFilePath(taskInfo);
                 long totalSize = taskInfo.getTotalSize();
                 if (totalSize <= 0) {
                     isFileDownloaded = DownloadFileHelper.getFileLength(filePath) > 0;

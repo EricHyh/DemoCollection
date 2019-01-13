@@ -8,6 +8,7 @@ import android.widget.Toast;
 
 import com.hyh.download.DownloadInfo;
 import com.hyh.download.FileDownloader;
+import com.hyh.download.FileRequest;
 import com.hyh.download.State;
 import com.hyh.download.TaskListener;
 import com.hyh.download.sample.bean.DownloadBean;
@@ -34,9 +35,16 @@ public class DownloadItemPresenter implements IDownloadItemPresenter, View.OnCli
 
     private int mDownloadStatus = State.NONE;
 
+    private final FileRequest mFileRequest;
+
     public DownloadItemPresenter(Context context, DownloadBean downloadBean) {
         mContext = context;
         mDownloadBean = downloadBean;
+        mFileRequest = new FileRequest
+                .Builder()
+                .url(mDownloadBean.url)
+                .fileName(mDownloadBean.fileName)
+                .build();
         FileDownloader.getInstance().addDownloadListener(mDownloadBean.url, this);
     }
 
@@ -59,7 +67,7 @@ public class DownloadItemPresenter implements IDownloadItemPresenter, View.OnCli
             downloadItemView.setDownloadStatus(mDownloadStatus);
             downloadItemView.setProgress(downloadInfo.getProgress());
             downloadItemView.setSpeed(0.0f);
-            String filePath = downloadInfo.getFilePath();
+            String filePath = downloadInfo.getFileName();
             if (TextUtils.isEmpty(filePath)) {
                 downloadItemView.setFileName(null);
             } else {
@@ -95,7 +103,7 @@ public class DownloadItemPresenter implements IDownloadItemPresenter, View.OnCli
     public void onClick(View v) {
         switch (mDownloadStatus) {
             case State.NONE: {
-                FileDownloader.getInstance().startTask(mDownloadBean.url);
+                FileDownloader.getInstance().startTask(mFileRequest);
                 break;
             }
             case State.PREPARE: {
@@ -123,11 +131,11 @@ public class DownloadItemPresenter implements IDownloadItemPresenter, View.OnCli
                 break;
             }
             case State.DELETE: {
-                FileDownloader.getInstance().startTask(mDownloadBean.url);
+                FileDownloader.getInstance().startTask(mFileRequest);
                 break;
             }
             case State.PAUSE: {
-                FileDownloader.getInstance().startTask(mDownloadBean.url);
+                FileDownloader.getInstance().startTask(mFileRequest);
                 break;
             }
             case State.SUCCESS: {
@@ -135,7 +143,7 @@ public class DownloadItemPresenter implements IDownloadItemPresenter, View.OnCli
                 break;
             }
             case State.FAILURE: {
-                FileDownloader.getInstance().startTask(mDownloadBean.url);
+                FileDownloader.getInstance().startTask(mFileRequest);
                 break;
             }
         }
@@ -188,7 +196,7 @@ public class DownloadItemPresenter implements IDownloadItemPresenter, View.OnCli
             public void nonNul(@NonNull IDownloadItemView downloadItemView) {
                 downloadItemView.setDownloadStatus(mDownloadStatus);
                 downloadItemView.setProgress(downloadInfo.getProgress());
-                downloadItemView.setFileName(new File(downloadInfo.getFilePath()).getName());
+                downloadItemView.setFileName(downloadInfo.getFileName());
                 downloadItemView.setSpeed(0.0f);
                 downloadItemView.setTotalSize(downloadInfo.getTotalSize());
             }

@@ -17,8 +17,6 @@ public class DownloadInfo implements Parcelable {
 
     private String targetUrl;
 
-    private int versionCode;
-
     private int priority;
 
     private boolean byMultiThread;
@@ -33,7 +31,9 @@ public class DownloadInfo implements Parcelable {
 
     private boolean permitRecoverTask;
 
-    private String filePath;
+    private String fileDir;
+
+    private String fileName;
 
     private long totalSize;
 
@@ -77,14 +77,6 @@ public class DownloadInfo implements Parcelable {
 
     public void setTargetUrl(String targetUrl) {
         this.targetUrl = targetUrl;
-    }
-
-    public int getVersionCode() {
-        return versionCode;
-    }
-
-    public void setVersionCode(int versionCode) {
-        this.versionCode = versionCode;
     }
 
     public int getPriority() {
@@ -143,12 +135,20 @@ public class DownloadInfo implements Parcelable {
         this.permitRecoverTask = permitRecoverTask;
     }
 
-    public String getFilePath() {
-        return filePath;
+    public String getFileDir() {
+        return fileDir;
     }
 
-    public void setFilePath(String filePath) {
-        this.filePath = filePath;
+    public void setFileDir(String fileDir) {
+        this.fileDir = fileDir;
+    }
+
+    public String getFileName() {
+        return fileName;
+    }
+
+    public void setFileName(String fileName) {
+        this.fileName = fileName;
     }
 
     public long getTotalSize() {
@@ -220,7 +220,6 @@ public class DownloadInfo implements Parcelable {
         resKey = in.readString();
         requestUrl = in.readString();
         targetUrl = in.readString();
-        versionCode = in.readInt();
         priority = in.readInt();
         byMultiThread = in.readByte() != 0;
         onlyWifiDownload = in.readByte() != 0;
@@ -228,7 +227,8 @@ public class DownloadInfo implements Parcelable {
         permitRetryInMobileData = in.readByte() != 0;
         permitRetryInvalidFileTask = in.readByte() != 0;
         permitRecoverTask = in.readByte() != 0;
-        filePath = in.readString();
+        fileDir = in.readString();
+        fileName = in.readString();
 
         totalSize = in.readLong();
         currentSize = in.readLong();
@@ -246,7 +246,6 @@ public class DownloadInfo implements Parcelable {
         dest.writeString(resKey);
         dest.writeString(requestUrl);
         dest.writeString(targetUrl);
-        dest.writeInt(versionCode);
         dest.writeInt(priority);
         dest.writeByte((byte) (byMultiThread ? 1 : 0));
         dest.writeByte((byte) (onlyWifiDownload ? 1 : 0));
@@ -254,7 +253,8 @@ public class DownloadInfo implements Parcelable {
         dest.writeByte((byte) (permitRetryInMobileData ? 1 : 0));
         dest.writeByte((byte) (permitRetryInvalidFileTask ? 1 : 0));
         dest.writeByte((byte) (permitRecoverTask ? 1 : 0));
-        dest.writeString(filePath);
+        dest.writeString(fileDir);
+        dest.writeString(fileName);
 
         dest.writeLong(totalSize);
         dest.writeLong(currentSize);

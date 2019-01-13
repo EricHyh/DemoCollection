@@ -143,16 +143,16 @@ public class TaskHandler implements Comparable<TaskHandler> {
 
         boolean byMultiThread = mTaskInfo.isByMultiThread();
         int rangeNum = mTaskInfo.getRangeNum();
+        String taskFilePath = DownloadFileHelper.getTaskFilePath(mTaskInfo);
+
         if (!byMultiThread) {
-            String filePath = mTaskInfo.getFilePath();
-            long fileLength = DownloadFileHelper.getFileLength(filePath);
+            long fileLength = DownloadFileHelper.getFileLength(taskFilePath);
             mTaskInfo.setCurrentSize(fileLength);
             httpCall = mClient.newCall(mResKey, mTaskInfo.getRequestUrl(), mTaskInfo.getCurrentSize());
             httpCallback = new SingleHttpCallbackImpl(mContext, mClient, mTaskInfo, mDownloadCallback, mFileChecker);
         } else {
             if (rangeNum == 1) {
-                String filePath = mTaskInfo.getFilePath();
-                long fileLength = DownloadFileHelper.getFileLength(filePath);
+                long fileLength = DownloadFileHelper.getFileLength(taskFilePath);
                 mTaskInfo.setCurrentSize(fileLength);
                 httpCall = mClient.newCall(mResKey, mTaskInfo.getRequestUrl(), mTaskInfo.getCurrentSize());
                 httpCallback = new SingleHttpCallbackImpl(mContext, mClient, mTaskInfo, mDownloadCallback, mFileChecker);

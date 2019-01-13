@@ -202,7 +202,6 @@ public class HttpCall implements Cloneable {
                                             List<String> headerFilters,
                                             RequestBody requestBody) throws IOException {
         HttpURLConnection connection = (HttpURLConnection) new URL(url).openConnection();
-        connection.setDoOutput(true);
         connection.setDoInput(true);
         connection.setRequestMethod(method);
         connection.setUseCaches(false);
@@ -213,6 +212,7 @@ public class HttpCall implements Cloneable {
         addHeaders(connection, requestHeaders, headerFilters);
 
         if (requestBody != null) {
+            connection.setDoOutput(true);
             connection.addRequestProperty("Content-Type", requestBody.contentType());
             requestBody.writeTo(connection.getOutputStream());
         }

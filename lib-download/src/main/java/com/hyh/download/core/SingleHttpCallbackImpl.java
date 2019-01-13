@@ -90,7 +90,8 @@ class SingleHttpCallbackImpl extends AbstractHttpCallback {
         long contentLength = response.contentLength();
 
         long currentSize = taskInfo.getCurrentSize();
-        String filePath = taskInfo.getFilePath();
+        String filePath = DownloadFileHelper.getTaskFilePath(taskInfo);
+
         if (!TextUtils.isEmpty(filePath) && currentSize > 0 && !checkIsSupportPartial(response, taskInfo)) {
 
             DownloadFileHelper.deleteDownloadFile(taskInfo);
@@ -134,7 +135,7 @@ class SingleHttpCallbackImpl extends AbstractHttpCallback {
             return false;
         }
 
-        if (response.code() == Constants.ResponseCode.PARTIAL_CONTENT) {
+        if (response.code() == HttpClient.ResponseCode.PARTIAL_CONTENT) {
             return true;
         }
 
@@ -147,7 +148,7 @@ class SingleHttpCallbackImpl extends AbstractHttpCallback {
     private void handleConnected(HttpResponse response) {
         isConnected = true;
 
-        DownloadFileHelper.fixFilePath(response, taskInfo);
+        DownloadFileHelper.fixTaskFilePath(response, taskInfo);
         taskInfo.setTargetUrl(response.url());
         taskInfo.setCacheRequestUrl(taskInfo.getRequestUrl());
         taskInfo.setCacheTargetUrl(response.url());
@@ -163,7 +164,7 @@ class SingleHttpCallbackImpl extends AbstractHttpCallback {
     private void handleDownload(HttpResponse response, TaskInfo taskInfo) {
         final long currentSize = taskInfo.getCurrentSize();
         final long totalSize = taskInfo.getTotalSize();
-        mFileWrite = new SingleFileWriteTask(taskInfo.getFilePath(), currentSize, totalSize);
+        mFileWrite = new SingleFileWriteTask(DownloadFileHelper.getTaskFilePath(taskInfo), currentSize, totalSize);
         mFileWrite.write(response, new SingleFileWriteListener(currentSize, totalSize));
     }
 
@@ -297,7 +298,7 @@ class SingleHttpCallbackImpl extends AbstractHttpCallback {
     }
 
     private void fixCurrentSize() {
-        String filePath = taskInfo.getFilePath();
+        String filePath = DownloadFileHelper.getTaskFilePath(taskInfo);
         if (TextUtils.isEmpty(filePath)) {
             return;
         }

@@ -301,9 +301,9 @@ class MultiHttpCallbackWrapper extends AbstractHttpCallback {
         }
 
         private void handleDownload(HttpResponse response, final TaskInfo taskInfo) {
-            String filePath = taskInfo.getFilePath();
-            DownloadFileHelper.ensureParentCreated(filePath);
-            fileWrite = new MultiFileWriteTask(filePath, rangeInfo);
+            String fileDir = taskInfo.getFileDir();
+            DownloadFileHelper.ensureCreated(fileDir);
+            fileWrite = new MultiFileWriteTask(DownloadFileHelper.getTaskFilePath(taskInfo), rangeInfo);
             fileWrite.write(response, new MultiFileWriteListener());
         }
 
@@ -400,7 +400,11 @@ class MultiHttpCallbackWrapper extends AbstractHttpCallback {
         }
 
         private long fixStartPosition(long oldStartPosition) {
-            return RangeUtil.fixStartPosition(taskInfo.getFilePath(), oldStartPosition, rangeInfo.getOriginalStartPosition(), rangeInfo.getEndPosition());
+            return RangeUtil.fixStartPosition(
+                    DownloadFileHelper.getTaskFilePath(taskInfo),
+                    oldStartPosition,
+                    rangeInfo.getOriginalStartPosition(),
+                    rangeInfo.getEndPosition());
         }
     }
 }

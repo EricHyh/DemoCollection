@@ -7,11 +7,11 @@ import android.text.TextUtils;
 import android.webkit.URLUtil;
 
 import com.hyh.download.State;
-import com.hyh.download.core.Constants;
 import com.hyh.download.db.bean.TaskInfo;
 import com.hyh.download.net.HttpResponse;
 
 import java.io.File;
+import java.math.BigInteger;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
@@ -22,6 +22,8 @@ import java.security.NoSuchAlgorithmException;
  */
 
 public class DownloadFileHelper {
+
+    private static final int MEMORY_SIZE_ERROR = -1;
 
     /**
      * SDCARD是否存在
@@ -50,7 +52,7 @@ public class DownloadFileHelper {
             }
             return availableBlocks * blockSize;
         } else {
-            return Constants.MEMORY_SIZE_ERROR;
+            return MEMORY_SIZE_ERROR;
         }
     }
 
@@ -115,6 +117,14 @@ public class DownloadFileHelper {
         return 0;
     }
 
+    public static String getTaskFilePath(TaskInfo taskInfo) {
+        String fileDir = taskInfo.getFileDir();
+        String fileName = taskInfo.getFileName();
+        if (TextUtils.isEmpty(fileDir) || TextUtils.isEmpty(fileName)) {
+            return null;
+        }
+        return fileDir + File.separator + fileName;
+    }
 
     public static void deleteDownloadFile(TaskInfo taskInfo) {
         taskInfo.setCurrentSize(0);
@@ -125,7 +135,8 @@ public class DownloadFileHelper {
         taskInfo.setLastModified(null);
         taskInfo.setCurrentStatus(State.NONE);
 
-        String filePath = taskInfo.getFilePath();
+        String filePath = getTaskFilePath(taskInfo);
+
         if (!TextUtils.isEmpty(filePath)) {
             deleteFile(filePath);
             deleteFile(getTempFilePath(filePath));
@@ -220,32 +231,43 @@ public class DownloadFileHelper {
         return parentFile.getAbsolutePath();
     }
 
-    public static String fixFilePath(HttpResponse response, TaskInfo taskInfo) {
-        return fixFilePath(response.url(),
+    public static void fixTaskFilePath(HttpResponse response, TaskInfo taskInfo) {
+        fixTaskFilePath(response.url(),
                 response.header(NetworkHelper.CONTENT_DISPOSITION),
                 response.header(NetworkHelper.CONTENT_TYPE),
                 taskInfo);
     }
 
-    public static String fixFilePath(String url, String contentDisposition, String contentType, TaskInfo taskInfo) {
+    private static void fixTaskFilePath(String url, String contentDisposition, String contentType, TaskInfo taskInfo) {
         String fileDir = taskInfo.getFileDir();
-        String filePath = taskInfo.getFilePath();
-        if (TextUtils.isEmpty(filePath)) {
-            String fileName = URLUtil.guessFileName(url, contentDisposition, contentType);
+        String fileName = taskInfo.getFileName();
+        if (TextUtils.isEmpty(fileName)) {
+            fileName = URLUtil.guessFileName(url, contentDisposition, contentType);
             if (TextUtils.isEmpty(fileName)) {
                 fileName = string2MD5(taskInfo.getResKey());
             }
             ensureCreated(fileDir);
-            filePath = fileDir + File.separator + fileName;
-            filePath = fixFileExists(filePath);
-            taskInfo.setFilePath(filePath);
+            fileName = fixFileExists(fileDir, fileName);
+            taskInfo.setFileName(fileName);
         } else {
-            ensureParentCreated(filePath);
+            ensureCreated(fileDir);
         }
-        return filePath;
     }
 
-    public static String fixFileExists(String filePath) {
+
+    public static String fixFileExists(String fileDir, String fileName) {
+        if (TextUtils.isEmpty(fileDir) || TextUtils.isEmpty(fileName)) {
+            return fileName;
+        }
+        File file = new File(fileDir, fileName);
+        if (!file.exists()) {
+            return fileName;
+        }
+        file = fixFileExists(file);
+        return file.getName();
+    }
+
+    private static String fixFileExists(String filePath) {
         if (TextUtils.isEmpty(filePath)) {
             return filePath;
         }
@@ -253,7 +275,11 @@ public class DownloadFileHelper {
         if (!file.exists()) {
             return filePath;
         }
+        file = fixFileExists(file);
+        return file.getAbsolutePath();
+    }
 
+    private static File fixFileExists(File file) {
         String fileName = file.getName();
         int index = fileName.lastIndexOf(".");
         String toPrefix;
@@ -267,12 +293,13 @@ public class DownloadFileHelper {
         }
         File directory = file.getParentFile();
         ensureCreated(directory);
-        int fileIndex = 1;
+        BigInteger fileIndex = new BigInteger("0");
+        BigInteger addOne = new BigInteger("1");
         File newFile;
         do {
+            fileIndex = fileIndex.add(addOne);
             newFile = new File(directory, toPrefix + '(' + fileIndex + ')' + toSuffix);
-            fileIndex++;
-        } while (!newFile.exists());
-        return newFile.getAbsolutePath();
+        } while (newFile.exists());
+        return newFile;
     }
 }
