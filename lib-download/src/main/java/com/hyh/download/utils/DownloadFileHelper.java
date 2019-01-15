@@ -6,6 +6,7 @@ import android.os.StatFs;
 import android.text.TextUtils;
 import android.webkit.URLUtil;
 
+import com.hyh.download.DownloadInfo;
 import com.hyh.download.State;
 import com.hyh.download.db.bean.TaskInfo;
 import com.hyh.download.net.HttpResponse;
@@ -120,6 +121,15 @@ public class DownloadFileHelper {
     public static String getTaskFilePath(TaskInfo taskInfo) {
         String fileDir = taskInfo.getFileDir();
         String fileName = taskInfo.getFileName();
+        if (TextUtils.isEmpty(fileDir) || TextUtils.isEmpty(fileName)) {
+            return null;
+        }
+        return fileDir + File.separator + fileName;
+    }
+
+    public static String getTaskFilePath(DownloadInfo downloadInfo) {
+        String fileDir = downloadInfo.getFileDir();
+        String fileName = downloadInfo.getFileName();
         if (TextUtils.isEmpty(fileDir) || TextUtils.isEmpty(fileName)) {
             return null;
         }

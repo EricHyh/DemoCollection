@@ -38,14 +38,6 @@ public class FileRequest {
     private FileRequest() {
     }
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        FileRequest that = (FileRequest) o;
-        return resKey.equals(that.resKey);
-    }
-
     public String key() {
         return resKey;
     }

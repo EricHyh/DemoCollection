@@ -2,7 +2,6 @@ package com.hyh.download.core;
 
 
 import com.hyh.download.IFileChecker;
-import com.hyh.download.db.bean.TaskInfo;
 
 /**
  * Created by Administrator on 2017/3/16.
@@ -14,13 +13,13 @@ public class TaskCache {
 
     String resKey;
 
-    TaskInfo taskInfo;
+    RequestInfo requestInfo;
 
     IFileChecker fileChecker;
 
-    TaskCache(int command, TaskInfo taskInfo, IFileChecker fileChecker) {
+    TaskCache(int command, RequestInfo requestInfo, IFileChecker fileChecker) {
         this.command = command;
-        this.taskInfo = taskInfo;
+        this.requestInfo = requestInfo;
         this.fileChecker = fileChecker;
     }
 

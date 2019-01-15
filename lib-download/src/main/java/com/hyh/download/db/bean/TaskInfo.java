@@ -1,8 +1,5 @@
 package com.hyh.download.db.bean;
 
-import android.os.Parcel;
-import android.os.Parcelable;
-
 import com.hyh.download.DownloadInfo;
 import com.hyh.download.db.annotation.Column;
 import com.hyh.download.db.annotation.Id;
@@ -14,7 +11,7 @@ import com.hyh.download.utils.RangeUtil;
  * Created by Administrator on 2017/3/14.
  */
 
-public class TaskInfo implements Parcelable {
+public class TaskInfo {
 
     @Id
     @Column(nameInDb = "_id", indexInDb = 0)
@@ -104,83 +101,11 @@ public class TaskInfo implements Parcelable {
     public TaskInfo() {
     }
 
-    protected TaskInfo(Parcel in) {
-        id = in.readLong();
-        resKey = in.readString();
-        requestUrl = in.readString();
-        targetUrl = in.readString();
-        cacheRequestUrl = in.readString();
-        cacheTargetUrl = in.readString();
-        priority = in.readInt();
-        fileDir = in.readString();
-        fileName = in.readString();
-        byMultiThread = in.readByte() != 0;
-        rangeNum = in.readInt();
-        totalSize = in.readLong();
-        currentSize = in.readLong();
-        currentStatus = in.readInt();
-        onlyWifiDownload = in.readByte() != 0;
-        wifiAutoRetry = in.readByte() != 0;
-        permitRetryInMobileData = in.readByte() != 0;
-        permitRetryInvalidFileTask = in.readByte() != 0;
-        permitRecoverTask = in.readByte() != 0;
-        responseCode = in.readInt();
-        failureCode = in.readInt();
-        contentMD5 = in.readString();
-        contentType = in.readString();
-        eTag = in.readString();
-        lastModified = in.readString();
-        updateTimeMillis = in.readLong();
-        tag = in.readString();
-    }
 
-    @Override
-    public int describeContents() {
-        return 0;
-    }
 
-    @Override
-    public void writeToParcel(Parcel dest, int flags) {
-        dest.writeLong(id);
-        dest.writeString(resKey);
-        dest.writeString(requestUrl);
-        dest.writeString(targetUrl);
-        dest.writeString(cacheRequestUrl);
-        dest.writeString(cacheTargetUrl);
-        dest.writeInt(priority);
-        dest.writeString(fileDir);
-        dest.writeString(fileName);
-        dest.writeByte((byte) (byMultiThread ? 1 : 0));
-        dest.writeInt(rangeNum);
-        dest.writeLong(totalSize);
-        dest.writeLong(currentSize);
-        dest.writeInt(currentStatus);
-        dest.writeByte((byte) (onlyWifiDownload ? 1 : 0));
-        dest.writeByte((byte) (wifiAutoRetry ? 1 : 0));
-        dest.writeByte((byte) (permitRetryInMobileData ? 1 : 0));
-        dest.writeByte((byte) (permitRetryInvalidFileTask ? 1 : 0));
-        dest.writeByte((byte) (permitRecoverTask ? 1 : 0));
-        dest.writeInt(responseCode);
-        dest.writeInt(failureCode);
-        dest.writeString(contentMD5);
-        dest.writeString(contentType);
-        dest.writeString(eTag);
-        dest.writeString(lastModified);
-        dest.writeLong(updateTimeMillis);
-        dest.writeString(tag);
-    }
 
-    public static final Creator<TaskInfo> CREATOR = new Creator<TaskInfo>() {
-        @Override
-        public TaskInfo createFromParcel(Parcel in) {
-            return new TaskInfo(in);
-        }
 
-        @Override
-        public TaskInfo[] newArray(int size) {
-            return new TaskInfo[size];
-        }
-    };
+
 
     @Override
     public boolean equals(Object o) {

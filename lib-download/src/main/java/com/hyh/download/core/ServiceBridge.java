@@ -15,7 +15,6 @@ import com.hyh.download.IRequest;
 import com.hyh.download.ITaskListener;
 import com.hyh.download.TaskListener;
 import com.hyh.download.core.service.FDLService;
-import com.hyh.download.db.bean.TaskInfo;
 
 import java.util.Collection;
 import java.util.LinkedHashMap;
@@ -91,6 +90,21 @@ public class ServiceBridge implements IDownloadProxy {
         }
     }
 
+    @Override
+    public void startTask(RequestInfo requestInfo, IFileChecker fileChecker) {
+        waitingForService();
+        try {
+            String resKey = requestInfo.resKey;
+
+            mCacheTasks.put(resKey, new TaskCache(Command.START, requestInfo, fileChecker));
+            mServiceAgent.startTask(requestInfo, fileChecker);
+            mCacheTasks.remove(resKey);
+
+        } catch (Exception e) {
+            //
+        }
+    }
+
     private synchronized void bindService() {
         if (isServiceAlive()) {
             return;
@@ -105,21 +119,6 @@ public class ServiceBridge implements IDownloadProxy {
         Intent intent = new Intent(mContext, mServiceClass);
         mContext.bindService(intent, mConnection, Context.BIND_AUTO_CREATE);
         mContext.startService(intent);
-    }
-
-    @Override
-    public synchronized void startTask(TaskInfo taskInfo, IFileChecker fileChecker) {
-        waitingForService();
-        try {
-            String resKey = taskInfo.getResKey();
-
-            mCacheTasks.put(resKey, new TaskCache(Command.START, taskInfo, fileChecker));
-            mServiceAgent.startTask(taskInfo, fileChecker);
-            mCacheTasks.remove(resKey);
-
-        } catch (Exception e) {
-            //
-        }
     }
 
     @Override
@@ -160,10 +159,10 @@ public class ServiceBridge implements IDownloadProxy {
     }
 
     @Override
-    public TaskInfo getTaskInfoByKey(String resKey) {
+    public DownloadInfo getDownloadInfoByKey(String resKey) {
         waitingForService();
         try {
-            return mServiceAgent.getTaskInfoByKey(resKey);
+            return mServiceAgent.getDownloadInfoByKey(resKey);
         } catch (Exception e) {
             return null;
         }
@@ -198,17 +197,6 @@ public class ServiceBridge implements IDownloadProxy {
         }
         return false;
     }
-
-    @Override
-    public void insertOrUpdate(TaskInfo taskInfo) {
-        waitingForService();
-        try {
-            mServiceAgent.insertOrUpdate(taskInfo);
-        } catch (RemoteException e) {
-            //
-        }
-    }
-
 
     private ITaskListener.Stub mServiceTaskListener = new ITaskListener.Stub() {
         @Override
@@ -297,7 +285,7 @@ public class ServiceBridge implements IDownloadProxy {
                             int command = taskCache.command;
                             switch (command) {
                                 case Command.START: {
-                                    startTask(taskCache.taskInfo, taskCache.fileChecker);
+                                    startTask(taskCache.requestInfo, taskCache.fileChecker);
                                     break;
                                 }
                                 case Command.PAUSE: {

@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.os.IBinder;
 import android.os.RemoteException;
 
+import com.hyh.download.DownloadInfo;
 import com.hyh.download.IFileChecker;
 import com.hyh.download.IRequest;
 import com.hyh.download.ITaskListener;
@@ -13,7 +14,7 @@ import com.hyh.download.core.DownloadProxyConfig;
 import com.hyh.download.core.DownloadProxyImpl;
 import com.hyh.download.core.IDownloadProxy;
 import com.hyh.download.core.ITaskListenerWrapper;
-import com.hyh.download.db.bean.TaskInfo;
+import com.hyh.download.core.RequestInfo;
 import com.hyh.download.utils.L;
 
 import java.util.Map;
@@ -62,12 +63,6 @@ public class FDLService extends Service {
         }
 
         @Override
-        public void insertOrUpdate(TaskInfo taskInfo) throws RemoteException {
-            waitingForInitProxy();
-            mServiceProxy.insertOrUpdate(taskInfo);
-        }
-
-        @Override
         public synchronized boolean isTaskAlive(String resKey) throws RemoteException {
             waitingForInitProxy();
             return mServiceProxy.isTaskAlive(resKey);
@@ -80,15 +75,15 @@ public class FDLService extends Service {
         }
 
         @Override
-        public TaskInfo getTaskInfoByKey(String resKey) throws RemoteException {
+        public DownloadInfo getDownloadInfoByKey(String resKey) throws RemoteException {
             waitingForInitProxy();
-            return mServiceProxy.getTaskInfoByKey(resKey);
+            return mServiceProxy.getDownloadInfoByKey(resKey);
         }
 
         @Override
-        public void startTask(TaskInfo taskInfo, IFileChecker fileChecker) throws RemoteException {
+        public void startTask(RequestInfo requestInfo, IFileChecker fileChecker) throws RemoteException {
             waitingForInitProxy();
-            mServiceProxy.startTask(taskInfo, fileChecker);
+            mServiceProxy.startTask(requestInfo, fileChecker);
         }
 
         @Override

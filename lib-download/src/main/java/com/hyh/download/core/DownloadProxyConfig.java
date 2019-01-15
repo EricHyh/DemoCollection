@@ -15,12 +15,7 @@ public class DownloadProxyConfig implements Parcelable {
 
     private int threadMode;
 
-    public static DownloadProxyConfig create(DownloaderConfig downloaderConfig) {
-        DownloadProxyConfig downloadProxyConfig = new DownloadProxyConfig();
-        downloadProxyConfig.maxSyncDownloadNum = downloaderConfig.getMaxSyncDownloadNum();
-        downloadProxyConfig.threadMode = downloaderConfig.getThreadMode();
-        return downloadProxyConfig;
-    }
+    private String defaultFileDir;
 
     private DownloadProxyConfig() {
     }
@@ -33,9 +28,14 @@ public class DownloadProxyConfig implements Parcelable {
         return threadMode;
     }
 
+    public String getDefaultFileDir() {
+        return defaultFileDir;
+    }
+
     protected DownloadProxyConfig(Parcel in) {
         maxSyncDownloadNum = in.readInt();
         threadMode = in.readInt();
+        defaultFileDir = in.readString();
     }
 
     public static final Creator<DownloadProxyConfig> CREATOR = new Creator<DownloadProxyConfig>() {
@@ -59,5 +59,14 @@ public class DownloadProxyConfig implements Parcelable {
     public void writeToParcel(Parcel parcel, int i) {
         parcel.writeInt(maxSyncDownloadNum);
         parcel.writeInt(threadMode);
+        parcel.writeString(defaultFileDir);
+    }
+
+    public static DownloadProxyConfig create(DownloaderConfig downloaderConfig) {
+        DownloadProxyConfig downloadProxyConfig = new DownloadProxyConfig();
+        downloadProxyConfig.maxSyncDownloadNum = downloaderConfig.getMaxSyncDownloadNum();
+        downloadProxyConfig.threadMode = downloaderConfig.getThreadMode();
+        downloadProxyConfig.defaultFileDir = downloaderConfig.getDefaultFileDir();
+        return downloadProxyConfig;
     }
 }

@@ -3,6 +3,7 @@ package com.hyh.download.core;
 import android.content.Context;
 import android.os.RemoteException;
 
+import com.hyh.download.DownloadInfo;
 import com.hyh.download.IFileChecker;
 import com.hyh.download.State;
 import com.hyh.download.TaskListener;
@@ -67,6 +68,8 @@ public class DownloadProxyImpl implements IDownloadProxy {
 
     private final IFileChecker mGlobalFileChecker;
 
+    private final RequestChecker mRequestChecker;
+
     private final Object mTaskLock = new Object();
 
     public DownloadProxyImpl(Context context,
@@ -78,6 +81,7 @@ public class DownloadProxyImpl implements IDownloadProxy {
         this.mDownloadProxyConfig = downloadProxyConfig;
         this.mTaskListener = taskListener;
         this.mGlobalFileChecker = globalFileChecker;
+        this.mRequestChecker = new RequestChecker(mContext, this, mDownloadProxyConfig);
         TaskDatabaseHelper.getInstance().init(context);
     }
 
@@ -100,14 +104,13 @@ public class DownloadProxyImpl implements IDownloadProxy {
     }
 
     @Override
-    public void insertOrUpdate(TaskInfo taskInfo) {
-        TaskDatabaseHelper.getInstance().insertOrUpdate(taskInfo);
+    public void startTask(RequestInfo requestInfo, IFileChecker fileChecker) {
+        TaskInfo taskInfo = mRequestChecker.check(requestInfo, fileChecker);
+        startTask(taskInfo, fileChecker);
     }
 
-    @Override
-    public void startTask(final TaskInfo taskInfo, final IFileChecker fileChecker) {
+    private void startTask(final TaskInfo taskInfo, final IFileChecker fileChecker) {
         synchronized (mTaskLock) {
-
             TaskHandler taskHandler = new TaskHandler(mContext,
                     mClient,
                     taskInfo,
@@ -199,6 +202,15 @@ public class DownloadProxyImpl implements IDownloadProxy {
         }
     }
 
+    @Override
+    public DownloadInfo getDownloadInfoByKey(String resKey) {
+        TaskInfo taskInfo = getTaskInfoByKey(resKey);
+        if (taskInfo != null) {
+            return taskInfo.toDownloadInfo();
+        }
+        return null;
+    }
+
     private boolean checkSuccessFile(TaskInfo taskInfo, IFileChecker fileChecker) {
         fileChecker = getFileChecker(fileChecker);
         if (fileChecker != null) {
@@ -211,8 +223,7 @@ public class DownloadProxyImpl implements IDownloadProxy {
         return true;
     }
 
-    @Override
-    public TaskInfo getTaskInfoByKey(String resKey) {
+    TaskInfo getTaskInfoByKey(String resKey) {
         synchronized (mTaskLock) {
             return TaskDatabaseHelper.getInstance().getTaskInfoByKey(resKey);
         }

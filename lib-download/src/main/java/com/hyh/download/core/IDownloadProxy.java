@@ -1,8 +1,8 @@
 package com.hyh.download.core;
 
 
+import com.hyh.download.DownloadInfo;
 import com.hyh.download.IFileChecker;
-import com.hyh.download.db.bean.TaskInfo;
 
 /**
  * @author Administrator
@@ -14,7 +14,7 @@ public interface IDownloadProxy {
 
     void initProxy(Runnable afterInit);
 
-    void startTask(TaskInfo taskInfo, IFileChecker fileChecker);
+    void startTask(RequestInfo taskInfo, IFileChecker fileChecker);
 
     void pauseTask(String resKey);
 
@@ -24,8 +24,6 @@ public interface IDownloadProxy {
 
     boolean isFileDownloaded(String resKey, IFileChecker fileChecker);
 
-    void insertOrUpdate(TaskInfo taskInfo);
-
-    TaskInfo getTaskInfoByKey(String resKey);
+    DownloadInfo getDownloadInfoByKey(String resKey);
 
 }
