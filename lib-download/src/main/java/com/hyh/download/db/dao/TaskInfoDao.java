@@ -271,13 +271,11 @@ public class TaskInfoDao {
 
         taskInfo.setRequestUrl(cursor.getString(++columnIndex));
         taskInfo.setTargetUrl(cursor.getString(++columnIndex));
-        taskInfo.setCacheTargetUrl(cursor.getString(++columnIndex));
-        taskInfo.setCacheTargetUrl(cursor.getString(++columnIndex));
 
         taskInfo.setPriority(cursor.getInt(++columnIndex));
 
         taskInfo.setFileDir(cursor.getString(++columnIndex));
-        taskInfo.setFileName(cursor.getString(++columnIndex));
+        taskInfo.setRealFileName(cursor.getString(++columnIndex));
 
         taskInfo.setByMultiThread(cursor.getInt(++columnIndex) == 1);
         taskInfo.setRangeNum(cursor.getInt(++columnIndex));
@@ -315,12 +313,10 @@ public class TaskInfoDao {
 
         contentValues.put("requestUrl", taskInfo.getRequestUrl());
         contentValues.put("targetUrl", taskInfo.getTargetUrl());
-        contentValues.put("cacheRequestUrl", taskInfo.getCacheRequestUrl());
-        contentValues.put("cacheTargetUrl", taskInfo.getCacheTargetUrl());
 
         contentValues.put("priority", taskInfo.getPriority());
         contentValues.put("fileDir", taskInfo.getFileDir());
-        contentValues.put("fileName", taskInfo.getFileName());
+        contentValues.put("fileName", taskInfo.getRealFileName());
         contentValues.put("byMultiThread", taskInfo.isByMultiThread() ? 1 : 0);
         contentValues.put("rangeNum", taskInfo.getRangeNum());
         contentValues.put("totalSize", taskInfo.getTotalSize());

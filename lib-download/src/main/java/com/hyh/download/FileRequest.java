@@ -27,6 +27,8 @@ public class FileRequest {
 
     private boolean forceDownload;
 
+    private boolean autoRenameFile;
+
     private String fileDir;
 
     private String fileName;
@@ -74,6 +76,10 @@ public class FileRequest {
         return forceDownload;
     }
 
+    public boolean autoRenameFile() {
+        return autoRenameFile;
+    }
+
     public String fileDir() {
         return fileDir;
     }
@@ -110,6 +116,8 @@ public class FileRequest {
 
         private boolean forceDownload = false;
 
+        private boolean autoRenameFile = true;
+
         private String fileDir;
 
         private String fileName;
@@ -133,8 +141,9 @@ public class FileRequest {
             fileRequest.permitRetryInvalidFileTask = this.permitRetryInvalidFileTask;
             fileRequest.permitRecoverTask = this.permitRecoverTask;
             fileRequest.forceDownload = this.forceDownload;
-            fileRequest.fileDir = fileDir;
-            fileRequest.fileName = fileName;
+            fileRequest.autoRenameFile = this.autoRenameFile;
+            fileRequest.fileDir = this.fileDir;
+            fileRequest.fileName = this.fileName;
             fileRequest.tag = this.tag;
             fileRequest.fileChecker = this.fileChecker;
             return fileRequest;
@@ -180,8 +189,13 @@ public class FileRequest {
             return this;
         }
 
-        public Builder forceDownload(boolean isForceDownload) {
-            this.forceDownload = isForceDownload;
+        public Builder forceDownload(boolean forceDownload) {
+            this.forceDownload = forceDownload;
+            return this;
+        }
+
+        public Builder autoRenameFile(boolean autoRenameFile) {
+            this.autoRenameFile = autoRenameFile;
             return this;
         }
 

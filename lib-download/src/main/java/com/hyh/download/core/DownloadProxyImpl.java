@@ -81,7 +81,7 @@ public class DownloadProxyImpl implements IDownloadProxy {
         this.mDownloadProxyConfig = downloadProxyConfig;
         this.mTaskListener = taskListener;
         this.mGlobalFileChecker = globalFileChecker;
-        this.mRequestChecker = new RequestChecker(mContext, this, mDownloadProxyConfig);
+        this.mRequestChecker = new RequestChecker(mContext, this);
         TaskDatabaseHelper.getInstance().init(context);
     }
 
@@ -105,11 +105,11 @@ public class DownloadProxyImpl implements IDownloadProxy {
 
     @Override
     public void startTask(RequestInfo requestInfo, IFileChecker fileChecker) {
-        TaskInfo taskInfo = mRequestChecker.check(requestInfo, fileChecker);
+        TaskInfo taskInfo = mRequestChecker.check(requestInfo);
         startTask(taskInfo, fileChecker);
     }
 
-    private void startTask(final TaskInfo taskInfo, final IFileChecker fileChecker) {
+    private void startTask(TaskInfo taskInfo, IFileChecker fileChecker) {
         synchronized (mTaskLock) {
             TaskHandler taskHandler = new TaskHandler(mContext,
                     mClient,
@@ -120,14 +120,13 @@ public class DownloadProxyImpl implements IDownloadProxy {
                     mDownloadProxyConfig.getThreadMode());
 
             mTaskHandlerManager.addTask(taskHandler);
-            taskHandler.prepare();
+
+            if (!taskHandler.prepare()) return;
 
             int runningTaskNum = mTaskHandlerManager.getRunningTaskNum();
             if (runningTaskNum >= mDownloadProxyConfig.getMaxSyncDownloadNum()) {
-
                 mTaskHandlerManager.addWaitingTask(taskHandler);
                 taskHandler.waitingStart();
-
                 return;
             }
 
@@ -192,6 +191,27 @@ public class DownloadProxyImpl implements IDownloadProxy {
                     if (!checkSuccessFile(taskInfo, fileChecker)) {
                         isFileDownloaded = false;
                     }
+                }
+                if (!isFileDownloaded) {
+                    DownloadFileHelper.deleteDownloadFile(taskInfo);
+                    TaskDatabaseHelper.getInstance().insertOrUpdate(taskInfo);
+                }
+            }
+            return isFileDownloaded;
+        }
+    }
+
+    boolean isFileDownloadedWithoutCheck(String resKey) {
+        synchronized (mTaskLock) {
+            boolean isFileDownloaded = false;
+            TaskInfo taskInfo = TaskDatabaseHelper.getInstance().getTaskInfoByKey(resKey);
+            if (taskInfo != null && taskInfo.getCurrentStatus() == State.SUCCESS) {
+                String filePath = DownloadFileHelper.getTaskFilePath(taskInfo);
+                long totalSize = taskInfo.getTotalSize();
+                if (totalSize <= 0) {
+                    isFileDownloaded = DownloadFileHelper.getFileLength(filePath) > 0;
+                } else {
+                    isFileDownloaded = DownloadFileHelper.getFileLength(filePath) == totalSize;
                 }
                 if (!isFileDownloaded) {
                     DownloadFileHelper.deleteDownloadFile(taskInfo);

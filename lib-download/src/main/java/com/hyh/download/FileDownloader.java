@@ -115,12 +115,10 @@ public class FileDownloader {
             }
             return;
         }
-        //final TaskInfo taskInfo = getTaskInfo(request);
-
         if (listener != null) {
             mListenerManager.addSingleTaskListener(request.key(), listener);
         }
-        mDownloadProxy.startTask(RequestInfo.create(request), request.fileChecker());
+        mDownloadProxy.startTask(RequestInfo.create(mContext, request, mDownloaderConfig), request.fileChecker());
     }
 
     public synchronized void pauseTask(final String resKey) {

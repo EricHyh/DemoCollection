@@ -30,11 +30,15 @@ public class TaskHandler implements Comparable<TaskHandler> {
 
     //private final Object mLock = new Object();
 
+    private final String mResKey;
+
     private Context mContext;
 
     private HttpClient mClient;
 
-    private final String mResKey;
+    private RequestInfo mRequestInfo;
+
+    private RequestChecker mRequestChecker;
 
     private TaskInfo mTaskInfo;
 
@@ -69,8 +73,8 @@ public class TaskHandler implements Comparable<TaskHandler> {
                 int threadMode) {
         mContext = context;
         mClient = client;
-        mResKey = taskInfo.getResKey();
         mTaskInfo = taskInfo;
+        mResKey = mTaskInfo.getResKey();
         mFileChecker = fileChecker;
         mInnerTaskListener = innerTaskListener;
         mOuterTaskListener = outerTaskListener;
@@ -88,9 +92,25 @@ public class TaskHandler implements Comparable<TaskHandler> {
         return mResKey;
     }
 
-    void prepare() {
+    boolean prepare() {
 
         mIsPrepared = true;
+
+        if (mTaskInfo.getFailureCode() > 0) {
+            mTaskInfo.setCurrentStatus(State.FAILURE);
+
+            mInnerTaskListener.onFailure(mTaskInfo);
+
+            DownloadInfo downloadInfo = mTaskInfo.toDownloadInfo();
+            if (mPostHandler != null) {
+                Message message = mPostHandler.obtainMessage(State.FAILURE);
+                message.obj = downloadInfo;
+                sendMessage(message);
+            } else {
+                notifyFailure(downloadInfo);
+            }
+            return false;
+        }
 
         mTaskInfo.setCurrentStatus(State.PREPARE);
 
@@ -104,6 +124,8 @@ public class TaskHandler implements Comparable<TaskHandler> {
         } else {
             notifyPrepare(downloadInfo);
         }
+
+        return true;
     }
 
     void waitingStart() {
@@ -166,7 +188,6 @@ public class TaskHandler implements Comparable<TaskHandler> {
     }
 
     void pause() {
-
         mIsPrepared = false;
 
         final AbstractHttpCallback callback = mHttpCallback;
@@ -259,12 +280,14 @@ public class TaskHandler implements Comparable<TaskHandler> {
     private void notifySuccess(DownloadInfo downloadInfo) {
         if (!checkPrepare()) return;
 
+        mIsPrepared = false;
         mOuterTaskListener.onSuccess(downloadInfo);
     }
 
     private void notifyFailure(DownloadInfo downloadInfo) {
         if (!checkPrepare()) return;
 
+        mIsPrepared = false;
         mOuterTaskListener.onFailure(downloadInfo);
     }
 

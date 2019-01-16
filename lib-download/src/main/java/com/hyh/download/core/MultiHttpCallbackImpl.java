@@ -147,10 +147,8 @@ public class MultiHttpCallbackImpl extends AbstractHttpCallback {
         isConnected = true;
 
         DownloadFileHelper.fixTaskFilePath(response, taskInfo);
-        taskInfo.setTargetUrl(response.url());
-        taskInfo.setCacheRequestUrl(taskInfo.getRequestUrl());
-        taskInfo.setCacheTargetUrl(response.url());
 
+        taskInfo.setTargetUrl(response.url());
         taskInfo.setContentMD5(response.header(NetworkHelper.CONTENT_MD5));
         taskInfo.setContentType(response.header(NetworkHelper.CONTENT_TYPE));
         taskInfo.setETag(response.header(NetworkHelper.ETAG));

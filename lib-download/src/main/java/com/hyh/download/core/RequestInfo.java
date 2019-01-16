@@ -1,15 +1,19 @@
 package com.hyh.download.core;
 
+import android.content.Context;
 import android.os.Parcel;
 import android.os.Parcelable;
+import android.text.TextUtils;
 
+import com.hyh.download.DownloaderConfig;
 import com.hyh.download.FileRequest;
+import com.hyh.download.utils.DownloadFileHelper;
 
 /**
  * Created by Eric_He on 2019/1/15.
  */
 
-public class RequestInfo implements Parcelable{
+public class RequestInfo implements Parcelable {
 
     String resKey;
 
@@ -28,6 +32,8 @@ public class RequestInfo implements Parcelable{
     boolean permitRecoverTask;
 
     boolean forceDownload;
+
+    boolean autoRenameFile;
 
     String fileDir;
 
@@ -48,6 +54,7 @@ public class RequestInfo implements Parcelable{
         permitRetryInvalidFileTask = in.readByte() != 0;
         permitRecoverTask = in.readByte() != 0;
         forceDownload = in.readByte() != 0;
+        autoRenameFile = in.readByte() != 0;
         fileDir = in.readString();
         fileName = in.readString();
         tag = in.readString();
@@ -81,12 +88,13 @@ public class RequestInfo implements Parcelable{
         dest.writeByte((byte) (permitRetryInvalidFileTask ? 1 : 0));
         dest.writeByte((byte) (permitRecoverTask ? 1 : 0));
         dest.writeByte((byte) (forceDownload ? 1 : 0));
+        dest.writeByte((byte) (autoRenameFile ? 1 : 0));
         dest.writeString(fileDir);
         dest.writeString(fileName);
         dest.writeString(tag);
     }
 
-    public static RequestInfo create(FileRequest fileRequest) {
+    public static RequestInfo create(Context context, FileRequest fileRequest, DownloaderConfig downloaderConfig) {
         RequestInfo requestInfo = new RequestInfo();
         requestInfo.resKey = fileRequest.key();
         requestInfo.url = fileRequest.url();
@@ -97,7 +105,16 @@ public class RequestInfo implements Parcelable{
         requestInfo.permitRetryInvalidFileTask = fileRequest.permitRetryInvalidFileTask();
         requestInfo.permitRecoverTask = fileRequest.permitRecoverTask();
         requestInfo.forceDownload = fileRequest.forceDownload();
+        requestInfo.autoRenameFile = fileRequest.autoRenameFile();
+
         requestInfo.fileDir = fileRequest.fileDir();
+        if (TextUtils.isEmpty(requestInfo.fileDir)) {
+            requestInfo.fileDir = downloaderConfig.getDefaultFileDir();
+        }
+        if (TextUtils.isEmpty(requestInfo.fileDir)) {
+            requestInfo.fileDir = DownloadFileHelper.getDefaultFileDir(context);
+        }
+
         requestInfo.fileName = fileRequest.fileName();
         requestInfo.tag = fileRequest.tag();
         return requestInfo;

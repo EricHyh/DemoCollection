@@ -28,12 +28,6 @@ public class TaskInfo {
     @Column(nameInDb = "targetUrl", indexInDb = 3)
     private String targetUrl;
 
-    @Column(nameInDb = "cacheRequestUrl", indexInDb = 4)
-    private String cacheRequestUrl;
-
-    @Column(nameInDb = "cacheTargetUrl", indexInDb = 5)
-    private String cacheTargetUrl;
-
     @Column(nameInDb = "priority", indexInDb = 6)
     private int priority;
 
@@ -41,8 +35,11 @@ public class TaskInfo {
     @Column(nameInDb = "fileDir", indexInDb = 7)
     private String fileDir;
 
-    @Column(nameInDb = "fileName", indexInDb = 8)
-    private String fileName;
+    @Column(nameInDb = "requestFileName", indexInDb = 8)
+    private String requestFileName;
+
+    @Column(nameInDb = "realFileName", indexInDb = 8)
+    private String realFileName;
 
     @Column(nameInDb = "byMultiThread", indexInDb = 9)
     private boolean byMultiThread;
@@ -74,38 +71,35 @@ public class TaskInfo {
     @Column(nameInDb = "permitRecoverTask", indexInDb = 18)
     private boolean permitRecoverTask;
 
-    @Column(nameInDb = "responseCode", indexInDb = 19)
+    @Column(nameInDb = "autoRenameFile", indexInDb = 19)
+    private boolean autoRenameFile;
+
+    @Column(nameInDb = "responseCode", indexInDb = 20)
     private int responseCode;
 
-    @Column(nameInDb = "failureCode", indexInDb = 20)
+    @Column(nameInDb = "failureCode", indexInDb = 21)
     private int failureCode;
 
-    @Column(nameInDb = "contentMD5", indexInDb = 21)
+    @Column(nameInDb = "contentMD5", indexInDb = 22)
     private String contentMD5;
 
-    @Column(nameInDb = "contentType", indexInDb = 22)
+    @Column(nameInDb = "contentType", indexInDb = 23)
     private String contentType;
 
-    @Column(nameInDb = "eTag", indexInDb = 23)
+    @Column(nameInDb = "eTag", indexInDb = 24)
     private String eTag;
 
-    @Column(nameInDb = "lastModified", indexInDb = 24)
+    @Column(nameInDb = "lastModified", indexInDb = 25)
     private String lastModified;
 
-    @Column(nameInDb = "updateTimeMillis", indexInDb = 25)
+    @Column(nameInDb = "updateTimeMillis", indexInDb = 26)
     private long updateTimeMillis;
 
-    @Column(nameInDb = "tag", indexInDb = 26)
+    @Column(nameInDb = "tag", indexInDb = 27)
     private String tag;
 
     public TaskInfo() {
     }
-
-
-
-
-
-
 
     @Override
     public boolean equals(Object o) {
@@ -147,22 +141,6 @@ public class TaskInfo {
         this.targetUrl = targetUrl;
     }
 
-    public String getCacheRequestUrl() {
-        return cacheRequestUrl;
-    }
-
-    public void setCacheRequestUrl(String cacheRequestUrl) {
-        this.cacheRequestUrl = cacheRequestUrl;
-    }
-
-    public String getCacheTargetUrl() {
-        return cacheTargetUrl;
-    }
-
-    public void setCacheTargetUrl(String cacheTargetUrl) {
-        this.cacheTargetUrl = cacheTargetUrl;
-    }
-
     public int getPriority() {
         return priority;
     }
@@ -179,12 +157,20 @@ public class TaskInfo {
         this.fileDir = fileDir;
     }
 
-    public String getFileName() {
-        return fileName;
+    public String getRequestFileName() {
+        return requestFileName;
     }
 
-    public void setFileName(String fileName) {
-        this.fileName = fileName;
+    public void setRequestFileName(String requestFileName) {
+        this.requestFileName = requestFileName;
+    }
+
+    public String getRealFileName() {
+        return realFileName;
+    }
+
+    public void setRealFileName(String realFileName) {
+        this.realFileName = realFileName;
     }
 
     public boolean isByMultiThread() {
@@ -267,6 +253,14 @@ public class TaskInfo {
         this.permitRecoverTask = permitRecoverTask;
     }
 
+    public boolean isAutoRenameFile() {
+        return autoRenameFile;
+    }
+
+    public void setAutoRenameFile(boolean autoRenameFile) {
+        this.autoRenameFile = autoRenameFile;
+    }
+
     public int getResponseCode() {
         return responseCode;
     }
@@ -338,7 +332,7 @@ public class TaskInfo {
         downloadInfo.setTargetUrl(this.targetUrl);
         downloadInfo.setPriority(this.priority);
         downloadInfo.setFileDir(this.fileDir);
-        downloadInfo.setFileName(this.fileName);
+        downloadInfo.setFileName(this.realFileName);
 
         downloadInfo.setByMultiThread(this.byMultiThread);
         downloadInfo.setOnlyWifiDownload(this.onlyWifiDownload);

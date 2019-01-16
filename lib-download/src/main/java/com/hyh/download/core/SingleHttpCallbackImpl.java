@@ -130,8 +130,8 @@ class SingleHttpCallbackImpl extends AbstractHttpCallback {
     }
 
     private boolean checkIsSupportPartial(HttpResponse response, TaskInfo taskInfo) {
-        String cacheTargetUrl = taskInfo.getCacheTargetUrl();
-        if (!TextUtils.equals(response.url(), cacheTargetUrl)) {
+        String targetUrl = taskInfo.getTargetUrl();
+        if (!TextUtils.equals(response.url(), targetUrl)) {
             return false;
         }
 
@@ -150,8 +150,6 @@ class SingleHttpCallbackImpl extends AbstractHttpCallback {
 
         DownloadFileHelper.fixTaskFilePath(response, taskInfo);
         taskInfo.setTargetUrl(response.url());
-        taskInfo.setCacheRequestUrl(taskInfo.getRequestUrl());
-        taskInfo.setCacheTargetUrl(response.url());
 
         taskInfo.setContentMD5(response.header(NetworkHelper.CONTENT_MD5));
         taskInfo.setContentType(response.header(NetworkHelper.CONTENT_TYPE));

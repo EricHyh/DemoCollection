@@ -79,6 +79,13 @@ public class DownloadFileHelper {
     }
 
 
+    public static boolean isFileExists(String fileDir, String fileName) {
+        if (TextUtils.isEmpty(fileDir) || TextUtils.isEmpty(fileName)) {
+            return false;
+        }
+        return new File(fileDir, fileName).exists();
+    }
+
     public static boolean isFileExists(String filePath) {
         return !TextUtils.isEmpty(filePath) && new File(filePath).exists();
     }
@@ -120,7 +127,7 @@ public class DownloadFileHelper {
 
     public static String getTaskFilePath(TaskInfo taskInfo) {
         String fileDir = taskInfo.getFileDir();
-        String fileName = taskInfo.getFileName();
+        String fileName = taskInfo.getRealFileName();
         if (TextUtils.isEmpty(fileDir) || TextUtils.isEmpty(fileName)) {
             return null;
         }
@@ -250,7 +257,7 @@ public class DownloadFileHelper {
 
     private static void fixTaskFilePath(String url, String contentDisposition, String contentType, TaskInfo taskInfo) {
         String fileDir = taskInfo.getFileDir();
-        String fileName = taskInfo.getFileName();
+        String fileName = taskInfo.getRealFileName();
         if (TextUtils.isEmpty(fileName)) {
             fileName = URLUtil.guessFileName(url, contentDisposition, contentType);
             if (TextUtils.isEmpty(fileName)) {
@@ -258,7 +265,7 @@ public class DownloadFileHelper {
             }
             ensureCreated(fileDir);
             fileName = fixFileExists(fileDir, fileName);
-            taskInfo.setFileName(fileName);
+            taskInfo.setRealFileName(fileName);
         } else {
             ensureCreated(fileDir);
         }

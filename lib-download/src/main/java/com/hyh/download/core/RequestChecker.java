@@ -3,8 +3,7 @@ package com.hyh.download.core;
 import android.content.Context;
 import android.text.TextUtils;
 
-import com.hyh.download.IFileChecker;
-import com.hyh.download.State;
+import com.hyh.download.FailureCode;
 import com.hyh.download.db.bean.TaskInfo;
 import com.hyh.download.utils.DownloadFileHelper;
 import com.hyh.download.utils.L;
@@ -19,28 +18,19 @@ class RequestChecker {
 
     private final DownloadProxyImpl mDownloadProxyImpl;
 
-    private final DownloadProxyConfig mDownloadProxyConfig;
-
-    RequestChecker(Context context,
-                   DownloadProxyImpl downloadProxyImpl,
-                   DownloadProxyConfig downloadProxyConfig) {
+    RequestChecker(Context context, DownloadProxyImpl downloadProxyImpl) {
         this.mContext = context;
         this.mDownloadProxyImpl = downloadProxyImpl;
-        this.mDownloadProxyConfig = downloadProxyConfig;
     }
 
-    TaskInfo check(RequestInfo requestInfo, IFileChecker fileChecker) {
-        return null;
-    }
-
-    private TaskInfo getTaskInfo(RequestInfo requestInfo, IFileChecker fileChecker) {
+    TaskInfo check(RequestInfo requestInfo) {
         String resKey = requestInfo.resKey;
         TaskInfo taskInfo = mDownloadProxyImpl.getTaskInfoByKey(resKey);
         if (taskInfo != null) {
             if (!isRequestChanged(requestInfo, taskInfo)) {
                 fixRequestInfo(requestInfo, taskInfo);
             } else {
-                if (mDownloadProxyImpl.isFileDownloaded(resKey, fileChecker)) {
+                if (mDownloadProxyImpl.isFileDownloadedWithoutCheck(resKey)) {
                     taskInfo = newTaskInfo(requestInfo);
                 } else {
                     DownloadFileHelper.deleteDownloadFile(taskInfo);
@@ -50,7 +40,6 @@ class RequestChecker {
         } else {
             taskInfo = newTaskInfo(requestInfo);
         }
-        taskInfo.setCurrentStatus(State.NONE);
         return taskInfo;
     }
 
@@ -67,14 +56,21 @@ class RequestChecker {
     private boolean isFilePathChanged(RequestInfo requestInfo, TaskInfo taskInfo) {
         String requestFileDir = requestInfo.fileDir;
         String requestFileName = requestInfo.fileName;
+
         String cacheFileDir = taskInfo.getFileDir();
-        String cacheFileName = taskInfo.getFileName();
+        String cacheRequestFileName = taskInfo.getRequestFileName();
+        String cacheRealFileName = taskInfo.getRealFileName();
+
         if (!TextUtils.isEmpty(requestFileDir) && !TextUtils.equals(cacheFileDir, requestFileDir)) {
             L.d("requestFileDir:" + requestFileDir + ", cacheFileDir:" + cacheFileDir);
             return true;
         }
-        if (!TextUtils.isEmpty(requestFileName) && !TextUtils.equals(cacheFileDir, cacheFileName)) {
-            L.d("requestFileName:" + requestFileName + ", cacheFileName:" + cacheFileName);
+        if (!TextUtils.isEmpty(requestFileName)
+                && !TextUtils.equals(requestFileName, cacheRequestFileName)
+                && !TextUtils.equals(requestFileName, cacheRealFileName)) {
+            L.d("requestFileName:" + requestFileName
+                    + ", cacheRequestFileName:" + cacheRequestFileName
+                    + ", cacheRealFileName:" + cacheRealFileName);
             return true;
         }
         return false;
@@ -82,12 +78,12 @@ class RequestChecker {
 
     private void fixRequestInfo(RequestInfo requestInfo, TaskInfo taskInfo) {
         taskInfo.setRequestUrl(requestInfo.url);
-        taskInfo.setTargetUrl(null);
 
         taskInfo.setWifiAutoRetry(requestInfo.wifiAutoRetry);
         taskInfo.setPermitRetryInMobileData(requestInfo.permitRetryInMobileData);
         taskInfo.setPermitRetryInvalidFileTask(requestInfo.permitRetryInvalidFileTask);
         taskInfo.setPermitRecoverTask(requestInfo.permitRecoverTask);
+        taskInfo.setAutoRenameFile(requestInfo.autoRenameFile);
 
         taskInfo.setResponseCode(0);
         taskInfo.setFailureCode(0);
@@ -99,33 +95,30 @@ class RequestChecker {
         taskInfo.setResKey(requestInfo.resKey);
         taskInfo.setRequestUrl(requestInfo.url);
 
-        String fileDir = createFileDir(requestInfo);
+        String fileDir = requestInfo.fileDir;
         taskInfo.setFileDir(fileDir);
         String fileName = requestInfo.fileName;
+        if (!TextUtils.isEmpty(fileName)) {
+            taskInfo.setRequestFileName(fileName);
+            boolean isFileExists = DownloadFileHelper.isFileExists(fileDir, fileName);
+            if (isFileExists) {
+                if (requestInfo.autoRenameFile) {
+                    fileName = DownloadFileHelper.fixFileExists(fileDir, fileName);
+                } else {
+                    taskInfo.setFailureCode(FailureCode.FILE_NAME_CONFLICT);
+                }
+            }
+            taskInfo.setRealFileName(fileName);
+        }
 
-        fileName = DownloadFileHelper.fixFileExists(fileDir, fileName);
-
-        taskInfo.setFileName(fileName);
         taskInfo.setByMultiThread(requestInfo.byMultiThread);
-
         taskInfo.setWifiAutoRetry(requestInfo.wifiAutoRetry);
         taskInfo.setPermitRetryInMobileData(requestInfo.permitRetryInMobileData);
         taskInfo.setPermitRetryInvalidFileTask(requestInfo.permitRetryInvalidFileTask);
         taskInfo.setPermitRecoverTask(requestInfo.permitRecoverTask);
+        taskInfo.setAutoRenameFile(requestInfo.autoRenameFile);
 
         taskInfo.setTag(requestInfo.tag);
         return taskInfo;
-    }
-
-    private String createFileDir(RequestInfo requestInfo) {
-        String fileDir = requestInfo.fileDir;
-        if (TextUtils.isEmpty(fileDir)) {
-            fileDir = mDownloadProxyConfig.getDefaultFileDir();
-        }
-        if (TextUtils.isEmpty(fileDir)) {
-            fileDir = DownloadFileHelper.getDefaultFileDir(mContext);
-        }
-        DownloadFileHelper.ensureCreated(fileDir);
-        return fileDir;
     }
 }
