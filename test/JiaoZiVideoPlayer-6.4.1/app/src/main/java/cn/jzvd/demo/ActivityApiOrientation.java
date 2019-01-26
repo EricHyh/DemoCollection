@@ -1,6 +1,5 @@
 package cn.jzvd.demo;
 
-import android.content.pm.ActivityInfo;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
@@ -37,8 +36,6 @@ public class ActivityApiOrientation extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        Jzvd.FULLSCREEN_ORIENTATION = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT;
-        Jzvd.NORMAL_ORIENTATION = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT;
     }
 
     @Override
@@ -53,10 +50,6 @@ public class ActivityApiOrientation extends AppCompatActivity {
     protected void onPause() {
         super.onPause();
         Jzvd.releaseAllVideos();
-
-        //Change these two variables back
-        Jzvd.FULLSCREEN_ORIENTATION = ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE;
-        Jzvd.NORMAL_ORIENTATION = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT;
     }
 
     @Override

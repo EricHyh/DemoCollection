@@ -7,9 +7,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.Toast;
 
-import cn.jzvd.ActWindowController;
 import cn.jzvd.Jzvd;
-import cn.jzvd.JzvdStd;
 
 /**
  * Created by Nathen on 16/7/31.
@@ -53,7 +51,7 @@ public class ActivityDirectPlay extends AppCompatActivity {
     }
 
     public void clickFullScreen(View view) {
-        JzvdStd.startFullscreen(this, new ActWindowController(this), JzvdStd.class, VideoConstant.videoUrlList[6], "饺子辛苦了");
+        //JzvdStd.startFullscreen(this, new ActWindowController(this), JzvdStd.class, VideoConstant.videoUrlList[6], "饺子辛苦了");
     }
 
     public void clickTinyWindow(View view) {

@@ -136,16 +136,8 @@ public class JzvdStd extends Jzvd {
             changeStartButtonSize((int) getResources().getDimension(R.dimen.jz_start_button_w_h_normal));
             batteryTimeLayout.setVisibility(View.GONE);
             clarity.setVisibility(View.GONE);
-        } else if (currentScreen == SCREEN_WINDOW_TINY) {
-            tinyBackImageView.setVisibility(View.VISIBLE);
-            setAllControlsVisiblity(View.INVISIBLE, View.INVISIBLE, View.INVISIBLE,
-                    View.INVISIBLE, View.INVISIBLE, View.INVISIBLE, View.INVISIBLE);
-            batteryTimeLayout.setVisibility(View.GONE);
-            clarity.setVisibility(View.GONE);
         }
         setSystemTimeAndBattery();
-
-
         if (tmp_test_back) {
             tmp_test_back = false;
             JzvdMgr.setFirstFloor(this);
@@ -283,12 +275,6 @@ public class JzvdStd extends Jzvd {
             startDismissControlViewTimer();
         } else if (i == R.id.back) {
             backPress();
-        } else if (i == R.id.back_tiny) {
-            if (JzvdMgr.getFirstFloor().currentScreen == Jzvd.SCREEN_WINDOW_LIST) {
-                quitFullscreenOrTinyWindow();
-            } else {
-                backPress();
-            }
         } else if (i == R.id.clarity) {
             LayoutInflater inflater = (LayoutInflater) getContext()
                     .getSystemService(Context.LAYOUT_INFLATER_SERVICE);
@@ -368,7 +354,9 @@ public class JzvdStd extends Jzvd {
             @Override
             public void onClick(DialogInterface dialog, int which) {
                 dialog.dismiss();
-                clearFloatScreen();
+                if (mFullScreenView != null && mFullScreenView.isShow()) {
+                    mFullScreenView.close();
+                }
             }
         });
         builder.setOnCancelListener(new DialogInterface.OnCancelListener() {
@@ -506,8 +494,6 @@ public class JzvdStd extends Jzvd {
                         View.INVISIBLE, View.VISIBLE, View.INVISIBLE, View.INVISIBLE);
                 updateStartImage();
                 break;
-            case SCREEN_WINDOW_TINY:
-                break;
         }
     }
 
@@ -520,10 +506,7 @@ public class JzvdStd extends Jzvd {
                         View.VISIBLE, View.VISIBLE, View.INVISIBLE, View.INVISIBLE);
                 updateStartImage();
                 break;
-            case SCREEN_WINDOW_TINY:
-                break;
         }
-
     }
 
     public void changeUiToPlayingShow() {
@@ -539,10 +522,7 @@ public class JzvdStd extends Jzvd {
                         View.INVISIBLE, View.INVISIBLE, View.INVISIBLE, View.INVISIBLE);
                 updateStartImage();
                 break;
-            case SCREEN_WINDOW_TINY:
-                break;
         }
-
     }
 
     public void changeUiToPlayingClear() {
@@ -556,10 +536,7 @@ public class JzvdStd extends Jzvd {
                 setAllControlsVisiblity(View.INVISIBLE, View.INVISIBLE, View.INVISIBLE,
                         View.INVISIBLE, View.INVISIBLE, View.VISIBLE, View.INVISIBLE);
                 break;
-            case SCREEN_WINDOW_TINY:
-                break;
         }
-
     }
 
     public void changeUiToPauseShow() {
@@ -575,8 +552,6 @@ public class JzvdStd extends Jzvd {
                         View.INVISIBLE, View.INVISIBLE, View.INVISIBLE, View.INVISIBLE);
                 updateStartImage();
                 break;
-            case SCREEN_WINDOW_TINY:
-                break;
         }
     }
 
@@ -591,10 +566,7 @@ public class JzvdStd extends Jzvd {
                 setAllControlsVisiblity(View.INVISIBLE, View.INVISIBLE, View.INVISIBLE,
                         View.INVISIBLE, View.INVISIBLE, View.VISIBLE, View.INVISIBLE);
                 break;
-            case SCREEN_WINDOW_TINY:
-                break;
         }
-
     }
 
     public void changeUiToComplete() {
@@ -610,10 +582,7 @@ public class JzvdStd extends Jzvd {
                         View.INVISIBLE, View.VISIBLE, View.INVISIBLE, View.INVISIBLE);
                 updateStartImage();
                 break;
-            case SCREEN_WINDOW_TINY:
-                break;
         }
-
     }
 
     public void changeUiToError() {
@@ -629,10 +598,7 @@ public class JzvdStd extends Jzvd {
                         View.INVISIBLE, View.INVISIBLE, View.INVISIBLE, View.VISIBLE);
                 updateStartImage();
                 break;
-            case SCREEN_WINDOW_TINY:
-                break;
         }
-
     }
 
     public void setAllControlsVisiblity(int topCon, int bottomCon, int startBtn, int loadingPro,
@@ -823,9 +789,6 @@ public class JzvdStd extends Jzvd {
                     startButton.setVisibility(View.INVISIBLE);
                     if (clarityPopWindow != null) {
                         clarityPopWindow.dismiss();
-                    }
-                    if (currentScreen != SCREEN_WINDOW_TINY) {
-                        bottomProgressBar.setVisibility(View.VISIBLE);
                     }
                 }
             });

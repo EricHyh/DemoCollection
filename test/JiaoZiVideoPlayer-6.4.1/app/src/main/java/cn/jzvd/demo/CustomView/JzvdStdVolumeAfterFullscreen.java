@@ -38,12 +38,13 @@ public class JzvdStdVolumeAfterFullscreen extends JzvdStd {
         JZMediaManager.instance().jzMediaInterface.setVolume(1f, 1f);
     }
 
+
     /**
      * 退出全屏模式的时候开启静音模式
      */
     @Override
-    public void playOnThisJzvd() {
-        super.playOnThisJzvd();
+    public void onCloseFullScreen(int currentState, int progress) {
+        super.onCloseFullScreen(currentState, progress);
         JZMediaManager.instance().jzMediaInterface.setVolume(0f, 0f);
     }
 }

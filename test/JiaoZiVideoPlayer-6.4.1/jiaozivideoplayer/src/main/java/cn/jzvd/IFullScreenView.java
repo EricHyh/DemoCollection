@@ -10,8 +10,11 @@ public interface IFullScreenView {
 
     void setUp(Jzvd small);
 
+    boolean isShow();
+
     void show();
 
-    boolean onBackPress();
+    boolean close();
 
+    void destroy();
 }

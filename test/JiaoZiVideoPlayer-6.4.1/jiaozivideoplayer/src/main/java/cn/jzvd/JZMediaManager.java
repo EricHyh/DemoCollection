@@ -59,14 +59,10 @@ public class JZMediaManager implements TextureView.SurfaceTextureListener {
     }
 
 
-    //    //正在播放的url或者uri
+    //正在播放的url或者uri
     public static Object getCurrentUrl() {
         return instance().jzMediaInterface.jzDataSource == null ? null : instance().jzMediaInterface.jzDataSource.getCurrentUrl();
     }
-//
-//    public static void setCurrentDataSource(JZDataSource jzDataSource) {
-//        instance().jzMediaInterface.jzDataSource = jzDataSource;
-//    }
 
     public static long getCurrentPosition() {
         return instance().jzMediaInterface.getCurrentPosition();
