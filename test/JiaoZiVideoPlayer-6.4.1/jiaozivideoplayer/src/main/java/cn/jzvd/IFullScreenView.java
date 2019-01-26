@@ -8,12 +8,10 @@ package cn.jzvd;
 
 public interface IFullScreenView {
 
-    void setUp(Jzvd item);
+    void setUp(Jzvd small);
 
-    void show(OnFullScreenCloseListener listener);
+    void show();
 
-    interface OnFullScreenCloseListener {
+    boolean onBackPress();
 
-        void onClose(Jzvd full);
-    }
 }

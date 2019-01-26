@@ -14,16 +14,18 @@ import cn.jzvd.JzvdStd;
 
 public class ActivityApiExtendsNormal extends Activity {
 
+    private JzvdStd mJzvdStd;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_extends_normal);
-        JzvdStd jzvdStd = findViewById(R.id.videoplayer);
-        jzvdStd.setUp(VideoConstant.videoUrlList[0], "饺子不信"
+        mJzvdStd = findViewById(R.id.videoplayer);
+        mJzvdStd.setUp(VideoConstant.videoUrlList[0], "饺子不信"
                 , JzvdStd.SCREEN_WINDOW_NORMAL);
         Glide.with(this)
                 .load(VideoConstant.videoThumbList[0])
-                .into(jzvdStd.thumbImageView);
+                .into(mJzvdStd.thumbImageView);
     }
 
     @Override

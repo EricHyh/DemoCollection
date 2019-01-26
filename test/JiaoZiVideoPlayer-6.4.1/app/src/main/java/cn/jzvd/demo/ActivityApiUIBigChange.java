@@ -11,6 +11,7 @@ import cn.jzvd.Jzvd;
  * Created by Nathen on 16/7/31.
  */
 public class ActivityApiUIBigChange extends AppCompatActivity {
+
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);

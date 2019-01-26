@@ -105,7 +105,7 @@ public abstract class Jzvd extends FrameLayout implements View.OnClickListener, 
     public SeekBar progressBar;
     public ImageView fullscreenButton;
     public TextView currentTimeTextView, totalTimeTextView;
-    public ViewGroup textureViewContainer;
+    public ViewGroup mTextureViewContainer;
     public ViewGroup topContainer, bottomContainer;
     public int widthRatio = 0;
     public int heightRatio = 0;
@@ -127,6 +127,7 @@ public abstract class Jzvd extends FrameLayout implements View.OnClickListener, 
     protected float mGestureDownBrightness;
     protected long mSeekTimePosition;
     boolean tmp_test_back = false;
+    public JZTextureView mTextureView;
 
     public Jzvd(Context context) {
         super(context);
@@ -145,6 +146,27 @@ public abstract class Jzvd extends FrameLayout implements View.OnClickListener, 
             JZMediaManager.instance().positionInList = -1;
             JZMediaManager.instance().releaseMediaPlayer();
         }
+    }
+
+    public JZDataSource getJzDataSource() {
+        return jzDataSource;
+    }
+
+
+    public int getCurrentState() {
+        return currentState;
+    }
+
+    public IWindowController getWindowController() {
+        return mWindowController;
+    }
+
+    public IFullScreenView getFullScreenView() {
+        return mFullScreenView;
+    }
+
+    public int getProgress() {
+        return progressBar.getSecondaryProgress();
     }
 
     public static void startFullscreen(Context context, IWindowController windowController, Class _class, String url, String title) {
@@ -183,9 +205,11 @@ public abstract class Jzvd extends FrameLayout implements View.OnClickListener, 
     }
 
     public static boolean backPress() {
-        Log.i(TAG, "backPress");
-        if ((System.currentTimeMillis() - CLICK_QUIT_FULLSCREEN_TIME) < FULL_SCREEN_NORMAL_DELAY)
-            return false;
+        Jzvd firstFloor = JzvdMgr.getFirstFloor();
+        if (firstFloor == null || firstFloor.mFullScreenView == null) return false;
+        return firstFloor.mFullScreenView.onBackPress();
+        /*Log.i(TAG, "backPress");
+        if ((System.currentTimeMillis() - CLICK_QUIT_FULLSCREEN_TIME) < FULL_SCREEN_NORMAL_DELAY) return false;
 
         if (JzvdMgr.getSecondFloor() != null) {
             CLICK_QUIT_FULLSCREEN_TIME = System.currentTimeMillis();
@@ -206,7 +230,7 @@ public abstract class Jzvd extends FrameLayout implements View.OnClickListener, 
             quitFullscreenOrTinyWindow();
             return true;
         }
-        return false;
+        return false;*/
     }
 
     public static void quitFullscreenOrTinyWindow() {
@@ -365,15 +389,15 @@ public abstract class Jzvd extends FrameLayout implements View.OnClickListener, 
         currentTimeTextView = findViewById(R.id.current);
         totalTimeTextView = findViewById(R.id.total);
         bottomContainer = findViewById(R.id.layout_bottom);
-        textureViewContainer = findViewById(R.id.surface_container);
+        mTextureViewContainer = findViewById(R.id.surface_container);
         topContainer = findViewById(R.id.layout_top);
 
         startButton.setOnClickListener(this);
         fullscreenButton.setOnClickListener(this);
         progressBar.setOnSeekBarChangeListener(this);
         bottomContainer.setOnClickListener(this);
-        textureViewContainer.setOnClickListener(this);
-        textureViewContainer.setOnTouchListener(this);
+        mTextureViewContainer.setOnClickListener(this);
+        mTextureViewContainer.setOnTouchListener(this);
 
         mScreenWidth = getContext().getResources().getDisplayMetrics().widthPixels;
         mScreenHeight = getContext().getResources().getDisplayMetrics().heightPixels;
@@ -781,7 +805,7 @@ public abstract class Jzvd extends FrameLayout implements View.OnClickListener, 
         dismissProgressDialog();
         dismissVolumeDialog();
         onStateNormal();
-        textureViewContainer.removeView(JZMediaManager.textureView);
+        mTextureViewContainer.removeView(JZMediaManager.textureView);
         JZMediaManager.instance().currentVideoWidth = 0;
         JZMediaManager.instance().currentVideoHeight = 0;
 
@@ -818,7 +842,9 @@ public abstract class Jzvd extends FrameLayout implements View.OnClickListener, 
 
     public void initTextureView() {
         removeTextureView();
-        JZMediaManager.textureView = new JZTextureView(getContext().getApplicationContext());
+        mTextureView = new JZTextureView(getContext().getApplicationContext());
+
+        JZMediaManager.textureView = mTextureView;
         JZMediaManager.textureView.setSurfaceTextureListener(JZMediaManager.instance());
     }
 
@@ -829,7 +855,7 @@ public abstract class Jzvd extends FrameLayout implements View.OnClickListener, 
                         ViewGroup.LayoutParams.MATCH_PARENT,
                         ViewGroup.LayoutParams.MATCH_PARENT,
                         Gravity.CENTER);
-        textureViewContainer.addView(JZMediaManager.textureView, layoutParams);
+        mTextureViewContainer.addView(JZMediaManager.textureView, layoutParams);
     }
 
     public void removeTextureView() {
@@ -867,15 +893,18 @@ public abstract class Jzvd extends FrameLayout implements View.OnClickListener, 
         Jzvd fullJzvd = vp.findViewById(R.id.jz_fullscreen_id);
         Jzvd tinyJzvd = vp.findViewById(R.id.jz_tiny_id);
 
+
+
+
         if (fullJzvd != null) {
             vp.removeView(fullJzvd);
-            if (fullJzvd.textureViewContainer != null)
-                fullJzvd.textureViewContainer.removeView(JZMediaManager.textureView);
+            if (fullJzvd.mTextureViewContainer != null)
+                fullJzvd.mTextureViewContainer.removeView(JZMediaManager.textureView);
         }
         if (tinyJzvd != null) {
             vp.removeView(tinyJzvd);
-            if (tinyJzvd.textureViewContainer != null)
-                tinyJzvd.textureViewContainer.removeView(JZMediaManager.textureView);
+            if (tinyJzvd.mTextureViewContainer != null)
+                tinyJzvd.mTextureViewContainer.removeView(JZMediaManager.textureView);
         }
         JzvdMgr.setSecondFloor(null);
     }
@@ -1003,30 +1032,24 @@ public abstract class Jzvd extends FrameLayout implements View.OnClickListener, 
 
     public void startWindowFullscreen() {
         Log.i(TAG, "startWindowFullscreen " + " [" + this.hashCode() + "] ");
-        hideSupportActionBar(mWindowController);
-
         ViewGroup vp = mWindowController.getDecorView().findViewById(Window.ID_ANDROID_CONTENT);
         if (vp == null) {
             return;
         }
+        hideSupportActionBar(mWindowController);
         /*View old = vp.findViewById(R.id.jz_fullscreen_id);
         if (old != null) {
             vp.removeView(old);
         }*/
-        textureViewContainer.removeView(JZMediaManager.textureView);
+        mTextureViewContainer.removeView(mTextureView);
 
         mFullScreenView.setUp(this);
-        mFullScreenView.show(new IFullScreenView.OnFullScreenCloseListener() {
-            @Override
-            public void onClose(Jzvd full) {
-
-            }
-        });
+        mFullScreenView.show();
 
         onStateNormal();
         CLICK_QUIT_FULLSCREEN_TIME = System.currentTimeMillis();
 
-        try {
+        /*try {
             Constructor<Jzvd> constructor = (Constructor<Jzvd>) Jzvd.this.getClass().getConstructor(Context.class);
             Jzvd jzvd = constructor.newInstance(getContext());
             jzvd.setId(R.id.jz_fullscreen_id);
@@ -1049,7 +1072,7 @@ public abstract class Jzvd extends FrameLayout implements View.OnClickListener, 
             CLICK_QUIT_FULLSCREEN_TIME = System.currentTimeMillis();
         } catch (Exception e) {
             e.printStackTrace();
-        }
+        }*/
 
     }
 
@@ -1070,7 +1093,7 @@ public abstract class Jzvd extends FrameLayout implements View.OnClickListener, 
         if (old != null) {
             vp.removeView(old);
         }
-        textureViewContainer.removeView(JZMediaManager.textureView);
+        mTextureViewContainer.removeView(JZMediaManager.textureView);
 
         try {
             Constructor<Jzvd> constructor = (Constructor<Jzvd>) Jzvd.this.getClass().getConstructor(Context.class);
@@ -1099,6 +1122,18 @@ public abstract class Jzvd extends FrameLayout implements View.OnClickListener, 
     public boolean isCurrentJZVD() {
         return JzvdMgr.getCurrentJzvd() != null
                 && JzvdMgr.getCurrentJzvd() == this;
+    }
+
+
+    public void onCloseFullScreen(Jzvd full) {
+        //currentState = full.currentState;
+        clearFloatScreen();
+        setState(full.currentState);
+        FrameLayout.LayoutParams layoutParams = new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                Gravity.CENTER);
+        mTextureViewContainer.addView(full.mTextureView, layoutParams);
     }
 
     //退出全屏和小窗的方法
