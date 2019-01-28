@@ -1,4 +1,4 @@
-package cn.jzvd;
+package com.yly.mob.ssp.video;
 
 import android.content.Context;
 import android.util.AttributeSet;
@@ -19,6 +19,8 @@ public class JZTextureView extends TextureView {
 
     public int currentVideoWidth = 0;
     public int currentVideoHeight = 0;
+
+    private int mScaleType;
 
     public JZTextureView(Context context) {
         super(context);
@@ -59,7 +61,7 @@ public class JZTextureView extends TextureView {
         int parentHeight = ((View) getParent()).getMeasuredHeight();
         int parentWidth = ((View) getParent()).getMeasuredWidth();
         if (parentWidth != 0 && parentHeight != 0 && videoWidth != 0 && videoHeight != 0) {
-            if (Jzvd.VIDEO_IMAGE_DISPLAY_TYPE == Jzvd.VIDEO_IMAGE_DISPLAY_TYPE_FILL_PARENT) {
+            if (mScaleType == Jzvd.SCALE_TYPE_FILL_PARENT) {
                 if (viewRotation == 90 || viewRotation == 270) {
                     int tempSize = parentWidth;
                     parentWidth = parentHeight;
@@ -136,11 +138,11 @@ public class JZTextureView extends TextureView {
             // no size yet, just adopt the given spec sizes
         }
         if (parentWidth != 0 && parentHeight != 0 && videoWidth != 0 && videoHeight != 0) {
-            if (Jzvd.VIDEO_IMAGE_DISPLAY_TYPE == Jzvd.VIDEO_IMAGE_DISPLAY_TYPE_ORIGINAL) {
+            if (mScaleType == Jzvd.SCALE_TYPE_ORIGINAL) {
                 /**原图**/
                 height = videoHeight;
                 width = videoWidth;
-            } else if (Jzvd.VIDEO_IMAGE_DISPLAY_TYPE == Jzvd.VIDEO_IMAGE_DISPLAY_TYPE_FILL_SCROP) {
+            } else if (mScaleType == Jzvd.SCALE_TYPE_FILL_CROP) {
                 if (viewRotation == 90 || viewRotation == 270) {
                     int tempSize = parentWidth;
                     parentWidth = parentHeight;
@@ -157,5 +159,10 @@ public class JZTextureView extends TextureView {
             }
         }
         setMeasuredDimension(width, height);
+    }
+
+    public void setScaleType(int scaleType) {
+        mScaleType = scaleType;
+        requestLayout();
     }
 }

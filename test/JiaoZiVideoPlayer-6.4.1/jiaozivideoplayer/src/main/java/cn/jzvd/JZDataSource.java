@@ -1,4 +1,4 @@
-package cn.jzvd;
+package com.yly.mob.ssp.video;
 
 import java.util.HashMap;
 import java.util.LinkedHashMap;

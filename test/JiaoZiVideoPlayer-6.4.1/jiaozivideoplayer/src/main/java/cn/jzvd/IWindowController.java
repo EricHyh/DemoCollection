@@ -1,4 +1,4 @@
-package cn.jzvd;
+package com.yly.mob.ssp.video;
 
 import android.view.View;
 import android.view.WindowManager;

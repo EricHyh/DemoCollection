@@ -1,4 +1,4 @@
-package cn.jzvd;
+package com.yly.mob.ssp.video;
 
 import android.view.Surface;
 
@@ -31,4 +31,6 @@ public abstract class JZMediaInterface {
     public abstract void setVolume(float leftVolume, float rightVolume);
 
     public abstract void setSpeed(float speed);
+
+    public abstract boolean isPrepared();
 }

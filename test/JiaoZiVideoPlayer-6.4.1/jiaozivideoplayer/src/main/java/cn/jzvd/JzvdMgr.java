@@ -1,4 +1,4 @@
-package cn.jzvd;
+package com.yly.mob.ssp.video;
 
 /**
  * Put JZVideoPlayer into layout
@@ -34,10 +34,6 @@ public class JzvdMgr {
     }
 
     public static void completeAll() {
-        if (SECOND_FLOOR_JZVD != null) {
-            SECOND_FLOOR_JZVD.onCompletion();
-            SECOND_FLOOR_JZVD = null;
-        }
         if (FIRST_FLOOR_JZVD != null) {
             FIRST_FLOOR_JZVD.onCompletion();
             FIRST_FLOOR_JZVD = null;

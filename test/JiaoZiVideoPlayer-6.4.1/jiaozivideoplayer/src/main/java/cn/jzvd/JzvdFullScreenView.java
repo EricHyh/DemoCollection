@@ -1,4 +1,4 @@
-package cn.jzvd;
+package com.yly.mob.ssp.video;
 
 import android.content.Context;
 import android.content.pm.ActivityInfo;
@@ -35,6 +35,7 @@ public class JzvdFullScreenView implements IFullScreenView {
 
     private boolean mIsShow;
 
+
     public JzvdFullScreenView() {
         this(ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE);
     }
@@ -52,7 +53,8 @@ public class JzvdFullScreenView implements IFullScreenView {
             mFull.setSystemUiVisibility(View.SYSTEM_UI_FLAG_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY | View.SYSTEM_UI_FLAG_FULLSCREEN);
             mFull.setUp(small.getJzDataSource(), JzvdStd.SCREEN_WINDOW_FULLSCREEN);
             mFull.setState(small.getCurrentState());
-            mFull.progressBar.setSecondaryProgress(mSmall.getProgress());
+            mFull.progressBar.setSecondaryProgress(mSmall.getSecondaryProgress());
+            mFull.mWindowController = mSmall.getWindowController();
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -105,7 +107,7 @@ public class JzvdFullScreenView implements IFullScreenView {
         JzvdMgr.setSecondFloor(null);
 
         if (mSmall.getJzDataSource().containsTheUrl(JZMediaManager.getDataSource().getCurrentUrl())) {
-            mSmall.onCloseFullScreen(mFull.getCurrentState(), mFull.getProgress());
+            mSmall.onCloseFullScreen(mFull);
         } else {
             JZMediaManager.instance().releaseMediaPlayer();
             JzvdMgr.completeAll();

@@ -1,4 +1,4 @@
-package cn.jzvd;
+package com.yly.mob.ssp.video;
 
 import android.media.AudioManager;
 import android.media.MediaPlayer;
@@ -18,10 +18,7 @@ public class JZMediaSystem extends JZMediaInterface implements MediaPlayer.OnPre
 
     public MediaPlayer mediaPlayer;
 
-    @Override
-    public void start() {
-        mediaPlayer.start();
-    }
+    private boolean isMediaPlayerPrepare;
 
     @Override
     public void prepare() {
@@ -45,6 +42,19 @@ public class JZMediaSystem extends JZMediaInterface implements MediaPlayer.OnPre
 //                method.invoke(mediaPlayer, currentDataSource.toString(), null);
 //            }
             mediaPlayer.prepareAsync();
+
+            isMediaPlayerPrepare = true;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    public void start() {
+        try {
+            if (isMediaPlayerPrepare) {
+                mediaPlayer.start();
+            }
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -57,7 +67,11 @@ public class JZMediaSystem extends JZMediaInterface implements MediaPlayer.OnPre
 
     @Override
     public boolean isPlaying() {
-        return mediaPlayer.isPlaying();
+        try {
+            return mediaPlayer.isPlaying();
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     @Override
@@ -71,8 +85,10 @@ public class JZMediaSystem extends JZMediaInterface implements MediaPlayer.OnPre
 
     @Override
     public void release() {
-        if (mediaPlayer != null)
+        if (mediaPlayer != null) {
             mediaPlayer.release();
+            isMediaPlayerPrepare = false;
+        }
     }
 
     @Override
@@ -100,7 +116,13 @@ public class JZMediaSystem extends JZMediaInterface implements MediaPlayer.OnPre
 
     @Override
     public void setVolume(float leftVolume, float rightVolume) {
-        mediaPlayer.setVolume(leftVolume, rightVolume);
+        try {
+            if (isMediaPlayerPrepare) {
+                mediaPlayer.setVolume(leftVolume, rightVolume);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     @RequiresApi(api = Build.VERSION_CODES.M)
@@ -112,10 +134,16 @@ public class JZMediaSystem extends JZMediaInterface implements MediaPlayer.OnPre
     }
 
     @Override
+    public boolean isPrepared() {
+        return isMediaPlayerPrepare;
+    }
+
+    @Override
     public void onPrepared(MediaPlayer mediaPlayer) {
         mediaPlayer.start();
-        if (jzDataSource.getCurrentUrl().toString().toLowerCase().contains("mp3") ||
-                jzDataSource.getCurrentUrl().toString().toLowerCase().contains("wav")) {
+        if (jzDataSource.getCurrentUrl().toString().toLowerCase().endsWith(".mp3") ||
+                /*jzDataSource.getCurrentUrl().toString().toLowerCase().endsWith(".mp4") ||*/
+                jzDataSource.getCurrentUrl().toString().toLowerCase().endsWith(".wav")) {
             JZMediaManager.instance().mainThreadHandler.post(new Runnable() {
                 @Override
                 public void run() {
@@ -198,8 +226,8 @@ public class JZMediaSystem extends JZMediaInterface implements MediaPlayer.OnPre
 
     @Override
     public void onVideoSizeChanged(MediaPlayer mediaPlayer, int width, int height) {
-        JZMediaManager.instance().currentVideoWidth = width;
-        JZMediaManager.instance().currentVideoHeight = height;
+        JZMediaManager.instance().setVideoWidth(width);
+        JZMediaManager.instance().setVideoHeight(height);
         JZMediaManager.instance().mainThreadHandler.post(new Runnable() {
             @Override
             public void run() {

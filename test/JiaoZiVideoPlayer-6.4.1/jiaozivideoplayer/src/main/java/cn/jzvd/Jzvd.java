@@ -1,4 +1,4 @@
-package cn.jzvd;
+package com.yly.mob.ssp.video;
 
 import android.content.Context;
 import android.content.pm.ActivityInfo;
@@ -7,7 +7,6 @@ import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.media.AudioManager;
-import android.provider.Settings;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.Gravity;
@@ -16,7 +15,6 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewParent;
 import android.view.WindowManager;
-import android.widget.AbsListView;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.SeekBar;
@@ -29,7 +27,7 @@ import java.util.TimerTask;
 /**
  * Created by Nathen on 16/7/30.
  */
-public abstract class Jzvd extends FrameLayout implements View.OnClickListener, SeekBar.OnSeekBarChangeListener, View.OnTouchListener {
+public abstract class Jzvd extends FrameLayout implements View.OnClickListener, SeekBar.OnSeekBarChangeListener, JzvdTouchHelper.OnJzvdFullViewGestureCallback, View.OnTouchListener {
 
     public static final String TAG = "JZVD";
     public static final int THRESHOLD = 80;
@@ -48,10 +46,12 @@ public abstract class Jzvd extends FrameLayout implements View.OnClickListener, 
     public static final int CURRENT_STATE_AUTO_COMPLETE = 6;
     public static final int CURRENT_STATE_ERROR = 7;
 
-    public static final int VIDEO_IMAGE_DISPLAY_TYPE_ADAPTER = 0;//default
-    public static final int VIDEO_IMAGE_DISPLAY_TYPE_FILL_PARENT = 1;
-    public static final int VIDEO_IMAGE_DISPLAY_TYPE_FILL_SCROP = 2;
-    public static final int VIDEO_IMAGE_DISPLAY_TYPE_ORIGINAL = 3;
+    public static final int SCALE_TYPE_ADAPTER = 0;//default
+    public static final int SCALE_TYPE_FILL_PARENT = 1;
+    public static final int SCALE_TYPE_FILL_CROP = 2;
+    public static final int SCALE_TYPE_ORIGINAL = 3;
+
+
     public static boolean SAVE_PROGRESS = true;
     public static boolean WIFI_TIP_DIALOG_SHOWED = false;
     public static int VIDEO_IMAGE_DISPLAY_TYPE = 0;
@@ -71,7 +71,7 @@ public abstract class Jzvd extends FrameLayout implements View.OnClickListener, 
                     try {
                         Jzvd player = JzvdMgr.getCurrentJzvd();
                         if (player != null && player.currentState == Jzvd.CURRENT_STATE_PLAYING) {
-                            player.startButton.performClick();
+                            player.mStartButton.performClick();
                         }
                     } catch (IllegalStateException e) {
                         e.printStackTrace();
@@ -88,38 +88,40 @@ public abstract class Jzvd extends FrameLayout implements View.OnClickListener, 
     protected IWindowController mWindowController;
     protected IFullScreenView mFullScreenView;
 
-
     protected int currentState = -1;
     public int currentScreen = -1;
     public long seekToInAdvance = 0;
-    public ImageView startButton;
+
+    protected ImageView mStartButton;
     public SeekBar progressBar;
     public ImageView fullscreenButton;
     public TextView currentTimeTextView, totalTimeTextView;
     public ViewGroup mTextureViewContainer;
     public ViewGroup topContainer, bottomContainer;
+    public ImageView thumbImageView;
+
+
+
     public int widthRatio = 0;
     public int heightRatio = 0;
     public JZDataSource jzDataSource;
-    public int positionInList = -1;
-    public int videoRotation = 0;
     protected int mScreenWidth;
     protected int mScreenHeight;
     protected AudioManager mAudioManager;
     protected ProgressTimerTask mProgressTimerTask;
     protected boolean mTouchingProgressBar;
-    protected float mDownX;
-    protected float mDownY;
-    protected boolean mChangeVolume;
-    protected boolean mChangePosition;
-    protected boolean mChangeBrightness;
-    protected long mGestureDownPosition;
-    protected int mGestureDownVolume;
-    protected float mGestureDownBrightness;
+
+    protected int mGestureType;
     protected long mSeekTimePosition;
-    boolean tmp_test_back = false;
-    public JZTextureView mTextureView;
-    private int mOrientation;
+
+
+    protected JzvdRuntime mJzvdRuntime;
+    protected JZTextureView mTextureView;
+    protected int mOrientation;
+    protected int mScaleType = SCALE_TYPE_ADAPTER;
+    protected int mVideoRotation;
+    private JzvdTouchHelper mJzvdTouchHelper;
+
 
     public Jzvd(Context context) {
         super(context);
@@ -135,7 +137,6 @@ public abstract class Jzvd extends FrameLayout implements View.OnClickListener, 
         if ((System.currentTimeMillis() - CLICK_QUIT_FULLSCREEN_TIME) > FULL_SCREEN_NORMAL_DELAY) {
             Log.d(TAG, "releaseAllVideos");
             JzvdMgr.completeAll();
-            JZMediaManager.instance().positionInList = -1;
             JZMediaManager.instance().releaseMediaPlayer();
         }
     }
@@ -148,22 +149,22 @@ public abstract class Jzvd extends FrameLayout implements View.OnClickListener, 
         return currentState;
     }
 
+    public void setWindowController(IWindowController windowController) {
+        mWindowController = windowController;
+    }
+
     public IWindowController getWindowController() {
         return mWindowController;
     }
 
-    public int getProgress() {
+    public int getSecondaryProgress() {
         return progressBar.getSecondaryProgress();
     }
 
     public static boolean backPress() {
         Jzvd firstFloor = JzvdMgr.getFirstFloor();
         if (firstFloor == null || firstFloor.mFullScreenView == null) return false;
-        boolean close = firstFloor.mFullScreenView.close();
-        if (close) {
-            firstFloor.mFullScreenView = null;
-        }
-        return close;
+        return firstFloor.mFullScreenView.close();
     }
 
     public static void clearSavedProgress(Context context, String url) {
@@ -198,7 +199,7 @@ public abstract class Jzvd extends FrameLayout implements View.OnClickListener, 
             if (jzvd.currentState == Jzvd.CURRENT_STATE_AUTO_COMPLETE ||
                     jzvd.currentState == Jzvd.CURRENT_STATE_NORMAL ||
                     jzvd.currentState == Jzvd.CURRENT_STATE_ERROR) {
-//                JZVideoPlayer.releaseAllVideos();
+                //JZVideoPlayer.releaseAllVideos();
             } else {
                 ON_PLAY_PAUSE_TMP_STATE = jzvd.currentState;
                 jzvd.onStatePause();
@@ -207,30 +208,17 @@ public abstract class Jzvd extends FrameLayout implements View.OnClickListener, 
         }
     }
 
-    public static void onScrollReleaseAllVideos(AbsListView view, int firstVisibleItem, int visibleItemCount, int totalItemCount) {
-        int lastVisibleItem = firstVisibleItem + visibleItemCount;
-        int currentPlayPosition = JZMediaManager.instance().positionInList;
-        Log.e(TAG, "onScrollReleaseAllVideos: " +
-                currentPlayPosition + " " + firstVisibleItem + " " + currentPlayPosition + " " + lastVisibleItem);
-        if (currentPlayPosition >= 0) {
-            if ((currentPlayPosition < firstVisibleItem || currentPlayPosition > (lastVisibleItem - 1))) {
-                if (JzvdMgr.getCurrentJzvd().currentScreen != Jzvd.SCREEN_WINDOW_FULLSCREEN) {
-                    Jzvd.releaseAllVideos();//为什么最后一个视频横屏会调用这个，其他地方不会
-                }
-            }
+    public void setVideoRotation(int rotation) {
+        this.mVideoRotation = rotation;
+        if (mTextureView != null) {
+            mTextureView.setRotation(rotation);
         }
     }
 
-    public static void setTextureViewRotation(int rotation) {
-        if (JZMediaManager.textureView != null) {
-            JZMediaManager.textureView.setRotation(rotation);
-        }
-    }
-
-    public static void setVideoImageDisplayType(int type) {
-        Jzvd.VIDEO_IMAGE_DISPLAY_TYPE = type;
-        if (JZMediaManager.textureView != null) {
-            JZMediaManager.textureView.requestLayout();
+    public void setVideoScaleType(int type) {
+        this.mScaleType = type;
+        if (mTextureView != null) {
+            mTextureView.setScaleType(mScaleType);
         }
     }
 
@@ -240,10 +228,10 @@ public abstract class Jzvd extends FrameLayout implements View.OnClickListener, 
 
     public abstract int getLayoutId();
 
-    public void init(Context context) {
+    private void init(Context context) {
         mWindowController = new DefaultWindowController(this);
         View.inflate(context, getLayoutId(), this);
-        startButton = findViewById(R.id.start);
+        mStartButton = findViewById(R.id.start);
         fullscreenButton = findViewById(R.id.fullscreen);
         progressBar = findViewById(R.id.bottom_seek_progress);
         currentTimeTextView = findViewById(R.id.current);
@@ -252,12 +240,14 @@ public abstract class Jzvd extends FrameLayout implements View.OnClickListener, 
         mTextureViewContainer = findViewById(R.id.surface_container);
         topContainer = findViewById(R.id.layout_top);
 
-        startButton.setOnClickListener(this);
+
+        mStartButton.setOnClickListener(this);
         fullscreenButton.setOnClickListener(this);
         progressBar.setOnSeekBarChangeListener(this);
         bottomContainer.setOnClickListener(this);
         mTextureViewContainer.setOnClickListener(this);
         mTextureViewContainer.setOnTouchListener(this);
+        mJzvdTouchHelper = new JzvdTouchHelper(this, this);
 
         mScreenWidth = getContext().getResources().getDisplayMetrics().widthPixels;
         mScreenHeight = getContext().getResources().getDisplayMetrics().heightPixels;
@@ -270,6 +260,18 @@ public abstract class Jzvd extends FrameLayout implements View.OnClickListener, 
     protected void onAttachedToWindow() {
         super.onAttachedToWindow();
         mOrientation = getResources().getConfiguration().orientation;
+    }
+
+
+    @Override
+    protected void onDetachedFromWindow() {
+        super.onDetachedFromWindow();
+        if (currentScreen != SCREEN_WINDOW_FULLSCREEN) {
+            JzvdRuntime jzvdRuntime = JZMediaManager.instance().getCurrentJzvdRuntime();
+            if (jzvdRuntime != null && jzvdRuntime == mJzvdRuntime) {
+                mJzvdRuntime.release();
+            }
+        }
     }
 
     public void setUp(String url, String title, int screen) {
@@ -344,146 +346,94 @@ public abstract class Jzvd extends FrameLayout implements View.OnClickListener, 
         }
     }
 
+
+    @Override
+    public void onActionDown() {
+        mTouchingProgressBar = true;
+    }
+
+    @Override
+    public void onStartControl(int gestureType) {
+        cancelProgressTimer();
+        mGestureType = gestureType;
+    }
+
+    @Override
+    public void onControlPosition(float deltaX, String seekTime, long seekTimePosition, String totalTime, long totalTimeDuration) {
+        mSeekTimePosition = seekTimePosition;
+        showProgressDialog(deltaX, seekTime, seekTimePosition, totalTime, totalTimeDuration);
+    }
+
+    @Override
+    public void onControlVolume(float deltaY, int volumePercent) {
+        showVolumeDialog(deltaY, volumePercent);
+    }
+
+    @Override
+    public void onControlBrightness(float deltaY, int brightnessPercent) {
+        showBrightnessDialog(brightnessPercent);
+    }
+
+    @Override
+    public void onEndControl(int gestureType) {
+        Log.i(TAG, "onTouch surfaceContainer actionUp [" + this.hashCode() + "] ");
+        dismissProgressDialog();
+        dismissVolumeDialog();
+        dismissBrightnessDialog();
+        if (gestureType == JzvdTouchHelper.TYPE_POSITION) {
+            onEvent(JZUserAction.ON_TOUCH_SCREEN_SEEK_POSITION);
+            JZMediaManager.seekTo(mSeekTimePosition);
+            long duration = getDuration();
+            int progress = (int) (mSeekTimePosition * 100 / (duration == 0 ? 1 : duration));
+            progressBar.setProgress(progress);
+        }
+        if (gestureType == JzvdTouchHelper.TYPE_VOLUME) {
+            onEvent(JZUserAction.ON_TOUCH_SCREEN_SEEK_VOLUME);
+        }
+        startProgressTimer();
+
+        mTouchingProgressBar = false;
+        mGestureType = JzvdTouchHelper.TYPE_NONE;
+    }
+
     @Override
     public boolean onTouch(View v, MotionEvent event) {
-        float x = event.getX();
-        float y = event.getY();
-        int id = v.getId();
-        if (id == R.id.surface_container) {
-            switch (event.getAction()) {
-                case MotionEvent.ACTION_DOWN:
-                    Log.i(TAG, "onTouch surfaceContainer actionDown [" + this.hashCode() + "] ");
-                    mTouchingProgressBar = true;
-
-                    mDownX = x;
-                    mDownY = y;
-                    mChangeVolume = false;
-                    mChangePosition = false;
-                    mChangeBrightness = false;
-                    break;
-                case MotionEvent.ACTION_MOVE:
-                    Log.i(TAG, "onTouch surfaceContainer actionMove [" + this.hashCode() + "] ");
-                    float deltaX = x - mDownX;
-                    float deltaY = y - mDownY;
-                    float absDeltaX = Math.abs(deltaX);
-                    float absDeltaY = Math.abs(deltaY);
-                    if (currentScreen == SCREEN_WINDOW_FULLSCREEN) {
-                        if (!mChangePosition && !mChangeVolume && !mChangeBrightness) {
-                            if (absDeltaX > THRESHOLD || absDeltaY > THRESHOLD) {
-                                cancelProgressTimer();
-                                if (absDeltaX >= THRESHOLD) {
-                                    // 全屏模式下的CURRENT_STATE_ERROR状态下,不响应进度拖动事件.
-                                    // 否则会因为mediaplayer的状态非法导致App Crash
-                                    if (currentState != CURRENT_STATE_ERROR) {
-                                        mChangePosition = true;
-                                        mGestureDownPosition = getCurrentPositionWhenPlaying();
-                                    }
-                                } else {
-                                    //如果y轴滑动距离超过设置的处理范围，那么进行滑动事件处理
-                                    if (mDownX < mScreenWidth * 0.5f) {//左侧改变亮度
-                                        mChangeBrightness = true;
-                                        //WindowManager.LayoutParams lp = JZUtils.getWindow(getContext()).getAttributes();
-                                        WindowManager.LayoutParams lp = mWindowController.getAttributes();
-
-                                        if (lp.screenBrightness < 0) {
-                                            try {
-                                                mGestureDownBrightness = Settings.System.getInt(getContext().getContentResolver(), Settings.System.SCREEN_BRIGHTNESS);
-                                                Log.i(TAG, "current system brightness: " + mGestureDownBrightness);
-                                            } catch (Settings.SettingNotFoundException e) {
-                                                e.printStackTrace();
-                                            }
-                                        } else {
-                                            mGestureDownBrightness = lp.screenBrightness * 255;
-                                            Log.i(TAG, "current activity brightness: " + mGestureDownBrightness);
-                                        }
-                                    } else {//右侧改变声音
-                                        mChangeVolume = true;
-                                        mGestureDownVolume = mAudioManager.getStreamVolume(AudioManager.STREAM_MUSIC);
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    if (mChangePosition) {
-                        long totalTimeDuration = getDuration();
-                        mSeekTimePosition = (int) (mGestureDownPosition + deltaX * totalTimeDuration / mScreenWidth);
-                        if (mSeekTimePosition > totalTimeDuration)
-                            mSeekTimePosition = totalTimeDuration;
-                        String seekTime = JZUtils.stringForTime(mSeekTimePosition);
-                        String totalTime = JZUtils.stringForTime(totalTimeDuration);
-
-                        showProgressDialog(deltaX, seekTime, mSeekTimePosition, totalTime, totalTimeDuration);
-                    }
-                    if (mChangeVolume) {
-                        deltaY = -deltaY;
-                        int max = mAudioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
-                        int deltaV = (int) (max * deltaY * 3 / mScreenHeight);
-                        mAudioManager.setStreamVolume(AudioManager.STREAM_MUSIC, mGestureDownVolume + deltaV, 0);
-                        //dialog中显示百分比
-                        int volumePercent = (int) (mGestureDownVolume * 100 / max + deltaY * 3 * 100 / mScreenHeight);
-                        showVolumeDialog(-deltaY, volumePercent);
-                    }
-
-                    if (mChangeBrightness) {
-                        deltaY = -deltaY;
-                        int deltaV = (int) (255 * deltaY * 3 / mScreenHeight);
-                        //WindowManager.LayoutParams params = JZUtils.getWindow(getContext()).getAttributes();
-                        WindowManager.LayoutParams params = mWindowController.getAttributes();
-                        if (((mGestureDownBrightness + deltaV) / 255) >= 1) {//这和声音有区别，必须自己过滤一下负值
-                            params.screenBrightness = 1;
-                        } else if (((mGestureDownBrightness + deltaV) / 255) <= 0) {
-                            params.screenBrightness = 0.01f;
-                        } else {
-                            params.screenBrightness = (mGestureDownBrightness + deltaV) / 255;
-                        }
-                        //JZUtils.getWindow(getContext()).setAttributes(params);
-                        mWindowController.setAttributes(params);
-                        //dialog中显示百分比
-                        int brightnessPercent = (int) (mGestureDownBrightness * 100 / 255 + deltaY * 3 * 100 / mScreenHeight);
-                        showBrightnessDialog(brightnessPercent);
-                        //mDownY = y;
-                    }
-                    break;
-                case MotionEvent.ACTION_UP:
-                    Log.i(TAG, "onTouch surfaceContainer actionUp [" + this.hashCode() + "] ");
-                    mTouchingProgressBar = false;
-                    dismissProgressDialog();
-                    dismissVolumeDialog();
-                    dismissBrightnessDialog();
-                    if (mChangePosition) {
-                        onEvent(JZUserAction.ON_TOUCH_SCREEN_SEEK_POSITION);
-                        JZMediaManager.seekTo(mSeekTimePosition);
-                        long duration = getDuration();
-                        int progress = (int) (mSeekTimePosition * 100 / (duration == 0 ? 1 : duration));
-                        progressBar.setProgress(progress);
-                    }
-                    if (mChangeVolume) {
-                        onEvent(JZUserAction.ON_TOUCH_SCREEN_SEEK_VOLUME);
-                    }
-                    startProgressTimer();
-                    break;
-            }
+        if (v == mTextureViewContainer && currentScreen == SCREEN_WINDOW_FULLSCREEN) {
+            return mJzvdTouchHelper.onTouch(v, event);
         }
         return false;
     }
 
     public void startVideo() {
-        JzvdMgr.completeAll();
+        if (currentScreen == SCREEN_WINDOW_FULLSCREEN) {
+            AudioManager mAudioManager = (AudioManager) getApplicationContext().getSystemService(Context.AUDIO_SERVICE);
+            if (mAudioManager != null) {
+                mAudioManager.requestAudioFocus(onAudioFocusChangeListener, AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN_TRANSIENT);
+            }
+            mWindowController.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+            onStatePreparing();
 
-        initTextureView();
-        addTextureView();
+            JZMediaManager.instance().prepare();
+        } else {
+            JZMediaManager.instance().releaseCurrentJzvd();
+            JzvdMgr.completeAll();
 
-        AudioManager mAudioManager = (AudioManager) getApplicationContext().getSystemService(Context.AUDIO_SERVICE);
-        if (mAudioManager != null) {
-            mAudioManager.requestAudioFocus(onAudioFocusChangeListener, AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN_TRANSIENT);
+            mJzvdRuntime = JZMediaManager.instance().createJZTextureView(this, jzDataSource);
+            mTextureView = mJzvdRuntime.mTextureView;
+            addTextureView();
+
+            AudioManager mAudioManager = (AudioManager) getApplicationContext().getSystemService(Context.AUDIO_SERVICE);
+            if (mAudioManager != null) {
+                mAudioManager.requestAudioFocus(onAudioFocusChangeListener, AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN_TRANSIENT);
+            }
+
+            mWindowController.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+
+            onStatePreparing();
+
+            JzvdMgr.setFirstFloor(this);
+            JzvdMgr.setSecondFloor(null);
         }
-
-        mWindowController.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-
-        JZMediaManager.setDataSource(jzDataSource);
-        JZMediaManager.instance().positionInList = positionInList;
-        onStatePreparing();
-        JzvdMgr.setFirstFloor(this);
     }
 
     public void onPrepared() {
@@ -657,9 +607,13 @@ public abstract class Jzvd extends FrameLayout implements View.OnClickListener, 
         dismissProgressDialog();
         dismissVolumeDialog();
         onStateNormal();
-        mTextureViewContainer.removeView(JZMediaManager.textureView);
-        JZMediaManager.instance().currentVideoWidth = 0;
-        JZMediaManager.instance().currentVideoHeight = 0;
+
+        if (mTextureView != null && mTextureView.getParent() == mTextureViewContainer) {
+            mTextureViewContainer.removeView(mTextureView);
+        }
+
+        JZMediaManager.instance().setVideoWidth(0);
+        JZMediaManager.instance().setVideoHeight(0);
 
         AudioManager mAudioManager = (AudioManager) getApplicationContext().getSystemService(Context.AUDIO_SERVICE);
         if (mAudioManager != null) {
@@ -672,11 +626,7 @@ public abstract class Jzvd extends FrameLayout implements View.OnClickListener, 
             mFullScreenView.destroy();
         }
 
-        if (JZMediaManager.surface != null) JZMediaManager.surface.release();
-        if (JZMediaManager.savedSurfaceTexture != null)
-            JZMediaManager.savedSurfaceTexture.release();
-        JZMediaManager.textureView = null;
-        JZMediaManager.savedSurfaceTexture = null;
+        JZMediaManager.instance().releaseCurrentJzvd();
     }
 
     public void release() {
@@ -694,13 +644,6 @@ public abstract class Jzvd extends FrameLayout implements View.OnClickListener, 
         }
     }
 
-    public void initTextureView() {
-        removeTextureView();
-        mTextureView = new JZTextureView(getContext().getApplicationContext());
-        mTextureView.setSurfaceTextureListener(JZMediaManager.instance());
-        JZMediaManager.textureView = mTextureView;
-    }
-
     public void addTextureView() {
         Log.d(TAG, "addTextureView [" + this.hashCode() + "] ");
         FrameLayout.LayoutParams layoutParams =
@@ -711,20 +654,13 @@ public abstract class Jzvd extends FrameLayout implements View.OnClickListener, 
         mTextureViewContainer.addView(mTextureView, layoutParams);
     }
 
-    public void removeTextureView() {
-        JZMediaManager.savedSurfaceTexture = null;
-        if (JZMediaManager.textureView != null && JZMediaManager.textureView.getParent() != null) {
-            ((ViewGroup) JZMediaManager.textureView.getParent()).removeView(JZMediaManager.textureView);
-        }
-    }
-
     public void onVideoSizeChanged() {
         Log.i(TAG, "onVideoSizeChanged " + " [" + this.hashCode() + "] ");
-        if (JZMediaManager.textureView != null) {
-            if (videoRotation != 0) {
-                JZMediaManager.textureView.setRotation(videoRotation);
+        if (mTextureView != null) {
+            if (mVideoRotation != 0) {
+                mTextureView.setRotation(mVideoRotation);
             }
-            JZMediaManager.textureView.setVideoSize(JZMediaManager.instance().currentVideoWidth, JZMediaManager.instance().currentVideoHeight);
+            mTextureView.setVideoSize(JZMediaManager.instance().getVideoWidth(), JZMediaManager.instance().getVideoHeight());
         }
     }
 
@@ -779,9 +715,8 @@ public abstract class Jzvd extends FrameLayout implements View.OnClickListener, 
                 currentState == CURRENT_STATE_PAUSE) {
             try {
                 position = JZMediaManager.getCurrentPosition();
-            } catch (IllegalStateException e) {
+            } catch (Exception e) {
                 e.printStackTrace();
-                return position;
             }
         }
         return position;
@@ -868,14 +803,19 @@ public abstract class Jzvd extends FrameLayout implements View.OnClickListener, 
     }
 
 
-    public void onCloseFullScreen(int currentState, int progress) {
-        setState(currentState);
-        progressBar.setSecondaryProgress(progress);
+    public void onCloseFullScreen(Jzvd full) {
+        mFullScreenView = null;
+        setState(full.getCurrentState());
+        progressBar.setSecondaryProgress(full.getSecondaryProgress());
         FrameLayout.LayoutParams layoutParams = new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 Gravity.CENTER);
-        mTextureViewContainer.addView(mTextureView, layoutParams);
+        if (mTextureView != null && mTextureView.getParent() != null) {
+            ((ViewGroup) mTextureView.getParent()).removeView(mTextureView);
+        }
+        mTextureViewContainer.addView(full.getTextureView(), layoutParams);
+
     }
 
     //重力感应的时候调用的函数，
@@ -952,6 +892,30 @@ public abstract class Jzvd extends FrameLayout implements View.OnClickListener, 
         return mOrientation;
     }
 
+    public JZTextureView getTextureView() {
+        return mTextureView;
+    }
+
+    public void setTextureView(JZTextureView textureView) {
+        mTextureView = textureView;
+    }
+
+    public void play() {
+        if (JZMediaManager.isPlaying()) return;
+        if (JZMediaManager.isPrepared()) {
+            JZMediaManager.start();
+            onStatePlaying();
+        } else {
+            startVideo();
+        }
+    }
+
+    public void pause() {
+        if (!JZMediaManager.isPlaying()) return;
+        JZMediaManager.pause();
+        onStatePause();
+    }
+
     public static class JZAutoFullscreenListener implements SensorEventListener {
         @Override
         public void onSensorChanged(SensorEvent event) {//可以得到传感器实时测量出来的变化值
@@ -984,6 +948,7 @@ public abstract class Jzvd extends FrameLayout implements View.OnClickListener, 
                         long position = getCurrentPositionWhenPlaying();
                         long duration = getDuration();
                         int progress = (int) (position * 100 / (duration == 0 ? 1 : duration));
+
                         onProgress(progress, position, duration);
                     }
                 });
