@@ -10,7 +10,11 @@ import android.view.Surface;
 
 public interface IMediaPlayer {
 
-    void setVideoSource(VideoSource videoSource);
+    void setMediaListener(MediaListener listener);
+
+    boolean isLooping();
+
+    void setLooping(boolean looping);
 
     boolean isPrepared();
 
@@ -18,15 +22,17 @@ public interface IMediaPlayer {
 
     void start();
 
+    void reStart();
+
     void pause();
 
     boolean isPlaying();
 
     void seekTo(int milliSeconds);
 
-    long getCurrentPosition();
+    int getCurrentPosition();
 
-    long getDuration();
+    int getDuration();
 
     void setSurface(Surface surface);
 

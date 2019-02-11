@@ -8,9 +8,17 @@ package com.hyh.video.lib;
 
 public interface MediaListener {
 
+    void onPreparing();
+
     void onPrepared();
 
+    void onStart(long currentPosition);
+
+    void onPause(long currentPosition);
+
     void onBufferingUpdate(int progress);
+
+    void onSeekStart(int milliSeconds);
 
     void onSeekComplete();
 

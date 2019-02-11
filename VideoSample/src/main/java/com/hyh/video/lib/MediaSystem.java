@@ -3,8 +3,6 @@ package com.hyh.video.lib;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.media.PlaybackParams;
-import android.os.Build;
-import android.support.annotation.RequiresApi;
 import android.view.Surface;
 
 /**
@@ -14,11 +12,13 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
 
     private static final int PENDING_COMMAND_NONE = 0;
     private static final int PENDING_COMMAND_START = 1;
-    private static final int PENDING_COMMAND_PAUSE = 2;
+    private static final int PENDING_COMMAND_PAUSE = 3;
 
     private MediaPlayer mMediaPlayer;
 
-    private VideoSource mVideoSource;
+    private String mUrl;
+
+    private boolean mIsLooping;
 
     private MediaListener mListener;
 
@@ -34,9 +34,26 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
 
     private Surface mPendingSurface;
 
+    public MediaSystem(String url) {
+        this.mUrl = url;
+    }
+
     @Override
-    public void setVideoSource(VideoSource videoSource) {
-        this.mVideoSource = videoSource;
+    public void setMediaListener(MediaListener listener) {
+        this.mListener = listener;
+    }
+
+    @Override
+    public boolean isLooping() {
+        return mIsLooping;
+    }
+
+    @Override
+    public void setLooping(boolean looping) {
+        this.mIsLooping = looping;
+        if (mMediaPlayer != null) {
+            mMediaPlayer.setLooping(looping);
+        }
     }
 
     @Override
@@ -50,10 +67,13 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
         if (autoStart) {
             mPendingCommand = PENDING_COMMAND_START;
         }
+        if (mIsPreparing) {
+            return;
+        }
         try {
             MediaPlayer mediaPlayer = new MediaPlayer();
             mediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
-            mediaPlayer.setLooping(mVideoSource.isLooping());
+            mediaPlayer.setLooping(mIsLooping);
             mediaPlayer.setOnPreparedListener(this);
             mediaPlayer.setOnBufferingUpdateListener(this);
             mediaPlayer.setScreenOnWhilePlaying(true);
@@ -62,8 +82,11 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
             mediaPlayer.setOnInfoListener(this);
             mediaPlayer.setOnVideoSizeChangedListener(this);
             mediaPlayer.setOnCompletionListener(this);
-            mediaPlayer.setDataSource(mVideoSource.getUrl());
+            mediaPlayer.setDataSource(mUrl);
             mediaPlayer.prepareAsync();
+            if (mListener != null) {
+                mListener.onPreparing();
+            }
             mIsPreparing = true;
         } catch (Exception e) {
             e.printStackTrace();
@@ -74,7 +97,28 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
     public void start() {
         if (isPrepared()) {
             mMediaPlayer.start();
+            if (mListener != null) {
+                mListener.onStart(getCurrentPosition());
+            }
         } else {
+            mPendingCommand = PENDING_COMMAND_START;
+        }
+    }
+
+    @Override
+    public void reStart() {
+        if (isPrepared()) {
+            if (mMediaPlayer.isPlaying()) {
+                seekTo(0);
+            } else {
+                seekTo(0);
+                mMediaPlayer.start();
+                if (mListener != null) {
+                    mListener.onStart(getCurrentPosition());
+                }
+            }
+        } else {
+            mPendingSeekMilliSeconds = null;
             mPendingCommand = PENDING_COMMAND_START;
         }
     }
@@ -83,8 +127,11 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
     public void pause() {
         if (isPrepared()) {
             mMediaPlayer.pause();
+            if (mListener != null) {
+                mListener.onPause(getCurrentPosition());
+            }
         } else {
-            mPendingCommand = PENDING_COMMAND_START;
+            mPendingCommand = PENDING_COMMAND_PAUSE;
         }
     }
 
@@ -99,6 +146,9 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
         if (isPrepared()) {
             try {
                 mMediaPlayer.seekTo(milliSeconds);
+                if (mListener != null) {
+                    mListener.onSeekStart(milliSeconds);
+                }
                 seekSuccess = true;
             } catch (Exception e) {
                 e.printStackTrace();
@@ -125,7 +175,7 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
     }
 
     @Override
-    public long getCurrentPosition() {
+    public int getCurrentPosition() {
         if (mMediaPlayer != null) {
             return mMediaPlayer.getCurrentPosition();
         } else {
@@ -134,7 +184,7 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
     }
 
     @Override
-    public long getDuration() {
+    public int getDuration() {
         if (mMediaPlayer != null) {
             return mMediaPlayer.getDuration();
         } else {
@@ -156,7 +206,6 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
         mMediaPlayer.setVolume(leftVolume, rightVolume);
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.M)
     @Override
     public void setSpeed(float speed) {
         PlaybackParams pp = mMediaPlayer.getPlaybackParams();
@@ -170,6 +219,9 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
             mediaPlayer.release();
             return;
         }
+        if (mediaPlayer.isLooping() != mIsLooping) {
+            mediaPlayer.setLooping(mIsLooping);
+        }
         this.mMediaPlayer = mediaPlayer;
         this.mIsPrepared = true;
         this.mIsPreparing = false;
@@ -179,6 +231,9 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
         }
         if (mPendingSeekMilliSeconds != null) {
             mMediaPlayer.seekTo(mPendingSeekMilliSeconds);
+            if (mListener != null) {
+                mListener.onSeekStart(mPendingSeekMilliSeconds);
+            }
             mPendingSeekMilliSeconds = null;
         }
         if (mPendingSurface != null) {
