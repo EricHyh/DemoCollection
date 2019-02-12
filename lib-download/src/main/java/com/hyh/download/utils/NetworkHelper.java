@@ -20,19 +20,7 @@ import java.util.regex.Pattern;
 
 public class NetworkHelper {
 
-    public static final int CHUNKED_CONTENT_LENGTH = -1;
-
-    public static final String TRANSFER_ENCODING = "Transfer-Encoding";
-    public static final String ACCEPT_RANGES = "Accept-Ranges";
-
-    public static final String CONTENT_LENGTH = "Content-Length";
-    public static final String CONTENT_RANGE = "Content-Range";
-    public static final String CONTENT_DISPOSITION = "Content-Disposition";
-    public static final String CONTENT_MD5 = "Content-MD5";
-    public static final String CONTENT_TYPE = "Content-Type";
-    public static final String ETAG = "ETag";
-    public static final String LAST_MODIFIED = "Last-Modified";
-
+    private static final int CHUNKED_CONTENT_LENGTH = -1;
 
     private static final Pattern CONTENT_DISPOSITION_QUOTED_PATTERN = Pattern.compile("attachment;\\s*filename\\s*=\\s*\"([^\"]*)\"");
     // no note
@@ -117,10 +105,10 @@ public class NetworkHelper {
 
     public static String getUserAgent(Context context) {
         String userAgent = null;
-        SharedPreferences preferences = context.getSharedPreferences(Preference.SHARE_NAME, Context.MODE_PRIVATE);
-        long cacheTimeMillis = preferences.getLong(Preference.Key.CACHE_USER_AGENT_TIME_MILLIS, 0);
+        SharedPreferences preferences = context.getSharedPreferences(Constants.Preference.SHARE_NAME, Context.MODE_PRIVATE);
+        long cacheTimeMillis = preferences.getLong(Constants.Preference.Key.CACHE_USER_AGENT_TIME_MILLIS, 0);
         if (isSameDay(cacheTimeMillis, System.currentTimeMillis())) {
-            userAgent = preferences.getString(Preference.Key.USER_AGENT, null);
+            userAgent = preferences.getString(Constants.Preference.Key.USER_AGENT, null);
         }
         if (!TextUtils.isEmpty(userAgent)) {
             return userAgent;
@@ -150,8 +138,8 @@ public class NetworkHelper {
         }
         if (!TextUtils.isEmpty(userAgent)) {
             SharedPreferences.Editor editor = preferences.edit();
-            editor.putString(Preference.Key.USER_AGENT, userAgent);
-            editor.putLong(Preference.Key.CACHE_USER_AGENT_TIME_MILLIS, System.currentTimeMillis());
+            editor.putString(Constants.Preference.Key.USER_AGENT, userAgent);
+            editor.putLong(Constants.Preference.Key.CACHE_USER_AGENT_TIME_MILLIS, System.currentTimeMillis());
             editor.apply();
         }
         return userAgent;
@@ -175,21 +163,4 @@ public class NetworkHelper {
         }
     }
 
-    /**
-     * @author Administrator
-     * @description
-     * @data 2018/12/12
-     */
-    public static class Preference {
-
-        static final String SHARE_NAME = "file_downloader_config";
-
-        static class Key {
-
-            static final String USER_AGENT = "user_agent";
-
-            static final String CACHE_USER_AGENT_TIME_MILLIS = "cache_user_agent_time_millis";
-
-        }
-    }
 }

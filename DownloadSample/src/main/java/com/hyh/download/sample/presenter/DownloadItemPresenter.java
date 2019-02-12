@@ -43,6 +43,7 @@ public class DownloadItemPresenter implements IDownloadItemPresenter, View.OnCli
         mFileRequest = new FileRequest
                 .Builder()
                 .url(mDownloadBean.url)
+                .byMultiThread(true)
                 .fileName(mDownloadBean.fileName)
                 .build();
         FileDownloader.getInstance().addDownloadListener(mDownloadBean.url, this);

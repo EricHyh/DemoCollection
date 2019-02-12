@@ -2,8 +2,8 @@ package com.hyh.download.net.ntv;
 
 import com.hyh.download.net.HttpCall;
 import com.hyh.download.net.HttpCallback;
-import com.hyh.download.net.HttpClient;
 import com.hyh.download.net.HttpResponse;
+import com.hyh.download.utils.Constants;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -148,8 +148,8 @@ public class NativeHttpCall implements HttpCall {
                 || code == HttpURLConnection.HTTP_MOVED_TEMP
                 || code == HttpURLConnection.HTTP_SEE_OTHER
                 || code == HttpURLConnection.HTTP_MULT_CHOICE
-                || code == HttpClient.ResponseCode.HTTP_TEMPORARY_REDIRECT
-                || code == HttpClient.ResponseCode.HTTP_PERMANENT_REDIRECT;
+                || code == Constants.ResponseCode.HTTP_TEMPORARY_REDIRECT
+                || code == Constants.ResponseCode.HTTP_PERMANENT_REDIRECT;
     }
 
     private class RequestTask implements Runnable {

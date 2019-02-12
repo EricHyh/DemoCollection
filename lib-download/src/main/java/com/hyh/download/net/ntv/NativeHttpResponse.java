@@ -5,6 +5,7 @@ import android.os.Build;
 import android.text.TextUtils;
 
 import com.hyh.download.net.HttpResponse;
+import com.hyh.download.utils.Constants;
 import com.hyh.download.utils.NetworkHelper;
 
 import java.io.IOException;
@@ -86,7 +87,7 @@ public class NativeHttpResponse implements HttpResponse {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             contentLength = connection.getContentLengthLong();
         } else {
-            String contentLengthStr = connection.getHeaderField(NetworkHelper.CONTENT_LENGTH);
+            String contentLengthStr = connection.getHeaderField(Constants.HeaderField.CONTENT_LENGTH);
             if (!TextUtils.isEmpty(contentLengthStr) && TextUtils.isDigitsOnly(contentLengthStr)) {
                 contentLength = Long.parseLong(contentLengthStr);
             } else {
@@ -94,7 +95,7 @@ public class NativeHttpResponse implements HttpResponse {
             }
         }
         if (contentLength <= 0) {
-            String contentRange = connection.getHeaderField(NetworkHelper.CONTENT_RANGE);
+            String contentRange = connection.getHeaderField(Constants.HeaderField.CONTENT_RANGE);
             contentLength = NetworkHelper.parseContentLengthFromContentRange(contentRange);
         }
         return contentLength;

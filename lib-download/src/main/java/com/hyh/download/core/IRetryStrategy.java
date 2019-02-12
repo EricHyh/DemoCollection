@@ -12,5 +12,7 @@ public interface IRetryStrategy {
 
     void clearCurrentRetryTimes();
 
+    void subtractTotalRetryTimesIfReachMax();
+
     void cancel();
 }

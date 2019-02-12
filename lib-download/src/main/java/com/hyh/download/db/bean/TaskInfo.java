@@ -28,74 +28,71 @@ public class TaskInfo {
     @Column(nameInDb = "targetUrl", indexInDb = 3)
     private String targetUrl;
 
-    @Column(nameInDb = "priority", indexInDb = 6)
+    @Column(nameInDb = "priority", indexInDb = 4)
     private int priority;
 
     @NotNull
-    @Column(nameInDb = "fileDir", indexInDb = 7)
+    @Column(nameInDb = "fileDir", indexInDb = 5)
     private String fileDir;
 
-    @Column(nameInDb = "requestFileName", indexInDb = 8)
+    @Column(nameInDb = "requestFileName", indexInDb = 6)
     private String requestFileName;
 
-    @Column(nameInDb = "realFileName", indexInDb = 8)
+    @Column(nameInDb = "realFileName", indexInDb = 7)
     private String realFileName;
 
-    @Column(nameInDb = "byMultiThread", indexInDb = 9)
+    @Column(nameInDb = "byMultiThread", indexInDb = 8)
     private boolean byMultiThread;
 
-    @Column(nameInDb = "rangeNum", indexInDb = 10)
+    @Column(nameInDb = "rangeNum", indexInDb = 9)
     private int rangeNum;
 
-    @Column(nameInDb = "totalSize", indexInDb = 11)
+    @Column(nameInDb = "totalSize", indexInDb = 10)
     private volatile long totalSize;
 
-    @Column(nameInDb = "currentSize", indexInDb = 12)
+    @Column(nameInDb = "currentSize", indexInDb = 11)
     private volatile long currentSize;
 
-    @Column(nameInDb = "currentStatus", indexInDb = 13)
+    @Column(nameInDb = "currentStatus", indexInDb = 12)
     private volatile int currentStatus;
 
-    @Column(nameInDb = "onlyWifiDownload", indexInDb = 14)
+    @Column(nameInDb = "onlyWifiDownload", indexInDb = 13)
     private boolean onlyWifiDownload;
 
-    @Column(nameInDb = "wifiAutoRetry", indexInDb = 15)
+    @Column(nameInDb = "wifiAutoRetry", indexInDb = 14)
     private boolean wifiAutoRetry;
 
-    @Column(nameInDb = "permitRetryInMobileData", indexInDb = 16)
+    @Column(nameInDb = "permitRetryInMobileData", indexInDb = 15)
     private boolean permitRetryInMobileData;
 
-    @Column(nameInDb = "permitRetryInvalidFileTask", indexInDb = 17)
+    @Column(nameInDb = "permitRetryInvalidFileTask", indexInDb = 16)
     private boolean permitRetryInvalidFileTask;
 
-    @Column(nameInDb = "permitRecoverTask", indexInDb = 18)
+    @Column(nameInDb = "permitRecoverTask", indexInDb = 17)
     private boolean permitRecoverTask;
 
-    @Column(nameInDb = "autoRenameFile", indexInDb = 19)
-    private boolean autoRenameFile;
-
-    @Column(nameInDb = "responseCode", indexInDb = 20)
+    @Column(nameInDb = "responseCode", indexInDb = 18)
     private int responseCode;
 
-    @Column(nameInDb = "failureCode", indexInDb = 21)
+    @Column(nameInDb = "failureCode", indexInDb = 19)
     private int failureCode;
 
-    @Column(nameInDb = "contentMD5", indexInDb = 22)
+    @Column(nameInDb = "contentMD5", indexInDb = 20)
     private String contentMD5;
 
-    @Column(nameInDb = "contentType", indexInDb = 23)
+    @Column(nameInDb = "contentType", indexInDb = 21)
     private String contentType;
 
-    @Column(nameInDb = "eTag", indexInDb = 24)
+    @Column(nameInDb = "eTag", indexInDb = 22)
     private String eTag;
 
-    @Column(nameInDb = "lastModified", indexInDb = 25)
+    @Column(nameInDb = "lastModified", indexInDb = 23)
     private String lastModified;
 
-    @Column(nameInDb = "updateTimeMillis", indexInDb = 26)
+    @Column(nameInDb = "updateTimeMillis", indexInDb = 24)
     private long updateTimeMillis;
 
-    @Column(nameInDb = "tag", indexInDb = 27)
+    @Column(nameInDb = "tag", indexInDb = 25)
     private String tag;
 
     public TaskInfo() {
@@ -251,14 +248,6 @@ public class TaskInfo {
 
     public void setPermitRecoverTask(boolean permitRecoverTask) {
         this.permitRecoverTask = permitRecoverTask;
-    }
-
-    public boolean isAutoRenameFile() {
-        return autoRenameFile;
-    }
-
-    public void setAutoRenameFile(boolean autoRenameFile) {
-        this.autoRenameFile = autoRenameFile;
     }
 
     public int getResponseCode() {

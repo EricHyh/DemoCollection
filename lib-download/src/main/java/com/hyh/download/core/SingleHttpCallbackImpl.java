@@ -13,9 +13,9 @@ import com.hyh.download.exception.ExceptionHelper;
 import com.hyh.download.net.HttpCall;
 import com.hyh.download.net.HttpClient;
 import com.hyh.download.net.HttpResponse;
+import com.hyh.download.utils.Constants;
 import com.hyh.download.utils.DownloadFileHelper;
 import com.hyh.download.utils.L;
-import com.hyh.download.utils.NetworkHelper;
 import com.hyh.download.utils.RangeUtil;
 
 import java.io.File;
@@ -135,11 +135,11 @@ class SingleHttpCallbackImpl extends AbstractHttpCallback {
             return false;
         }
 
-        if (response.code() == HttpClient.ResponseCode.PARTIAL_CONTENT) {
+        if (response.code() == Constants.ResponseCode.PARTIAL_CONTENT) {
             return true;
         }
 
-        final String acceptRanges = response.header(NetworkHelper.ACCEPT_RANGES);
+        final String acceptRanges = response.header(Constants.HeaderField.ACCEPT_RANGES);
 
         return "bytes".equals(acceptRanges);
     }
@@ -151,10 +151,10 @@ class SingleHttpCallbackImpl extends AbstractHttpCallback {
         DownloadFileHelper.fixTaskFilePath(response, taskInfo);
         taskInfo.setTargetUrl(response.url());
 
-        taskInfo.setContentMD5(response.header(NetworkHelper.CONTENT_MD5));
-        taskInfo.setContentType(response.header(NetworkHelper.CONTENT_TYPE));
-        taskInfo.setETag(response.header(NetworkHelper.ETAG));
-        taskInfo.setLastModified(response.header(NetworkHelper.LAST_MODIFIED));
+        taskInfo.setContentMD5(response.header(Constants.HeaderField.CONTENT_MD5));
+        taskInfo.setContentType(response.header(Constants.HeaderField.CONTENT_TYPE));
+        taskInfo.setETag(response.header(Constants.HeaderField.ETAG));
+        taskInfo.setLastModified(response.header(Constants.HeaderField.LAST_MODIFIED));
 
         notifyConnected(response.headers());
     }

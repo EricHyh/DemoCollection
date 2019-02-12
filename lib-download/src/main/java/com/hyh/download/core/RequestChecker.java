@@ -83,10 +83,9 @@ class RequestChecker {
         taskInfo.setPermitRetryInMobileData(requestInfo.permitRetryInMobileData);
         taskInfo.setPermitRetryInvalidFileTask(requestInfo.permitRetryInvalidFileTask);
         taskInfo.setPermitRecoverTask(requestInfo.permitRecoverTask);
-        taskInfo.setAutoRenameFile(requestInfo.autoRenameFile);
 
         taskInfo.setResponseCode(0);
-        taskInfo.setFailureCode(0);
+        taskInfo.setFailureCode(FailureCode.NO_FAILURE);
         taskInfo.setTag(requestInfo.tag);
     }
 
@@ -116,7 +115,6 @@ class RequestChecker {
         taskInfo.setPermitRetryInMobileData(requestInfo.permitRetryInMobileData);
         taskInfo.setPermitRetryInvalidFileTask(requestInfo.permitRetryInvalidFileTask);
         taskInfo.setPermitRecoverTask(requestInfo.permitRecoverTask);
-        taskInfo.setAutoRenameFile(requestInfo.autoRenameFile);
 
         taskInfo.setTag(requestInfo.tag);
         return taskInfo;

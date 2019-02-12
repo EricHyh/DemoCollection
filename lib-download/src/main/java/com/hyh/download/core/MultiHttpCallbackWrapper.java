@@ -251,6 +251,7 @@ class MultiHttpCallbackWrapper extends AbstractHttpCallback {
                         isFailure = false;
                     }
                 }
+                retryStrategy.subtractTotalRetryTimesIfReachMax();
                 retryStrategy.clearCurrentRetryTimes();
                 boolean retryDownload = retryDownload(failureCode, false);
                 if (!retryDownload) {

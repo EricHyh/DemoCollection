@@ -65,7 +65,7 @@ public class DownloaderConfig {
         }
 
         public Builder byService(boolean byService) {
-            this.byService = byService;
+            //this.byService = byService;暂不支持开服务
             return this;
         }
 

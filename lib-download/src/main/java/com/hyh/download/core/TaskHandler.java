@@ -36,10 +36,6 @@ public class TaskHandler implements Comparable<TaskHandler> {
 
     private HttpClient mClient;
 
-    private RequestInfo mRequestInfo;
-
-    private RequestChecker mRequestChecker;
-
     private TaskInfo mTaskInfo;
 
     private IFileChecker mFileChecker;
@@ -267,7 +263,6 @@ public class TaskHandler implements Comparable<TaskHandler> {
 
         mOuterTaskListener.onRetrying(downloadInfo, deleteFile);
     }
-
 
     private void notifyPause(DownloadInfo downloadInfo) {
         mOuterTaskListener.onPause(downloadInfo);

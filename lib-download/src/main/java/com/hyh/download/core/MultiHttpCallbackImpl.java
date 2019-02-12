@@ -12,8 +12,8 @@ import com.hyh.download.exception.ExceptionHelper;
 import com.hyh.download.net.HttpCall;
 import com.hyh.download.net.HttpClient;
 import com.hyh.download.net.HttpResponse;
+import com.hyh.download.utils.Constants;
 import com.hyh.download.utils.DownloadFileHelper;
-import com.hyh.download.utils.NetworkHelper;
 import com.hyh.download.utils.RangeUtil;
 
 import java.util.ArrayList;
@@ -149,10 +149,10 @@ public class MultiHttpCallbackImpl extends AbstractHttpCallback {
         DownloadFileHelper.fixTaskFilePath(response, taskInfo);
 
         taskInfo.setTargetUrl(response.url());
-        taskInfo.setContentMD5(response.header(NetworkHelper.CONTENT_MD5));
-        taskInfo.setContentType(response.header(NetworkHelper.CONTENT_TYPE));
-        taskInfo.setETag(response.header(NetworkHelper.ETAG));
-        taskInfo.setLastModified(response.header(NetworkHelper.LAST_MODIFIED));
+        taskInfo.setContentMD5(response.header(Constants.HeaderField.CONTENT_MD5));
+        taskInfo.setContentType(response.header(Constants.HeaderField.CONTENT_TYPE));
+        taskInfo.setETag(response.header(Constants.HeaderField.ETAG));
+        taskInfo.setLastModified(response.header(Constants.HeaderField.LAST_MODIFIED));
 
         notifyConnected(response.headers());
     }

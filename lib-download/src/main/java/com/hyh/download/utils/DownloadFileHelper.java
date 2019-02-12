@@ -250,8 +250,8 @@ public class DownloadFileHelper {
 
     public static void fixTaskFilePath(HttpResponse response, TaskInfo taskInfo) {
         fixTaskFilePath(response.url(),
-                response.header(NetworkHelper.CONTENT_DISPOSITION),
-                response.header(NetworkHelper.CONTENT_TYPE),
+                response.header(Constants.HeaderField.CONTENT_DISPOSITION),
+                response.header(Constants.HeaderField.CONTENT_TYPE),
                 taskInfo);
     }
 

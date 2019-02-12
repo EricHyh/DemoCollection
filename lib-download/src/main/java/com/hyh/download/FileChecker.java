@@ -7,5 +7,4 @@ package com.hyh.download;
  */
 
 public abstract class FileChecker extends IFileChecker.Stub {
-
 }

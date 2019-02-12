@@ -275,6 +275,7 @@ public class TaskInfoDao {
         taskInfo.setPriority(cursor.getInt(++columnIndex));
 
         taskInfo.setFileDir(cursor.getString(++columnIndex));
+        taskInfo.setRequestFileName(cursor.getString(++columnIndex));
         taskInfo.setRealFileName(cursor.getString(++columnIndex));
 
         taskInfo.setByMultiThread(cursor.getInt(++columnIndex) == 1);
@@ -315,8 +316,11 @@ public class TaskInfoDao {
         contentValues.put("targetUrl", taskInfo.getTargetUrl());
 
         contentValues.put("priority", taskInfo.getPriority());
+
         contentValues.put("fileDir", taskInfo.getFileDir());
-        contentValues.put("fileName", taskInfo.getRealFileName());
+        contentValues.put("requestFileName", taskInfo.getRequestFileName());
+        contentValues.put("realFileName", taskInfo.getRealFileName());
+
         contentValues.put("byMultiThread", taskInfo.isByMultiThread() ? 1 : 0);
         contentValues.put("rangeNum", taskInfo.getRangeNum());
         contentValues.put("totalSize", taskInfo.getTotalSize());

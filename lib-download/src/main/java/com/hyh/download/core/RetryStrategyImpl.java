@@ -97,6 +97,11 @@ public class RetryStrategyImpl implements IRetryStrategy {
     @Override
     public void clearCurrentRetryTimes() {
         currentRetryTimes = 0;
+
+    }
+
+    @Override
+    public void subtractTotalRetryTimesIfReachMax() {
         if (totalRetryTimes > 17) {
             totalRetryTimes = 17;
         }
