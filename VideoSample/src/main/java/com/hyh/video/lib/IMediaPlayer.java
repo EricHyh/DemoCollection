@@ -10,13 +10,17 @@ import android.view.Surface;
 
 public interface IMediaPlayer {
 
-    void setMediaListener(MediaListener listener);
+    void changeDataSource(String url);
+
+    void setMediaEventListener(MediaEventListener listener);
+
+    void setMediaProgressListener(MediaProgressListener listener);
+
+    String getDataSource();
 
     boolean isLooping();
 
     void setLooping(boolean looping);
-
-    boolean isPrepared();
 
     void prepare(boolean autoStart);
 
@@ -26,9 +30,13 @@ public interface IMediaPlayer {
 
     void pause();
 
+    void stop();
+
     boolean isPlaying();
 
-    void seekTo(int milliSeconds);
+    void seekTimeTo(int milliSeconds);
+
+    void seekProgressTo(int progress);
 
     int getCurrentPosition();
 
