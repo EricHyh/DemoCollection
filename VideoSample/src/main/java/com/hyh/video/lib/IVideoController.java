@@ -6,6 +6,6 @@ package com.hyh.video.lib;
  * @data 2019/1/28
  */
 
-public class IVideoElement {
+public interface IVideoController {
 
 }

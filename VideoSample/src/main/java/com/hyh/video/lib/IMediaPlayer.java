@@ -10,7 +10,9 @@ import android.view.Surface;
 
 public interface IMediaPlayer {
 
-    void changeDataSource(String url);
+    boolean setDataSource(String source);
+
+    boolean changeDataSource(String source);
 
     void setMediaEventListener(MediaEventListener listener);
 
@@ -45,6 +47,8 @@ public interface IMediaPlayer {
     void setSurface(Surface surface);
 
     void setVolume(float leftVolume, float rightVolume);
+
+    boolean isSupportSpeed();
 
     void setSpeed(float speed);
 

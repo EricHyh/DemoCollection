@@ -44,7 +44,8 @@ public class VideoActivity extends Activity implements SeekBar.OnSeekBarChangeLi
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_texture);
         mTextureView = findViewById(R.id.TextureView);
-        mMediaSystem = new MediaSystem(mVideoUrl1);
+        mMediaSystem = new MediaSystem();
+        mMediaSystem.setDataSource(mVideoUrl1);
         mTextureView.setSurfaceTextureListener(new TextureView.SurfaceTextureListener() {
             @Override
             public void onSurfaceTextureAvailable(SurfaceTexture surface, int width, int height) {
@@ -142,11 +143,6 @@ public class VideoActivity extends Activity implements SeekBar.OnSeekBarChangeLi
     @Override
     public void onStopTrackingTouch(SeekBar seekBar) {
         mMediaSystem.seekProgressTo(seekBar.getProgress());
-    }
-
-    @Override
-    public void onDataSourceChanged(String oldDataSource, String curDataSource) {
-
     }
 
     @Override

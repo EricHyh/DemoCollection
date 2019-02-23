@@ -3,14 +3,15 @@ package com.hyh.video.lib;
 import android.view.Surface;
 
 /**
- * Created by Eric_He on 2019/2/16.
+ * @author Administrator
+ * @description 负责视频播放区域的绘制
+ * @data 2019/2/23
  */
-
 public interface IVideoSurface {
 
-    void setSurfaceListener(OnSurfaceListener listener);
+    void setSurfaceListener(SurfaceListener listener);
 
-    interface OnSurfaceListener {
+    interface SurfaceListener {
 
         void onSurfaceCreate(Surface surface);
 

@@ -1,0 +1,14 @@
+package com.hyh.video.lib;
+
+import android.content.Context;
+
+/**
+ * @author Administrator
+ * @description
+ * @data 2019/2/23
+ */
+class DefaultVideoController implements IVideoController {
+
+    DefaultVideoController(Context context) {
+    }
+}

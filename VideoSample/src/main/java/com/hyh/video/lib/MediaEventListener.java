@@ -8,8 +8,6 @@ package com.hyh.video.lib;
 
 public interface MediaEventListener {
 
-    void onDataSourceChanged(String oldDataSource, String curDataSource);
-
     void onPreparing();
 
     void onPrepared();

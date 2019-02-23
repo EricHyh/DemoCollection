@@ -3,6 +3,7 @@ package com.hyh.video.lib;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.media.PlaybackParams;
+import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
@@ -24,13 +25,15 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
 
     private final ProgressHandler mProgressHandler = new ProgressHandler(this);
 
-    private MediaPlayer mMediaPlayer;
+    private final MediaPlayer mMediaPlayer = newMediaPlayer();
 
     private int mCurrentState = State.IDLE;
 
     private String mDataSource;
 
     private boolean mIsLooping;
+
+    private float mSpeed;
 
     private MediaEventListener mMediaEventListener;
 
@@ -46,21 +49,29 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
 
     private Surface mSurface;
 
-    public MediaSystem(String path) {
-        this.mDataSource = path;
-        this.mMediaPlayer = initMediaPlayer(mDataSource);
+    @Override
+    public boolean setDataSource(String source) {
+        boolean init = initMediaPlayer(mDataSource);
+        if (init) {
+            this.mDataSource = source;
+            this.mCurrentState = State.INITIALIZED;
+        }
+        return init;
     }
 
     @Override
-    public void changeDataSource(String path) {
-        if (TextUtils.equals(mDataSource, path)) return;
-        if (mCurrentState == State.END) return;
-        String oldDataSource = mDataSource;
+    public boolean changeDataSource(String path) {
+        if (TextUtils.equals(mDataSource, path)) return false;
+        if (mCurrentState == State.END) return false;
+
         this.mDataSource = path;
         mMediaPlayer.reset();
-        setDataSource(mMediaPlayer, path);
-        mCurrentState = State.INITIALIZED;
-        postChangeDataSource(oldDataSource, mDataSource);
+        if (initMediaPlayer(path)) {
+            mCurrentState = State.INITIALIZED;
+            return true;
+        } else {
+            return false;
+        }
     }
 
     @Override
@@ -96,24 +107,27 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
         }
     }
 
-    private MediaPlayer initMediaPlayer(String path) {
+    private MediaPlayer newMediaPlayer() {
+        MediaPlayer mediaPlayer = new MediaPlayer();
+        mediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
+        mediaPlayer.setLooping(mIsLooping);
+        mediaPlayer.setOnPreparedListener(this);
+        mediaPlayer.setOnBufferingUpdateListener(this);
+        mediaPlayer.setScreenOnWhilePlaying(true);
+        mediaPlayer.setOnSeekCompleteListener(this);
+        mediaPlayer.setOnErrorListener(this);
+        mediaPlayer.setOnInfoListener(this);
+        mediaPlayer.setOnVideoSizeChangedListener(this);
+        mediaPlayer.setOnCompletionListener(this);
+        return mediaPlayer;
+    }
+
+    private boolean initMediaPlayer(String source) {
         try {
-            MediaPlayer mediaPlayer = new MediaPlayer();
-            mediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
-            mediaPlayer.setLooping(mIsLooping);
-            mediaPlayer.setOnPreparedListener(this);
-            mediaPlayer.setOnBufferingUpdateListener(this);
-            mediaPlayer.setScreenOnWhilePlaying(true);
-            mediaPlayer.setOnSeekCompleteListener(this);
-            mediaPlayer.setOnErrorListener(this);
-            mediaPlayer.setOnInfoListener(this);
-            mediaPlayer.setOnVideoSizeChangedListener(this);
-            mediaPlayer.setOnCompletionListener(this);
-            mediaPlayer.setDataSource(path);
-            mCurrentState = State.INITIALIZED;
-            return mediaPlayer;
+            mMediaPlayer.setDataSource(source);
+            return true;
         } catch (Exception e) {
-            return null;
+            return false;
         }
     }
 
@@ -124,21 +138,15 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
             postPreparing();
         } else if (mCurrentState == State.ERROR) {
             mMediaPlayer.reset();
-            setDataSource(mMediaPlayer, mDataSource);
-            mMediaPlayer.prepareAsync();
-            postPreparing();
+            if (initMediaPlayer(mDataSource)) {
+                mMediaPlayer.prepareAsync();
+                postPreparing();
+            } else {
+                postError(0, 0);
+            }
         }
         if (autoStart) {
             mPendingCommand = PENDING_COMMAND_START;
-        }
-    }
-
-    private boolean setDataSource(MediaPlayer mediaPlayer, String source) {
-        try {
-            mediaPlayer.setDataSource(source);
-            return true;
-        } catch (Exception e) {
-            return false;
         }
     }
 
@@ -268,7 +276,6 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
             postRelease();
             mMediaPlayer.release();
             mCurrentState = State.END;
-            mMediaPlayer = null;
             mMediaEventListener = null;
             mProgressListener = null;
         }
@@ -316,8 +323,14 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
     }
 
     @Override
+    public boolean isSupportSpeed() {
+        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.M;
+    }
+
+    @Override
     public void setSpeed(float speed) {
-        if (mMediaPlayer != null) {
+        this.mSpeed = speed;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             PlaybackParams pp = mMediaPlayer.getPlaybackParams();
             pp.setSpeed(speed);
             mMediaPlayer.setPlaybackParams(pp);
@@ -411,13 +424,6 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
 
     private void stopObserveProgress() {
         mProgressHandler.stop();
-    }
-
-
-    private void postChangeDataSource(String oldDataSource, String curDataSource) {
-        if (mMediaEventListener != null) {
-            mMediaEventListener.onDataSourceChanged(oldDataSource, curDataSource);
-        }
     }
 
     private void postPreparing() {
