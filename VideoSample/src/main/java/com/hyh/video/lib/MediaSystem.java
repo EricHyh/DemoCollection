@@ -3,7 +3,14 @@ package com.hyh.video.lib;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.media.PlaybackParams;
+import android.os.Handler;
+import android.os.Looper;
+import android.os.Message;
+import android.text.TextUtils;
 import android.view.Surface;
+
+import java.lang.ref.WeakReference;
+
 
 /**
  * https://blog.csdn.net/shulianghan/article/details/38487967
@@ -12,19 +19,22 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
 
     private static final int PENDING_COMMAND_NONE = 0;
     private static final int PENDING_COMMAND_START = 1;
-    private static final int PENDING_COMMAND_PAUSE = 3;
+    private static final int PENDING_COMMAND_PAUSE = 2;
+    private static final int PENDING_COMMAND_STOP = 3;
+
+    private final ProgressHandler mProgressHandler = new ProgressHandler(this);
 
     private MediaPlayer mMediaPlayer;
 
-    private String mUrl;
+    private int mCurrentState = State.IDLE;
+
+    private String mDataSource;
 
     private boolean mIsLooping;
 
-    private MediaListener mListener;
+    private MediaEventListener mMediaEventListener;
 
-    private boolean mIsPreparing;
-
-    private boolean mIsPrepared;
+    private MediaProgressListener mProgressListener;
 
     private boolean mIsReleased;
 
@@ -32,15 +42,45 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
 
     private Integer mPendingSeekMilliSeconds;
 
-    private Surface mPendingSurface;
+    private Integer mPendingSeekProgress;
 
-    public MediaSystem(String url) {
-        this.mUrl = url;
+    private Surface mSurface;
+
+    public MediaSystem(String path) {
+        this.mDataSource = path;
+        this.mMediaPlayer = initMediaPlayer(mDataSource);
     }
 
     @Override
-    public void setMediaListener(MediaListener listener) {
-        this.mListener = listener;
+    public void changeDataSource(String path) {
+        if (TextUtils.equals(mDataSource, path)) return;
+        if (mCurrentState == State.END) return;
+        String oldDataSource = mDataSource;
+        this.mDataSource = path;
+        mMediaPlayer.reset();
+        setDataSource(mMediaPlayer, path);
+        mCurrentState = State.INITIALIZED;
+        postChangeDataSource(oldDataSource, mDataSource);
+    }
+
+    @Override
+    public void setMediaEventListener(MediaEventListener listener) {
+        this.mMediaEventListener = listener;
+    }
+
+    @Override
+    public void setMediaProgressListener(MediaProgressListener listener) {
+        this.mProgressListener = listener;
+        if (mProgressListener != null && isPlaying()) {
+            startObserveProgress();
+        } else {
+            stopObserveProgress();
+        }
+    }
+
+    @Override
+    public String getDataSource() {
+        return mDataSource;
     }
 
     @Override
@@ -56,20 +96,7 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
         }
     }
 
-    @Override
-    public boolean isPrepared() {
-        return mIsPrepared;
-    }
-
-    @Override
-    public void prepare(boolean autoStart) {
-        mIsReleased = false;
-        if (autoStart) {
-            mPendingCommand = PENDING_COMMAND_START;
-        }
-        if (mIsPreparing) {
-            return;
-        }
+    private MediaPlayer initMediaPlayer(String path) {
         try {
             MediaPlayer mediaPlayer = new MediaPlayer();
             mediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
@@ -82,101 +109,178 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
             mediaPlayer.setOnInfoListener(this);
             mediaPlayer.setOnVideoSizeChangedListener(this);
             mediaPlayer.setOnCompletionListener(this);
-            mediaPlayer.setDataSource(mUrl);
-            mediaPlayer.prepareAsync();
-            if (mListener != null) {
-                mListener.onPreparing();
-            }
-            mIsPreparing = true;
+            mediaPlayer.setDataSource(path);
+            mCurrentState = State.INITIALIZED;
+            return mediaPlayer;
         } catch (Exception e) {
-            e.printStackTrace();
+            return null;
+        }
+    }
+
+    @Override
+    public void prepare(boolean autoStart) {
+        if (mCurrentState == State.INITIALIZED || mCurrentState == State.STOPPED) {
+            mMediaPlayer.prepareAsync();
+            postPreparing();
+        } else if (mCurrentState == State.ERROR) {
+            mMediaPlayer.reset();
+            setDataSource(mMediaPlayer, mDataSource);
+            mMediaPlayer.prepareAsync();
+            postPreparing();
+        }
+        if (autoStart) {
+            mPendingCommand = PENDING_COMMAND_START;
+        }
+    }
+
+    private boolean setDataSource(MediaPlayer mediaPlayer, String source) {
+        try {
+            mediaPlayer.setDataSource(source);
+            return true;
+        } catch (Exception e) {
+            return false;
         }
     }
 
     @Override
     public void start() {
-        if (isPrepared()) {
-            mMediaPlayer.start();
-            if (mListener != null) {
-                mListener.onStart(getCurrentPosition());
+        if (mCurrentState == State.PREPARED
+                || mCurrentState == State.STARTED
+                || mCurrentState == State.PAUSED
+                || mCurrentState == State.COMPLETED) {
+            if (!isPlaying()) {
+                mMediaPlayer.start();
+                mCurrentState = State.STARTED;
+                postStart();
+                if (mProgressListener != null) {
+                    startObserveProgress();
+                } else {
+                    stopObserveProgress();
+                }
             }
         } else {
-            mPendingCommand = PENDING_COMMAND_START;
+            prepare(true);
         }
     }
 
     @Override
     public void reStart() {
-        if (isPrepared()) {
-            if (mMediaPlayer.isPlaying()) {
-                seekTo(0);
-            } else {
-                seekTo(0);
+        if (mCurrentState == State.PREPARED
+                || mCurrentState == State.STARTED
+                || mCurrentState == State.PAUSED
+                || mCurrentState == State.COMPLETED) {
+            seekTimeTo(0);
+            if (!isPlaying()) {
                 mMediaPlayer.start();
-                if (mListener != null) {
-                    mListener.onStart(getCurrentPosition());
+                mCurrentState = State.STARTED;
+                postStart();
+                if (mProgressListener != null) {
+                    startObserveProgress();
+                } else {
+                    stopObserveProgress();
                 }
             }
         } else {
             mPendingSeekMilliSeconds = null;
-            mPendingCommand = PENDING_COMMAND_START;
+            mPendingSeekProgress = null;
+            prepare(true);
         }
     }
 
     @Override
     public void pause() {
-        if (isPrepared()) {
+        stopObserveProgress();
+        if (mCurrentState == State.PAUSED) return;
+        if (mCurrentState == State.STARTED) {
             mMediaPlayer.pause();
-            if (mListener != null) {
-                mListener.onPause(getCurrentPosition());
-            }
+            postPause();
         } else {
-            mPendingCommand = PENDING_COMMAND_PAUSE;
+            if (mPendingCommand == PENDING_COMMAND_START) {
+                mPendingCommand = PENDING_COMMAND_PAUSE;
+            }
+        }
+    }
+
+    @Override
+    public void stop() {
+        stopObserveProgress();
+        if (mCurrentState == State.STOPPED) return;
+        if (mCurrentState == State.PREPARED
+                || mCurrentState == State.STARTED
+                || mCurrentState == State.PAUSED
+                || mCurrentState == State.COMPLETED) {
+            mMediaPlayer.stop();
+            postStop();
+        } else {
+            mPendingCommand = PENDING_COMMAND_STOP;
         }
     }
 
     @Override
     public boolean isPlaying() {
-        return isPrepared() && mMediaPlayer.isPlaying();
+        try {
+            return mMediaPlayer.isPlaying();
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     @Override
-    public void seekTo(int milliSeconds) {
+    public void seekTimeTo(int milliSeconds) {
+        if (mCurrentState == State.PREPARED
+                || mCurrentState == State.STARTED
+                || mCurrentState == State.PAUSED
+                || mCurrentState == State.COMPLETED) {
+            mMediaPlayer.seekTo(milliSeconds);
+            postSeekStart(milliSeconds);
+        } else {
+            mPendingSeekMilliSeconds = milliSeconds;
+            mPendingSeekProgress = null;
+        }
+    }
+
+    @Override
+    public void seekProgressTo(int progress) {
         boolean seekSuccess = false;
-        if (isPrepared()) {
-            try {
+        if (mCurrentState == State.PREPARED
+                || mCurrentState == State.STARTED
+                || mCurrentState == State.PAUSED
+                || mCurrentState == State.COMPLETED) {
+            int duration = getDuration();
+            if (duration > 0) {
+                int milliSeconds = Math.round(duration * 1.0f * progress / 100);
                 mMediaPlayer.seekTo(milliSeconds);
-                if (mListener != null) {
-                    mListener.onSeekStart(milliSeconds);
-                }
+                postSeekStart(milliSeconds);
                 seekSuccess = true;
-            } catch (Exception e) {
-                e.printStackTrace();
             }
         }
         if (!seekSuccess) {
-            mPendingSeekMilliSeconds = milliSeconds;
+            mPendingSeekProgress = progress;
+            mPendingSeekMilliSeconds = null;
         }
     }
 
     @Override
     public void release() {
+        stopObserveProgress();
         mIsReleased = true;
-        try {
-            if (mMediaPlayer != null) {
-                mMediaPlayer.stop();
-                mMediaPlayer.release();
-                mMediaPlayer = null;
-                mIsPrepared = false;
-            }
-        } catch (Exception e) {
-            //
+        if (mMediaPlayer != null) {
+            postRelease();
+            mMediaPlayer.release();
+            mCurrentState = State.END;
+            mMediaPlayer = null;
+            mMediaEventListener = null;
+            mProgressListener = null;
         }
     }
 
     @Override
     public int getCurrentPosition() {
-        if (mMediaPlayer != null) {
+        if (mCurrentState == State.PREPARED
+                || mCurrentState == State.STARTED
+                || mCurrentState == State.PAUSED
+                || mCurrentState == State.STOPPED
+                || mCurrentState == State.COMPLETED) {
             return mMediaPlayer.getCurrentPosition();
         } else {
             return 0;
@@ -185,7 +289,11 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
 
     @Override
     public int getDuration() {
-        if (mMediaPlayer != null) {
+        if (mCurrentState == State.PREPARED
+                || mCurrentState == State.STARTED
+                || mCurrentState == State.PAUSED
+                || mCurrentState == State.STOPPED
+                || mCurrentState == State.COMPLETED) {
             return mMediaPlayer.getDuration();
         } else {
             return 0;
@@ -194,76 +302,90 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
 
     @Override
     public void setSurface(Surface surface) {
+        this.mSurface = surface;
         if (mMediaPlayer != null) {
             mMediaPlayer.setSurface(surface);
-        } else {
-            mPendingSurface = surface;
         }
     }
 
     @Override
     public void setVolume(float leftVolume, float rightVolume) {
-        mMediaPlayer.setVolume(leftVolume, rightVolume);
+        if (mMediaPlayer != null) {
+            mMediaPlayer.setVolume(leftVolume, rightVolume);
+        }
     }
 
     @Override
     public void setSpeed(float speed) {
-        PlaybackParams pp = mMediaPlayer.getPlaybackParams();
-        pp.setSpeed(speed);
-        mMediaPlayer.setPlaybackParams(pp);
+        if (mMediaPlayer != null) {
+            PlaybackParams pp = mMediaPlayer.getPlaybackParams();
+            pp.setSpeed(speed);
+            mMediaPlayer.setPlaybackParams(pp);
+        }
     }
 
     @Override
     public void onPrepared(MediaPlayer mediaPlayer) {
         if (mIsReleased) {
             mediaPlayer.release();
+            postRelease();
             return;
         }
-        if (mediaPlayer.isLooping() != mIsLooping) {
-            mediaPlayer.setLooping(mIsLooping);
-        }
-        this.mMediaPlayer = mediaPlayer;
-        this.mIsPrepared = true;
-        this.mIsPreparing = false;
-        if (mPendingCommand == PENDING_COMMAND_START) {
+        postPrepared();
+        if (mPendingCommand == PENDING_COMMAND_NONE) {
+            handlePendingSeek();
+        } else if (mPendingCommand == PENDING_COMMAND_START) {
+            handlePendingSeek();
             mMediaPlayer.start();
             mPendingCommand = PENDING_COMMAND_NONE;
+            postStart();
+        } else if (mPendingCommand == PENDING_COMMAND_PAUSE) {
+            handlePendingSeek();
+            mPendingCommand = PENDING_COMMAND_NONE;
+            mMediaPlayer.pause();
+            postPause();
+        } else if (mPendingCommand == PENDING_COMMAND_STOP) {
+            mPendingCommand = PENDING_COMMAND_NONE;
+            mMediaPlayer.stop();
+            postStop();
         }
+        if (mProgressListener != null && isPlaying()) {
+            startObserveProgress();
+        } else {
+            stopObserveProgress();
+        }
+    }
+
+    private void handlePendingSeek() {
         if (mPendingSeekMilliSeconds != null) {
             mMediaPlayer.seekTo(mPendingSeekMilliSeconds);
-            if (mListener != null) {
-                mListener.onSeekStart(mPendingSeekMilliSeconds);
-            }
+            postSeekStart(mPendingSeekMilliSeconds);
             mPendingSeekMilliSeconds = null;
         }
-        if (mPendingSurface != null) {
-            mMediaPlayer.setSurface(mPendingSurface);
-            mPendingSurface = null;
-        }
-        if (mListener != null) {
-            mListener.onPrepared();
+        if (mPendingSeekProgress != null) {
+            int duration = getDuration();
+            if (duration > 0) {
+                int milliSeconds = Math.round(duration * 1.0f * mPendingSeekProgress / 100);
+                mMediaPlayer.seekTo(milliSeconds);
+                postSeekStart(milliSeconds);
+            }
+            mPendingSeekProgress = null;
         }
     }
 
     @Override
     public void onBufferingUpdate(MediaPlayer mediaPlayer, final int percent) {
-        if (mListener != null) {
-            mListener.onBufferingUpdate(percent);
-        }
+        postBufferingUpdate(percent);
     }
 
     @Override
     public void onSeekComplete(MediaPlayer mediaPlayer) {
-        if (mListener != null) {
-            mListener.onSeekComplete();
-        }
+        postSeekComplete();
     }
 
     @Override
     public boolean onError(MediaPlayer mediaPlayer, int what, int extra) {
-        if (mListener != null) {
-            mListener.onError(what, extra);
-        }
+        postError(what, extra);
         return true;
     }
 
@@ -274,15 +396,172 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
 
     @Override
     public void onVideoSizeChanged(MediaPlayer mediaPlayer, int width, int height) {
-        if (mListener != null) {
-            mListener.onVideoSizeChanged(width, height);
-        }
+        postVideoSizeChanged(width, height);
     }
 
     @Override
     public void onCompletion(MediaPlayer mediaPlayer) {
-        if (mListener != null) {
-            mListener.onCompletion();
+        postComplete();
+        stopObserveProgress();
+    }
+
+    private void startObserveProgress() {
+        mProgressHandler.start();
+    }
+
+    private void stopObserveProgress() {
+        mProgressHandler.stop();
+    }
+
+
+    private void postChangeDataSource(String oldDataSource, String curDataSource) {
+        if (mMediaEventListener != null) {
+            mMediaEventListener.onDataSourceChanged(oldDataSource, curDataSource);
         }
+    }
+
+    private void postPreparing() {
+        mCurrentState = State.PREPARING;
+        if (mMediaEventListener != null) {
+            mMediaEventListener.onPreparing();
+        }
+    }
+
+    private void postPrepared() {
+        mCurrentState = State.PREPARED;
+        if (mMediaEventListener != null) {
+            mMediaEventListener.onPrepared();
+        }
+    }
+
+    private void postStart() {
+        mCurrentState = State.STARTED;
+        if (mMediaEventListener != null) {
+            mMediaEventListener.onStart(getCurrentPosition(), getDuration());
+        }
+    }
+
+    private void postPause() {
+        mCurrentState = State.PAUSED;
+        if (mMediaEventListener != null) {
+            mMediaEventListener.onPause(getCurrentPosition(), getDuration());
+        }
+    }
+
+    private void postStop() {
+        mCurrentState = State.STOPPED;
+        if (mMediaEventListener != null) {
+            mMediaEventListener.onStop(getCurrentPosition(), getDuration());
+        }
+    }
+
+    private void postSeekStart(int seekMilliSeconds) {
+        if (mMediaEventListener != null) {
+            mMediaEventListener.onSeekStart(seekMilliSeconds, getCurrentPosition(), getDuration());
+        }
+    }
+
+    private void postSeekComplete() {
+        if (mMediaEventListener != null) {
+            mMediaEventListener.onSeekComplete(getCurrentPosition(), getDuration());
+        }
+    }
+
+    private void postProgress() {
+        int duration = getDuration();
+        int currentPosition = getCurrentPosition();
+        int progress = Math.round(currentPosition * 1.0f / duration * 100);
+        if (mProgressListener != null) {
+            mProgressListener.onMediaProgress(progress, currentPosition, duration);
+        }
+    }
+
+    private void postBufferingUpdate(int percent) {
+        if (mMediaEventListener != null) {
+            mMediaEventListener.onBufferingUpdate(percent);
+        }
+    }
+
+    private void postVideoSizeChanged(int width, int height) {
+        if (mMediaEventListener != null) {
+            mMediaEventListener.onVideoSizeChanged(width, height);
+        }
+    }
+
+    private void postError(int what, int extra) {
+        mCurrentState = State.ERROR;
+        if (mMediaEventListener != null) {
+            mMediaEventListener.onError(what, extra);
+        }
+    }
+
+
+    private void postComplete() {
+        mCurrentState = State.COMPLETED;
+        if (mMediaEventListener != null) {
+            mMediaEventListener.onCompletion();
+        }
+    }
+
+    private void postRelease() {
+        mCurrentState = State.END;
+        if (mMediaEventListener != null) {
+            mMediaEventListener.onRelease(getCurrentPosition(), getDuration());
+        }
+    }
+
+    private static class ProgressHandler extends Handler {
+
+        private final WeakReference<MediaSystem> mMediaSystemRef;
+
+        private boolean mIsStart;
+
+        ProgressHandler(MediaSystem mediaSystem) {
+            super(Looper.getMainLooper());
+            mMediaSystemRef = new WeakReference<>(mediaSystem);
+        }
+
+        @Override
+        public void handleMessage(Message msg) {
+            super.handleMessage(msg);
+            MediaSystem mediaSystem = mMediaSystemRef.get();
+            if (!mIsStart) return;
+            mediaSystem.postProgress();
+            sendEmptyMessageDelayed(0, 1000);
+        }
+
+        void start() {
+            mIsStart = true;
+            sendEmptyMessage(0);
+        }
+
+        void stop() {
+            mIsStart = false;
+        }
+    }
+
+
+    private static class State {
+
+        private static final int IDLE = 0;
+
+        private static final int INITIALIZED = 1;
+
+        private static final int PREPARING = 2;
+
+        private static final int PREPARED = 3;
+
+        private static final int STARTED = 4;
+
+        private static final int PAUSED = 5;
+
+        private static final int STOPPED = 6;
+
+        private static final int COMPLETED = 7;
+
+        private static final int ERROR = 8;
+
+        private static final int END = 9;
+
     }
 }
