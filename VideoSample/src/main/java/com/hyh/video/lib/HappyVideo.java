@@ -52,6 +52,7 @@ public class HappyVideo extends FrameLayout {
         if (mVideoPreview == preview) return;
         removeView(mVideoPreview.getView());
 
+
     }
 
     public void addMediaEventListener(MediaEventListener listener) {
