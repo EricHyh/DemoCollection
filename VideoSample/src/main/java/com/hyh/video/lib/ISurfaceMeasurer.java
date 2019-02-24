@@ -7,6 +7,6 @@ package com.hyh.video.lib;
  */
 public interface ISurfaceMeasurer {
 
-    void onMeasure(int widthMeasureSpec, int heightMeasureSpec);
+    int[] onMeasure(int widthMeasureSpec, int heightMeasureSpec);
 
 }

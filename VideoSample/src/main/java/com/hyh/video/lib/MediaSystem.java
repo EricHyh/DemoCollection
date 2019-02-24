@@ -8,6 +8,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
 import android.text.TextUtils;
+import android.util.Log;
 import android.view.Surface;
 
 import java.lang.ref.WeakReference;
@@ -18,6 +19,7 @@ import java.lang.ref.WeakReference;
  */
 public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener, MediaPlayer.OnBufferingUpdateListener, MediaPlayer.OnSeekCompleteListener, MediaPlayer.OnErrorListener, MediaPlayer.OnInfoListener, MediaPlayer.OnVideoSizeChangedListener, MediaPlayer.OnCompletionListener {
 
+    private static final String TAG = "MediaSystem";
     private static final int PENDING_COMMAND_NONE = 0;
     private static final int PENDING_COMMAND_START = 1;
     private static final int PENDING_COMMAND_PAUSE = 2;
@@ -32,8 +34,6 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
     private String mDataSource;
 
     private boolean mIsLooping;
-
-    private float mSpeed;
 
     private MediaEventListener mMediaEventListener;
 
@@ -51,7 +51,7 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
 
     @Override
     public boolean setDataSource(String source) {
-        boolean init = initMediaPlayer(mDataSource);
+        boolean init = initMediaPlayer(source);
         if (init) {
             this.mDataSource = source;
             this.mCurrentState = State.INITIALIZED;
@@ -64,9 +64,9 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
         if (TextUtils.equals(mDataSource, path)) return false;
         if (mCurrentState == State.END) return false;
 
-        this.mDataSource = path;
         mMediaPlayer.reset();
         if (initMediaPlayer(path)) {
+            this.mDataSource = path;
             mCurrentState = State.INITIALIZED;
             return true;
         } else {
@@ -329,7 +329,6 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
 
     @Override
     public void setSpeed(float speed) {
-        this.mSpeed = speed;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             PlaybackParams pp = mMediaPlayer.getPlaybackParams();
             pp.setSpeed(speed);
@@ -398,12 +397,28 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
 
     @Override
     public boolean onError(MediaPlayer mediaPlayer, int what, int extra) {
+        Log.d("MediaSystem", "onError: what = " + what + ", extra = " + extra);
         postError(what, extra);
         return true;
     }
 
     @Override
     public boolean onInfo(MediaPlayer mediaPlayer, final int what, final int extra) {
+        Log.d("MediaSystem", "onInfo: what = " + what + ", extra = " + extra);
+        switch (what) {
+            case MediaPlayer.MEDIA_INFO_VIDEO_RENDERING_START: {
+                postPlaying();
+                break;
+            }
+            case MediaPlayer.MEDIA_INFO_BUFFERING_START: {
+                postBufferingStart();
+                break;
+            }
+            case MediaPlayer.MEDIA_INFO_BUFFERING_END: {
+                postBufferingEnd();
+                break;
+            }
+        }
         return false;
     }
 
@@ -447,6 +462,12 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
         }
     }
 
+    private void postPlaying() {
+        if (mMediaEventListener != null) {
+            mMediaEventListener.onPlaying(getCurrentPosition(), getDuration());
+        }
+    }
+
     private void postPause() {
         mCurrentState = State.PAUSED;
         if (mMediaEventListener != null) {
@@ -469,7 +490,7 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
 
     private void postSeekComplete() {
         if (mMediaEventListener != null) {
-            mMediaEventListener.onSeekComplete(getCurrentPosition(), getDuration());
+            mMediaEventListener.onSeekEnd(getCurrentPosition(), getDuration());
         }
     }
 
@@ -479,6 +500,19 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
         int progress = Math.round(currentPosition * 1.0f / duration * 100);
         if (mProgressListener != null) {
             mProgressListener.onMediaProgress(progress, currentPosition, duration);
+        }
+    }
+
+
+    private void postBufferingStart() {
+        if (mMediaEventListener != null) {
+            mMediaEventListener.onBufferingStart();
+        }
+    }
+
+    private void postBufferingEnd() {
+        if (mMediaEventListener != null) {
+            mMediaEventListener.onBufferingEnd();
         }
     }
 

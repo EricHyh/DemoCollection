@@ -21,7 +21,8 @@ public class HappyTextureView extends TextureView implements IVideoSurface {
 
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
-        mSurfaceMeasurer.onMeasure(widthMeasureSpec, heightMeasureSpec);
+        int[] size = mSurfaceMeasurer.onMeasure(widthMeasureSpec, heightMeasureSpec);
+        setMeasuredDimension(size[0], size[1]);
     }
 
     @Override
@@ -75,4 +76,5 @@ public class HappyTextureView extends TextureView implements IVideoSurface {
         public void onSurfaceTextureUpdated(SurfaceTexture surface) {
         }
     }
+
 }

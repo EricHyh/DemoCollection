@@ -36,7 +36,7 @@ public class VideoActivity extends Activity implements SeekBar.OnSeekBarChangeLi
     private SeekBar mSeekBar;
     private ImageView mVideoImage;
 
-    private final String mVideoUrl1 = "http://mvvideo11.meitudata.com/5785a7e3e6a1b824.mp4?k=728dc5d4f868a569eddf82639dd8bda4&t=5c6b7f0e";
+    private final String mVideoUrl1 = "http://vod.cntv.lxdns.com/flash/mp4video62/TMS/2019/02/20/a5c722ca046345608b92e8defa84f70d_h264418000nero_aac32-1.mp4";
     private final String mVideoUrl2 = "http://mvvideo11.meitudata.com/5c63dbdc4f28bmhao7spvv1537_H264_1_25d3df13c76f20.mp4?k=1ead2ea555539969a4d28624b9ea6051&t=5c6d7640";
 
     @Override
@@ -171,6 +171,16 @@ public class VideoActivity extends Activity implements SeekBar.OnSeekBarChangeLi
     }
 
     @Override
+    public void onBufferingStart() {
+
+    }
+
+    @Override
+    public void onBufferingEnd() {
+
+    }
+
+    @Override
     public void onMediaProgress(int progress, long currentPosition, long duration) {
         mSeekBar.setProgress(progress);
     }
@@ -185,7 +195,7 @@ public class VideoActivity extends Activity implements SeekBar.OnSeekBarChangeLi
     }
 
     @Override
-    public void onSeekComplete(long currentPosition, long duration) {
+    public void onSeekEnd(long currentPosition, long duration) {
     }
 
     @Override

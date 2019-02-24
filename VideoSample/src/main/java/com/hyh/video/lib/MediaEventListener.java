@@ -14,15 +14,21 @@ public interface MediaEventListener {
 
     void onStart(long currentPosition, long duration);
 
+    void onPlaying(long currentPosition, long duration);
+
     void onPause(long currentPosition, long duration);
 
     void onStop(long currentPosition, long duration);
+
+    void onBufferingStart();
+
+    void onBufferingEnd();
 
     void onBufferingUpdate(int progress);
 
     void onSeekStart(int seekMilliSeconds, long currentPosition, long duration);
 
-    void onSeekComplete(long currentPosition, long duration);
+    void onSeekEnd(long currentPosition, long duration);
 
     void onError(int what, int extra);
 
