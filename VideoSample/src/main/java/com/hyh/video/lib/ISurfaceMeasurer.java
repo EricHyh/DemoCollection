@@ -7,6 +7,8 @@ package com.hyh.video.lib;
  */
 public interface ISurfaceMeasurer {
 
+    void setScaleType(HappyVideo.ScaleType scaleType);
+
     int[] onMeasure(int widthMeasureSpec, int heightMeasureSpec);
 
 }

@@ -34,6 +34,11 @@ public class HappyTextureView extends TextureView implements IVideoSurface {
         }
     }
 
+    @Override
+    public void setScaleType(HappyVideo.ScaleType scaleType) {
+        mSurfaceMeasurer.setScaleType(scaleType);
+    }
+
     private static class SurfaceListenerWrapper implements SurfaceTextureListener {
 
         private final SurfaceListener mSurfaceListener;

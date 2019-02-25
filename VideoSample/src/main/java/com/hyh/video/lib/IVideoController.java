@@ -16,6 +16,4 @@ public interface IVideoController extends MediaEventListener, MediaProgressListe
 
     void setTitle(CharSequence text);
 
-    void setStartButtonClickListener(View.OnClickListener clickListener);
-
 }

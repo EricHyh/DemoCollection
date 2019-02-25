@@ -2,30 +2,29 @@ package com.hyh.video.lib;
 
 import android.content.Context;
 import android.view.View;
-import android.view.ViewGroup;
 
 /**
  * @author Administrator
  * @description
  * @data 2019/2/23
  */
-class DefaultVideoController implements IVideoController {
+public class DefaultVideoController implements IVideoController {
 
-    DefaultVideoController(Context context) {
+    public DefaultVideoController(Context context) {
     }
 
     @Override
-    public void attach(ViewGroup viewGroup) {
+    public View getView() {
+        return null;
+    }
+
+    @Override
+    public void setUp(IMediaPlayer mediaPlayer) {
 
     }
 
     @Override
     public void setTitle(CharSequence text) {
-
-    }
-
-    @Override
-    public void setStartButtonClickListener(View.OnClickListener clickListener) {
 
     }
 
@@ -66,12 +65,10 @@ class DefaultVideoController implements IVideoController {
 
     @Override
     public void onBufferingStart() {
-
     }
 
     @Override
     public void onBufferingEnd() {
-
     }
 
     @Override
@@ -91,17 +88,14 @@ class DefaultVideoController implements IVideoController {
 
     @Override
     public void onError(int what, int extra) {
-
     }
 
     @Override
     public void onVideoSizeChanged(int width, int height) {
-
     }
 
     @Override
     public void onCompletion() {
-
     }
 
     @Override

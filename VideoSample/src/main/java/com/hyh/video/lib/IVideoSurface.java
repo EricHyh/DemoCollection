@@ -11,6 +11,8 @@ public interface IVideoSurface {
 
     void setSurfaceListener(SurfaceListener listener);
 
+    void setScaleType(HappyVideo.ScaleType scaleType);
+
     interface SurfaceListener {
 
         void onSurfaceCreate(Surface surface);

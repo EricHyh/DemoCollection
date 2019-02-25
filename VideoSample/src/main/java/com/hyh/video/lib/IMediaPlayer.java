@@ -12,8 +12,6 @@ public interface IMediaPlayer {
 
     boolean setDataSource(String source);
 
-    boolean changeDataSource(String source);
-
     void setMediaEventListener(MediaEventListener listener);
 
     void setMediaProgressListener(MediaProgressListener listener);

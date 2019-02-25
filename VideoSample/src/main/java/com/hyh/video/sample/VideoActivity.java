@@ -161,6 +161,11 @@ public class VideoActivity extends Activity implements SeekBar.OnSeekBarChangeLi
     }
 
     @Override
+    public void onPlaying(long currentPosition, long duration) {
+
+    }
+
+    @Override
     public void onPause(long currentPosition, long duration) {
 
     }

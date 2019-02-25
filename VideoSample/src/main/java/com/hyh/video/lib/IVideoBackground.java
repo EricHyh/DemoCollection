@@ -3,14 +3,14 @@ package com.hyh.video.lib;
 import android.view.View;
 
 /**
- * Created by Eric_He on 2019/2/24.
+ * @author Administrator
+ * @description
+ * @data 2019/2/25
  */
 
-public interface IVideoPreview {
+public interface IVideoBackground {
 
     View getView();
-
-    void setPreviewVisibility(int visibility);
 
     void onViewAdded();
 

@@ -33,8 +33,6 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
 
     private String mDataSource;
 
-    private boolean mIsLooping;
-
     private MediaEventListener mMediaEventListener;
 
     private MediaProgressListener mProgressListener;
@@ -47,31 +45,20 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
 
     private Integer mPendingSeekProgress;
 
-    private Surface mSurface;
-
     @Override
     public boolean setDataSource(String source) {
+        if (mCurrentState == State.END) return false;
+        if (TextUtils.equals(mDataSource, source)) return false;
+
+        if (!TextUtils.isEmpty(mDataSource)) {
+            mMediaPlayer.reset();
+        }
         boolean init = initMediaPlayer(source);
         if (init) {
             this.mDataSource = source;
             this.mCurrentState = State.INITIALIZED;
         }
         return init;
-    }
-
-    @Override
-    public boolean changeDataSource(String path) {
-        if (TextUtils.equals(mDataSource, path)) return false;
-        if (mCurrentState == State.END) return false;
-
-        mMediaPlayer.reset();
-        if (initMediaPlayer(path)) {
-            this.mDataSource = path;
-            mCurrentState = State.INITIALIZED;
-            return true;
-        } else {
-            return false;
-        }
     }
 
     @Override
@@ -96,21 +83,17 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
 
     @Override
     public boolean isLooping() {
-        return mIsLooping;
+        return mMediaPlayer.isLooping();
     }
 
     @Override
     public void setLooping(boolean looping) {
-        this.mIsLooping = looping;
-        if (mMediaPlayer != null) {
-            mMediaPlayer.setLooping(looping);
-        }
+        mMediaPlayer.setLooping(looping);
     }
 
     private MediaPlayer newMediaPlayer() {
         MediaPlayer mediaPlayer = new MediaPlayer();
         mediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
-        mediaPlayer.setLooping(mIsLooping);
         mediaPlayer.setOnPreparedListener(this);
         mediaPlayer.setOnBufferingUpdateListener(this);
         mediaPlayer.setScreenOnWhilePlaying(true);
@@ -133,19 +116,24 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
 
     @Override
     public void prepare(boolean autoStart) {
+        boolean preparing = false;
         if (mCurrentState == State.INITIALIZED || mCurrentState == State.STOPPED) {
             mMediaPlayer.prepareAsync();
             postPreparing();
+            preparing = true;
         } else if (mCurrentState == State.ERROR) {
             mMediaPlayer.reset();
             if (initMediaPlayer(mDataSource)) {
                 mMediaPlayer.prepareAsync();
                 postPreparing();
+                preparing = true;
             } else {
                 postError(0, 0);
             }
+        } else if (mCurrentState == State.IDLE) {
+            postError(0, 0);
         }
-        if (autoStart) {
+        if (autoStart && preparing) {
             mPendingCommand = PENDING_COMMAND_START;
         }
     }
@@ -226,6 +214,7 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
 
     @Override
     public boolean isPlaying() {
+        if (mIsReleased) return false;
         try {
             return mMediaPlayer.isPlaying();
         } catch (Exception e) {
@@ -270,15 +259,13 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
 
     @Override
     public void release() {
+        if (mIsReleased) return;
         stopObserveProgress();
         mIsReleased = true;
-        if (mMediaPlayer != null) {
-            postRelease();
-            mMediaPlayer.release();
-            mCurrentState = State.END;
-            mMediaEventListener = null;
-            mProgressListener = null;
-        }
+        postRelease();
+        mMediaPlayer.release();
+        mMediaEventListener = null;
+        mProgressListener = null;
     }
 
     @Override
@@ -309,17 +296,14 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
 
     @Override
     public void setSurface(Surface surface) {
-        this.mSurface = surface;
-        if (mMediaPlayer != null) {
-            mMediaPlayer.setSurface(surface);
-        }
+        if (mIsReleased) return;
+        mMediaPlayer.setSurface(surface);
     }
 
     @Override
     public void setVolume(float leftVolume, float rightVolume) {
-        if (mMediaPlayer != null) {
-            mMediaPlayer.setVolume(leftVolume, rightVolume);
-        }
+        if (mIsReleased) return;
+        mMediaPlayer.setVolume(leftVolume, rightVolume);
     }
 
     @Override
@@ -329,6 +313,7 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
 
     @Override
     public void setSpeed(float speed) {
+        if (mIsReleased) return;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             PlaybackParams pp = mMediaPlayer.getPlaybackParams();
             pp.setSpeed(speed);
