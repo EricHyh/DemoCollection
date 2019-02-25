@@ -10,16 +10,21 @@ import android.view.View;
  */
 public class DefaultVideoController implements IVideoController {
 
+    private final IControllerView mControllerView;
+    private IMediaPlayer mMediaPlayer;
+
     public DefaultVideoController(Context context) {
+        this.mControllerView = new DefaultControllerView(context);
     }
 
     @Override
     public View getView() {
-        return null;
+        return mControllerView.getView();
     }
 
     @Override
     public void setUp(IMediaPlayer mediaPlayer) {
+        this.mMediaPlayer = mediaPlayer;
 
     }
 
