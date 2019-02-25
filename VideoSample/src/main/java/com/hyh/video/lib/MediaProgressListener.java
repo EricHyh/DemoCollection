@@ -6,6 +6,6 @@ package com.hyh.video.lib;
 
 public interface MediaProgressListener {
 
-    void onMediaProgress(int progress, long currentPosition, long duration);
+    void onMediaProgress(int progress, int currentPosition);
 
 }

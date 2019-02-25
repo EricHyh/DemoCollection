@@ -4,6 +4,7 @@ import android.content.Context;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.util.AttributeSet;
+import android.view.Surface;
 import android.view.View;
 import android.widget.FrameLayout;
 
@@ -19,6 +20,7 @@ import java.util.List;
 public class HappyVideo extends FrameLayout {
 
     private final IMediaPlayer mMediaPlayer = new MediaSystem();
+    private final IVideoSurface.SurfaceListener mSurfaceListener = new InnerSurfaceListener();
     private final MediaEventListener mMediaEventListener = new InnerMediaEventListener();
     private final MediaProgressListener mMediaProgressListener = new InnerMediaProgressListener();
     private final List<MediaEventListener> mMediaEventListeners = new ArrayList<>();
@@ -45,6 +47,8 @@ public class HappyVideo extends FrameLayout {
 
         this.mVideoSurface = VideoSurfaceFactory.create(context);
         this.mVideoController = new DefaultVideoController(context);
+
+        mVideoSurface.setSurfaceListener(mSurfaceListener);
     }
 
     public void setVideoBackground(IVideoBackground background) {
@@ -113,6 +117,10 @@ public class HappyVideo extends FrameLayout {
         mMediaPlayer.reStart();
     }
 
+    public void retry() {
+        mMediaPlayer.retry();
+    }
+
     public void pause() {
         mMediaPlayer.pause();
     }
@@ -171,6 +179,27 @@ public class HappyVideo extends FrameLayout {
         super.onViewRemoved(child);
     }
 
+
+    private class InnerSurfaceListener implements IVideoSurface.SurfaceListener {
+
+        private Surface mSurface;
+
+        @Override
+        public void onSurfaceCreate(Surface surface) {
+            if (mSurface == surface) return;
+            this.mSurface = surface;
+            mMediaPlayer.setSurface(mSurface);
+        }
+
+        @Override
+        public void onSurfaceSizeChanged(Surface surface, int width, int height) {
+        }
+
+        @Override
+        public void onSurfaceDestroyed(Surface surface) {
+        }
+    }
+
     private class InnerMediaEventListener implements MediaEventListener {
 
         @Override
@@ -181,35 +210,35 @@ public class HappyVideo extends FrameLayout {
         }
 
         @Override
-        public void onPrepared() {
+        public void onPrepared(int duration) {
             for (MediaEventListener listener : mMediaEventListeners) {
-                listener.onPrepared();
+                listener.onPrepared(duration);
             }
         }
 
         @Override
-        public void onStart(long currentPosition, long duration) {
+        public void onStart(int currentPosition, int duration) {
             for (MediaEventListener listener : mMediaEventListeners) {
                 listener.onStart(currentPosition, duration);
             }
         }
 
         @Override
-        public void onPlaying(long currentPosition, long duration) {
+        public void onPlaying(int currentPosition, int duration) {
             for (MediaEventListener listener : mMediaEventListeners) {
                 listener.onPlaying(currentPosition, duration);
             }
         }
 
         @Override
-        public void onPause(long currentPosition, long duration) {
+        public void onPause(int currentPosition, int duration) {
             for (MediaEventListener listener : mMediaEventListeners) {
                 listener.onPause(currentPosition, duration);
             }
         }
 
         @Override
-        public void onStop(long currentPosition, long duration) {
+        public void onStop(int currentPosition, int duration) {
             for (MediaEventListener listener : mMediaEventListeners) {
                 listener.onStop(currentPosition, duration);
             }
@@ -237,16 +266,16 @@ public class HappyVideo extends FrameLayout {
         }
 
         @Override
-        public void onSeekStart(int seekMilliSeconds, long currentPosition, long duration) {
+        public void onSeekStart(int seekMilliSeconds, int seekProgress) {
             for (MediaEventListener listener : mMediaEventListeners) {
-                listener.onSeekStart(seekMilliSeconds, currentPosition, duration);
+                listener.onSeekStart(seekMilliSeconds, seekProgress);
             }
         }
 
         @Override
-        public void onSeekEnd(long currentPosition, long duration) {
+        public void onSeekEnd() {
             for (MediaEventListener listener : mMediaEventListeners) {
-                listener.onSeekEnd(currentPosition, duration);
+                listener.onSeekEnd();
             }
         }
 
@@ -272,7 +301,7 @@ public class HappyVideo extends FrameLayout {
         }
 
         @Override
-        public void onRelease(long currentPosition, long duration) {
+        public void onRelease(int currentPosition, int duration) {
             for (MediaEventListener listener : mMediaEventListeners) {
                 listener.onRelease(currentPosition, duration);
             }
@@ -282,9 +311,9 @@ public class HappyVideo extends FrameLayout {
     private class InnerMediaProgressListener implements MediaProgressListener {
 
         @Override
-        public void onMediaProgress(int progress, long currentPosition, long duration) {
+        public void onMediaProgress(int progress, int currentPosition) {
             for (MediaProgressListener listener : mMediaProgressListeners) {
-                listener.onMediaProgress(progress, currentPosition, duration);
+                listener.onMediaProgress(progress, currentPosition);
             }
         }
     }

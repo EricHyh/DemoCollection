@@ -100,9 +100,9 @@ public class VideoActivity extends Activity implements SeekBar.OnSeekBarChangeLi
 
     public void changeUrl(View view) {
         if (TextUtils.equals(mMediaSystem.getDataSource(), mVideoUrl1)) {
-            mMediaSystem.changeDataSource(mVideoUrl2);
+            mMediaSystem.setDataSource(mVideoUrl2);
         } else {
-            mMediaSystem.changeDataSource(mVideoUrl1);
+            mMediaSystem.setDataSource(mVideoUrl1);
         }
     }
 
@@ -151,27 +151,27 @@ public class VideoActivity extends Activity implements SeekBar.OnSeekBarChangeLi
     }
 
     @Override
-    public void onPrepared() {
+    public void onPrepared(int duration) {
 
     }
 
     @Override
-    public void onStart(long currentPosition, long duration) {
+    public void onStart(int currentPosition, int duration) {
 
     }
 
     @Override
-    public void onPlaying(long currentPosition, long duration) {
+    public void onPlaying(int currentPosition, int duration) {
 
     }
 
     @Override
-    public void onPause(long currentPosition, long duration) {
+    public void onPause(int currentPosition, int duration) {
 
     }
 
     @Override
-    public void onStop(long currentPosition, long duration) {
+    public void onStop(int currentPosition, int duration) {
 
     }
 
@@ -186,7 +186,7 @@ public class VideoActivity extends Activity implements SeekBar.OnSeekBarChangeLi
     }
 
     @Override
-    public void onMediaProgress(int progress, long currentPosition, long duration) {
+    public void onMediaProgress(int progress, int currentPosition) {
         mSeekBar.setProgress(progress);
     }
 
@@ -196,11 +196,11 @@ public class VideoActivity extends Activity implements SeekBar.OnSeekBarChangeLi
     }
 
     @Override
-    public void onSeekStart(int seekMilliSeconds, long currentPosition, long duration) {
+    public void onSeekStart(int seekMilliSeconds, int seekProgress) {
     }
 
     @Override
-    public void onSeekEnd(long currentPosition, long duration) {
+    public void onSeekEnd() {
     }
 
     @Override
@@ -218,7 +218,7 @@ public class VideoActivity extends Activity implements SeekBar.OnSeekBarChangeLi
     }
 
     @Override
-    public void onRelease(long currentPosition, long duration) {
+    public void onRelease(int currentPosition, int duration) {
         mSeekBar.setProgress(0);
     }
 

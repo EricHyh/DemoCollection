@@ -30,69 +30,76 @@ public class DefaultVideoController implements IVideoController {
 
     @Override
     public void setTitle(CharSequence text) {
-
+        mControllerView.setTitle(text);
     }
 
     @Override
-    public void onMediaProgress(int progress, long currentPosition, long duration) {
-
+    public void onMediaProgress(int progress, int currentPosition) {
+        mControllerView.setMediaProgress(progress);
+        mControllerView.setCurrentPosition(currentPosition);
     }
 
     @Override
     public void onPreparing() {
-
+        mControllerView.showLoadingView();
+        mControllerView.hideErrorView();
     }
 
     @Override
-    public void onPrepared() {
-
+    public void onPrepared(int duration) {
+        mControllerView.setDuration(duration);
     }
 
     @Override
-    public void onStart(long currentPosition, long duration) {
-
+    public void onStart(int currentPosition, int duration) {
     }
 
     @Override
-    public void onPlaying(long currentPosition, long duration) {
-
+    public void onPlaying(int currentPosition, int duration) {
+        mControllerView.hideLoadingView();
     }
 
     @Override
-    public void onPause(long currentPosition, long duration) {
-
+    public void onPause(int currentPosition, int duration) {
     }
 
     @Override
-    public void onStop(long currentPosition, long duration) {
-
+    public void onStop(int currentPosition, int duration) {
+        mControllerView.setMediaProgress(0);
+        mControllerView.setCurrentPosition(0);
     }
 
     @Override
     public void onBufferingStart() {
+        mControllerView.showLoadingView();
     }
 
     @Override
     public void onBufferingEnd() {
+        mControllerView.hideLoadingView();
     }
 
     @Override
     public void onBufferingUpdate(int progress) {
-
+        mControllerView.setBufferingProgress(progress);
     }
 
     @Override
-    public void onSeekStart(int seekMilliSeconds, long currentPosition, long duration) {
-
+    public void onSeekStart(int seekMilliSeconds, int seekProgress) {
+        mControllerView.setMediaProgress(seekProgress);
+        mControllerView.setCurrentPosition(seekMilliSeconds);
     }
 
     @Override
-    public void onSeekEnd(long currentPosition, long duration) {
-
+    public void onSeekEnd() {
     }
 
     @Override
     public void onError(int what, int extra) {
+        mControllerView.showErrorView();
+        mControllerView.hideLoadingView();
+        mControllerView.hideControllerView();
+        mControllerView.showBottomProgress();
     }
 
     @Override
@@ -104,7 +111,7 @@ public class DefaultVideoController implements IVideoController {
     }
 
     @Override
-    public void onRelease(long currentPosition, long duration) {
+    public void onRelease(int currentPosition, int duration) {
 
     }
 }

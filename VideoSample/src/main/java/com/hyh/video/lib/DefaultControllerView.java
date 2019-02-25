@@ -35,12 +35,12 @@ public class DefaultControllerView implements IControllerView {
     }
 
     @Override
-    public void setCurrentPosition(long currentPosition) {
+    public void setCurrentPosition(int currentPosition) {
 
     }
 
     @Override
-    public void setDuration(long duration) {
+    public void setDuration(int duration) {
 
     }
 
@@ -111,6 +111,26 @@ public class DefaultControllerView implements IControllerView {
 
     @Override
     public void onFullScreenClose() {
+
+    }
+
+    @Override
+    public void showLoadingView() {
+
+    }
+
+    @Override
+    public void hideLoadingView() {
+
+    }
+
+    @Override
+    public void showErrorView() {
+
+    }
+
+    @Override
+    public void hideErrorView() {
 
     }
 }

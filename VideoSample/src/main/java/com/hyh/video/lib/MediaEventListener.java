@@ -10,15 +10,15 @@ public interface MediaEventListener {
 
     void onPreparing();
 
-    void onPrepared();
+    void onPrepared(int duration);
 
-    void onStart(long currentPosition, long duration);
+    void onStart(int currentPosition, int duration);
 
-    void onPlaying(long currentPosition, long duration);
+    void onPlaying(int currentPosition, int duration);
 
-    void onPause(long currentPosition, long duration);
+    void onPause(int currentPosition, int duration);
 
-    void onStop(long currentPosition, long duration);
+    void onStop(int currentPosition, int duration);
 
     void onBufferingStart();
 
@@ -26,9 +26,9 @@ public interface MediaEventListener {
 
     void onBufferingUpdate(int progress);
 
-    void onSeekStart(int seekMilliSeconds, long currentPosition, long duration);
+    void onSeekStart(int seekMilliSeconds, int seekProgress);
 
-    void onSeekEnd(long currentPosition, long duration);
+    void onSeekEnd();
 
     void onError(int what, int extra);
 
@@ -36,6 +36,6 @@ public interface MediaEventListener {
 
     void onCompletion();
 
-    void onRelease(long currentPosition, long duration);
+    void onRelease(int currentPosition, int duration);
 
 }

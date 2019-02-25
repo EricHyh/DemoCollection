@@ -18,9 +18,9 @@ public interface IControllerView {
 
     void setBufferingProgress(int progress);
 
-    void setCurrentPosition(long currentPosition);
+    void setCurrentPosition(int currentPosition);
 
-    void setDuration(long duration);
+    void setDuration(int duration);
 
     void setStartButtonStartStyle();
 
@@ -50,4 +50,15 @@ public interface IControllerView {
 
     void onFullScreenClose();
 
+    void showLoadingView();
+
+    void hideLoadingView();
+
+    void showErrorView();
+
+    void hideErrorView();
+
+    void showMobileDataHint();
+
+    void hideMobileDataHint();
 }

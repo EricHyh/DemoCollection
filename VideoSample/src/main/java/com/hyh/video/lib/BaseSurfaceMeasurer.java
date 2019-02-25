@@ -20,6 +20,11 @@ class BaseSurfaceMeasurer implements ISurfaceMeasurer {
         this.mSurfaceView = surfaceView;
     }
 
+    @Override
+    public void setScaleType(HappyVideo.ScaleType scaleType) {
+
+    }
+
     //1.填充FIT_XY
     //2.居中裁剪：
     @Override

@@ -28,6 +28,8 @@ public interface IMediaPlayer {
 
     void reStart();
 
+    void retry();
+
     void pause();
 
     void stop();

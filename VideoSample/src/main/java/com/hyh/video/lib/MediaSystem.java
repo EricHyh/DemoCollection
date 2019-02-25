@@ -41,6 +41,8 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
 
     private int mPendingCommand;
 
+    private int mProgressWhenError;
+
     private Integer mPendingSeekMilliSeconds;
 
     private Integer mPendingSeekProgress;
@@ -57,6 +59,7 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
         if (init) {
             this.mDataSource = source;
             this.mCurrentState = State.INITIALIZED;
+
         }
         return init;
     }
@@ -184,6 +187,20 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
     }
 
     @Override
+    public void retry() {
+        if (mCurrentState == State.ERROR) {
+            mMediaPlayer.reset();
+            if (initMediaPlayer(mDataSource)) {
+                mMediaPlayer.prepareAsync();
+                postPreparing();
+                mPendingCommand = PENDING_COMMAND_START;
+            } else {
+                postError(0, 0);
+            }
+        }
+    }
+
+    @Override
     public void pause() {
         stopObserveProgress();
         if (mCurrentState == State.PAUSED) return;
@@ -228,8 +245,12 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
                 || mCurrentState == State.STARTED
                 || mCurrentState == State.PAUSED
                 || mCurrentState == State.COMPLETED) {
-            mMediaPlayer.seekTo(milliSeconds);
-            postSeekStart(milliSeconds);
+            int duration = getDuration();
+            if (duration > 0) {
+                int progress = Math.round(milliSeconds * 1.0f / duration * 100);
+                mMediaPlayer.seekTo(milliSeconds);
+                postSeekStart(milliSeconds, progress);
+            }
         } else {
             mPendingSeekMilliSeconds = milliSeconds;
             mPendingSeekProgress = null;
@@ -247,7 +268,7 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
             if (duration > 0) {
                 int milliSeconds = Math.round(duration * 1.0f * progress / 100);
                 mMediaPlayer.seekTo(milliSeconds);
-                postSeekStart(milliSeconds);
+                postSeekStart(milliSeconds, progress);
                 seekSuccess = true;
             }
         }
@@ -355,8 +376,12 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
 
     private void handlePendingSeek() {
         if (mPendingSeekMilliSeconds != null) {
-            mMediaPlayer.seekTo(mPendingSeekMilliSeconds);
-            postSeekStart(mPendingSeekMilliSeconds);
+            int duration = getDuration();
+            if (duration > 0) {
+                int progress = Math.round(mPendingSeekMilliSeconds * 1.0f / duration * 100);
+                mMediaPlayer.seekTo(mPendingSeekMilliSeconds);
+                postSeekStart(mPendingSeekMilliSeconds, progress);
+            }
             mPendingSeekMilliSeconds = null;
         }
         if (mPendingSeekProgress != null) {
@@ -364,7 +389,7 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
             if (duration > 0) {
                 int milliSeconds = Math.round(duration * 1.0f * mPendingSeekProgress / 100);
                 mMediaPlayer.seekTo(milliSeconds);
-                postSeekStart(milliSeconds);
+                postSeekStart(milliSeconds, mPendingSeekProgress);
             }
             mPendingSeekProgress = null;
         }
@@ -377,7 +402,7 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
 
     @Override
     public void onSeekComplete(MediaPlayer mediaPlayer) {
-        postSeekComplete();
+        postSeekEnd();
     }
 
     @Override
@@ -436,7 +461,7 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
     private void postPrepared() {
         mCurrentState = State.PREPARED;
         if (mMediaEventListener != null) {
-            mMediaEventListener.onPrepared();
+            mMediaEventListener.onPrepared(getDuration());
         }
     }
 
@@ -467,15 +492,15 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
         }
     }
 
-    private void postSeekStart(int seekMilliSeconds) {
+    private void postSeekStart(int seekMilliSeconds, int progress) {
         if (mMediaEventListener != null) {
-            mMediaEventListener.onSeekStart(seekMilliSeconds, getCurrentPosition(), getDuration());
+            mMediaEventListener.onSeekStart(seekMilliSeconds, progress);
         }
     }
 
-    private void postSeekComplete() {
+    private void postSeekEnd() {
         if (mMediaEventListener != null) {
-            mMediaEventListener.onSeekEnd(getCurrentPosition(), getDuration());
+            mMediaEventListener.onSeekEnd();
         }
     }
 
@@ -484,7 +509,7 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
         int currentPosition = getCurrentPosition();
         int progress = Math.round(currentPosition * 1.0f / duration * 100);
         if (mProgressListener != null) {
-            mProgressListener.onMediaProgress(progress, currentPosition, duration);
+            mProgressListener.onMediaProgress(progress, currentPosition);
         }
     }
 
