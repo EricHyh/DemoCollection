@@ -133,4 +133,14 @@ public class DefaultControllerView implements IControllerView {
     public void hideErrorView() {
 
     }
+
+    @Override
+    public void showMobileDataHint() {
+
+    }
+
+    @Override
+    public void hideMobileDataHint() {
+
+    }
 }
