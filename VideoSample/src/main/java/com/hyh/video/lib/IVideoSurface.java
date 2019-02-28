@@ -1,6 +1,7 @@
 package com.hyh.video.lib;
 
 import android.view.Surface;
+import android.view.View;
 
 /**
  * @author Administrator
@@ -8,6 +9,8 @@ import android.view.Surface;
  * @data 2019/2/23
  */
 public interface IVideoSurface {
+
+    View getView();
 
     void setSurfaceListener(SurfaceListener listener);
 

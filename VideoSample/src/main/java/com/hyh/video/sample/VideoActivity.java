@@ -46,26 +46,37 @@ public class VideoActivity extends Activity implements SeekBar.OnSeekBarChangeLi
         mTextureView = findViewById(R.id.TextureView);
         mMediaSystem = new MediaSystem();
         mMediaSystem.setDataSource(mVideoUrl1);
+        mMediaSystem.setVolume(0, 0);
         mTextureView.setSurfaceTextureListener(new TextureView.SurfaceTextureListener() {
             @Override
             public void onSurfaceTextureAvailable(SurfaceTexture surface, int width, int height) {
                 //mTextureView.setSurfaceTexture(surface);
+
                 mMediaSystem.setSurface(new Surface(surface));
+                /*if (mSurfaceTexture == null) {
+                    mSurfaceTexture = surface;
+                    mMediaSystem.setSurface(new Surface(surface));
+                } else {
+                    mTextureView.setSurfaceTexture(mSurfaceTexture);
+                }*/
+
+                Log.d(TAG, "onSurfaceTextureAvailable: surface = " + surface);
             }
 
             @Override
             public void onSurfaceTextureSizeChanged(SurfaceTexture surface, int width, int height) {
-
+                Log.d(TAG, "onSurfaceTextureSizeChanged: ");
             }
 
             @Override
             public boolean onSurfaceTextureDestroyed(SurfaceTexture surface) {
+                Log.d(TAG, "onSurfaceTextureDestroyed: ");
                 return false;
             }
 
             @Override
             public void onSurfaceTextureUpdated(SurfaceTexture surface) {
-
+                Log.d(TAG, "onSurfaceTextureUpdated: ");
             }
         });
 

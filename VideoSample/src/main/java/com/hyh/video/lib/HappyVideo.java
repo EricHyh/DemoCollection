@@ -19,6 +19,7 @@ import java.util.List;
 
 public class HappyVideo extends FrameLayout {
 
+
     private final IMediaPlayer mMediaPlayer = new MediaSystem();
     private final IVideoSurface.SurfaceListener mSurfaceListener = new InnerSurfaceListener();
     private final MediaEventListener mMediaEventListener = new InnerMediaEventListener();
@@ -48,7 +49,12 @@ public class HappyVideo extends FrameLayout {
         this.mVideoSurface = VideoSurfaceFactory.create(context);
         this.mVideoController = new DefaultVideoController(context);
 
+        addView(mVideoSurface.getView());
+        addView(mVideoPreview.getView());
+        addView(mVideoController.getView());
+
         mVideoSurface.setSurfaceListener(mSurfaceListener);
+        mVideoController.setUp(this);
     }
 
     public void setVideoBackground(IVideoBackground background) {
@@ -70,6 +76,7 @@ public class HappyVideo extends FrameLayout {
         this.mVideoController = controller;
         if (mVideoController != null) {
             addView(mVideoController.getView());
+            mVideoController.setUp(this);
         }
     }
 
@@ -97,6 +104,12 @@ public class HappyVideo extends FrameLayout {
         return mMediaPlayer.getDataSource();
     }
 
+    public void setTitle(CharSequence text) {
+        if (mVideoController != null) {
+            mVideoController.setTitle(text);
+        }
+    }
+
     public void setLooping(boolean looping) {
         mMediaPlayer.setLooping(looping);
     }
@@ -106,18 +119,22 @@ public class HappyVideo extends FrameLayout {
     }
 
     public void prepare(boolean autoStart) {
+        if (mVideoController != null && mVideoController.interceptPrepare(autoStart)) return;
         mMediaPlayer.prepare(autoStart);
     }
 
     public void start() {
+        if (mVideoController != null && mVideoController.interceptStart()) return;
         mMediaPlayer.start();
     }
 
     public void reStart() {
+        if (mVideoController != null && mVideoController.interceptReStart()) return;
         mMediaPlayer.reStart();
     }
 
     public void retry() {
+        if (mVideoController != null && mVideoController.interceptRetry()) return;
         mMediaPlayer.retry();
     }
 
@@ -189,6 +206,10 @@ public class HappyVideo extends FrameLayout {
             if (mSurface == surface) return;
             this.mSurface = surface;
             mMediaPlayer.setSurface(mSurface);
+
+            if (mVideoController != null) {
+                mVideoController.onSurfaceCreate();
+            }
         }
 
         @Override
@@ -197,6 +218,9 @@ public class HappyVideo extends FrameLayout {
 
         @Override
         public void onSurfaceDestroyed(Surface surface) {
+            if (mVideoController != null) {
+                mVideoController.onSurfaceDestroyed();
+            }
         }
     }
 

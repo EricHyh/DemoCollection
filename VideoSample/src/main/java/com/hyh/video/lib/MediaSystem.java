@@ -41,8 +41,6 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
 
     private int mPendingCommand;
 
-    private int mProgressWhenError;
-
     private Integer mPendingSeekMilliSeconds;
 
     private Integer mPendingSeekProgress;

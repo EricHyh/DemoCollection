@@ -36,6 +36,8 @@ public interface IControllerView {
 
     void setFullScreenToggleClickListener(View.OnClickListener listener);
 
+    void setMobileDataConfirmClickListener(View.OnClickListener listener);
+
     void setBackClickListener(View.OnClickListener listener);
 
     void showControllerView();
@@ -57,6 +59,10 @@ public interface IControllerView {
     void showErrorView();
 
     void hideErrorView();
+
+    void showEndView();
+
+    void hideEndView();
 
     void showMobileDataHint();
 

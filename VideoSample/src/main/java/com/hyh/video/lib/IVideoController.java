@@ -8,12 +8,24 @@ import android.view.View;
  * @data 2019/1/28
  */
 
-public interface IVideoController extends MediaEventListener, MediaProgressListener {
+public interface IVideoController {
 
     View getView();
 
-    void setUp(IMediaPlayer mediaPlayer);
+    void setUp(HappyVideo happyVideo);
 
     void setTitle(CharSequence text);
+
+    boolean interceptPrepare(boolean autoStart);
+
+    boolean interceptStart();
+
+    boolean interceptReStart();
+
+    boolean interceptRetry();
+
+    void onSurfaceCreate();
+
+    void onSurfaceDestroyed();
 
 }

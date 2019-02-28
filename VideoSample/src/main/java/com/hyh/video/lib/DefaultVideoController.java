@@ -10,11 +10,20 @@ import android.view.View;
  */
 public class DefaultVideoController implements IVideoController {
 
+
+    private static boolean sIsAllowPlayWhenMobileData;
+
+    private final MediaEventListener mControllerMediaEventListener = new ControllerMediaEventListener();
+    private final MediaProgressListener mControllerMediaProgressListener = new ControllerMediaProgressListener();
     private final IControllerView mControllerView;
-    private IMediaPlayer mMediaPlayer;
+    private HappyVideo mHappyVideo;
 
     public DefaultVideoController(Context context) {
         this.mControllerView = new DefaultControllerView(context);
+    }
+
+    public DefaultVideoController(IControllerView controllerView) {
+        this.mControllerView = controllerView;
     }
 
     @Override
@@ -23,9 +32,10 @@ public class DefaultVideoController implements IVideoController {
     }
 
     @Override
-    public void setUp(IMediaPlayer mediaPlayer) {
-        this.mMediaPlayer = mediaPlayer;
-
+    public void setUp(HappyVideo happyVideo) {
+        this.mHappyVideo = happyVideo;
+        mHappyVideo.addMediaEventListener(mControllerMediaEventListener);
+        mHappyVideo.addMediaProgressListener(mControllerMediaProgressListener);
     }
 
     @Override
@@ -34,84 +44,120 @@ public class DefaultVideoController implements IVideoController {
     }
 
     @Override
-    public void onMediaProgress(int progress, int currentPosition) {
-        mControllerView.setMediaProgress(progress);
-        mControllerView.setCurrentPosition(currentPosition);
+    public boolean interceptPrepare(boolean autoStart) {
+
+        return false;
     }
 
     @Override
-    public void onPreparing() {
-        mControllerView.showLoadingView();
-        mControllerView.hideErrorView();
+    public boolean interceptStart() {
+        return false;
     }
 
     @Override
-    public void onPrepared(int duration) {
-        mControllerView.setDuration(duration);
+    public boolean interceptReStart() {
+        return false;
     }
 
     @Override
-    public void onStart(int currentPosition, int duration) {
+    public boolean interceptRetry() {
+        return false;
     }
 
     @Override
-    public void onPlaying(int currentPosition, int duration) {
-        mControllerView.hideLoadingView();
+    public void onSurfaceCreate() {
     }
 
     @Override
-    public void onPause(int currentPosition, int duration) {
+    public void onSurfaceDestroyed() {
     }
 
-    @Override
-    public void onStop(int currentPosition, int duration) {
-        mControllerView.setMediaProgress(0);
-        mControllerView.setCurrentPosition(0);
+    private class ControllerMediaEventListener extends SimpleMediaEventListener {
+
+        @Override
+        public void onPreparing() {
+            mControllerView.showLoadingView();
+            mControllerView.hideErrorView();
+        }
+
+        @Override
+        public void onPrepared(int duration) {
+            mControllerView.setDuration(duration);
+        }
+
+        @Override
+        public void onStart(int currentPosition, int duration) {
+        }
+
+        @Override
+        public void onPlaying(int currentPosition, int duration) {
+            mControllerView.hideLoadingView();
+        }
+
+        @Override
+        public void onPause(int currentPosition, int duration) {
+        }
+
+        @Override
+        public void onStop(int currentPosition, int duration) {
+            mControllerView.setMediaProgress(0);
+            mControllerView.setCurrentPosition(0);
+        }
+
+        @Override
+        public void onBufferingStart() {
+            mControllerView.showLoadingView();
+        }
+
+        @Override
+        public void onBufferingEnd() {
+            mControllerView.hideLoadingView();
+        }
+
+        @Override
+        public void onBufferingUpdate(int progress) {
+            mControllerView.setBufferingProgress(progress);
+        }
+
+        @Override
+        public void onSeekStart(int seekMilliSeconds, int seekProgress) {
+            mControllerView.setMediaProgress(seekProgress);
+            mControllerView.setCurrentPosition(seekMilliSeconds);
+        }
+
+        @Override
+        public void onSeekEnd() {
+        }
+
+        @Override
+        public void onError(int what, int extra) {
+            mControllerView.showErrorView();
+            mControllerView.hideLoadingView();
+            mControllerView.hideControllerView();
+            mControllerView.showBottomProgress();
+        }
+
+        @Override
+        public void onCompletion() {
+            mControllerView.showEndView();
+        }
     }
 
-    @Override
-    public void onBufferingStart() {
-        mControllerView.showLoadingView();
+    private class ControllerMediaProgressListener implements MediaProgressListener {
+
+        @Override
+        public void onMediaProgress(int progress, int currentPosition) {
+            mControllerView.setMediaProgress(progress);
+            mControllerView.setCurrentPosition(currentPosition);
+        }
     }
 
-    @Override
-    public void onBufferingEnd() {
-        mControllerView.hideLoadingView();
-    }
 
-    @Override
-    public void onBufferingUpdate(int progress) {
-        mControllerView.setBufferingProgress(progress);
-    }
+    private class ControllerClickListener implements View.OnClickListener{
 
-    @Override
-    public void onSeekStart(int seekMilliSeconds, int seekProgress) {
-        mControllerView.setMediaProgress(seekProgress);
-        mControllerView.setCurrentPosition(seekMilliSeconds);
-    }
+        @Override
+        public void onClick(View v) {
 
-    @Override
-    public void onSeekEnd() {
-    }
-
-    @Override
-    public void onError(int what, int extra) {
-        mControllerView.showErrorView();
-        mControllerView.hideLoadingView();
-        mControllerView.hideControllerView();
-        mControllerView.showBottomProgress();
-    }
-
-    @Override
-    public void onVideoSizeChanged(int width, int height) {
-    }
-
-    @Override
-    public void onCompletion() {
-    }
-
-    @Override
-    public void onRelease(int currentPosition, int duration) {
-
+        }
     }
 }
