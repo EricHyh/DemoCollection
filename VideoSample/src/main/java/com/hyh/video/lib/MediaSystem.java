@@ -7,7 +7,6 @@ import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
-import android.text.TextUtils;
 import android.util.Log;
 import android.view.Surface;
 
@@ -19,7 +18,6 @@ import java.lang.ref.WeakReference;
  */
 public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener, MediaPlayer.OnBufferingUpdateListener, MediaPlayer.OnSeekCompleteListener, MediaPlayer.OnErrorListener, MediaPlayer.OnInfoListener, MediaPlayer.OnVideoSizeChangedListener, MediaPlayer.OnCompletionListener {
 
-    private static final String TAG = "MediaSystem";
     private static final int PENDING_COMMAND_NONE = 0;
     private static final int PENDING_COMMAND_START = 1;
     private static final int PENDING_COMMAND_PAUSE = 2;
@@ -31,7 +29,7 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
 
     private int mCurrentState = State.IDLE;
 
-    private String mDataSource;
+    private DataSource mDataSource;
 
     private MediaEventListener mMediaEventListener;
 
@@ -46,11 +44,12 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
     private Integer mPendingSeekProgress;
 
     @Override
-    public boolean setDataSource(String source) {
+    public boolean setDataSource(DataSource source) {
         if (mCurrentState == State.END) return false;
-        if (TextUtils.equals(mDataSource, source)) return false;
+        if (mDataSource != null && mDataSource.equals(source)) return false;
+        if (mDataSource == null && source == null) return false;
 
-        if (!TextUtils.isEmpty(mDataSource)) {
+        if (mDataSource != null) {
             mMediaPlayer.reset();
         }
         boolean init = initMediaPlayer(source);
@@ -78,7 +77,7 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
     }
 
     @Override
-    public String getDataSource() {
+    public DataSource getDataSource() {
         return mDataSource;
     }
 
@@ -90,6 +89,11 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
     @Override
     public void setLooping(boolean looping) {
         mMediaPlayer.setLooping(looping);
+    }
+
+    @Override
+    public int getMediaState() {
+        return mCurrentState;
     }
 
     private MediaPlayer newMediaPlayer() {
@@ -106,9 +110,10 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
         return mediaPlayer;
     }
 
-    private boolean initMediaPlayer(String source) {
+    private boolean initMediaPlayer(DataSource source) {
         try {
-            mMediaPlayer.setDataSource(source);
+            String path = source.getPath();
+            mMediaPlayer.setDataSource(path);
             return true;
         } catch (Exception e) {
             return false;
@@ -161,7 +166,7 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
     }
 
     @Override
-    public void reStart() {
+    public void restart() {
         if (mCurrentState == State.PREPARED
                 || mCurrentState == State.STARTED
                 || mCurrentState == State.PAUSED
@@ -225,6 +230,11 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
         } else {
             mPendingCommand = PENDING_COMMAND_STOP;
         }
+    }
+
+    @Override
+    public boolean isStart() {
+        return !mIsReleased && (isPlaying() || mPendingCommand == PENDING_COMMAND_START);
     }
 
     @Override
@@ -586,30 +596,5 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
         void stop() {
             mIsStart = false;
         }
-    }
-
-
-    private static class State {
-
-        private static final int IDLE = 0;
-
-        private static final int INITIALIZED = 1;
-
-        private static final int PREPARING = 2;
-
-        private static final int PREPARED = 3;
-
-        private static final int STARTED = 4;
-
-        private static final int PAUSED = 5;
-
-        private static final int STOPPED = 6;
-
-        private static final int COMPLETED = 7;
-
-        private static final int ERROR = 8;
-
-        private static final int END = 9;
-
     }
 }

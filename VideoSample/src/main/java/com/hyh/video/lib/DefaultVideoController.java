@@ -2,6 +2,7 @@ package com.hyh.video.lib;
 
 import android.content.Context;
 import android.view.View;
+import android.widget.Toast;
 
 /**
  * @author Administrator
@@ -11,18 +12,37 @@ import android.view.View;
 public class DefaultVideoController implements IVideoController {
 
 
-    private static boolean sIsAllowPlayWhenMobileData;
+    //
+    private static final int INTERCEPT_NONE = 0;
+    private static final int INTERCEPT_PREPARE = 1;
+    private static final int INTERCEPT_START = 2;
+    private static final int INTERCEPT_RESTART = 3;
+    private static final int INTERCEPT_RETRY = 4;
+    //
+
+    //
+    private static final int VIEW_STATE_CONTROLLER = 1;
+
+    private static boolean sAllowPlayWhenMobileData;
 
     private final MediaEventListener mControllerMediaEventListener = new ControllerMediaEventListener();
     private final MediaProgressListener mControllerMediaProgressListener = new ControllerMediaProgressListener();
+    private final Context mContext;
     private final IControllerView mControllerView;
     private HappyVideo mHappyVideo;
 
+    private int mCurInterceptCommand = INTERCEPT_NONE;
+    private boolean mInterceptPrepareAutoStart;
+
+
     public DefaultVideoController(Context context) {
+        this.mContext = context;
         this.mControllerView = new DefaultControllerView(context);
+
     }
 
-    public DefaultVideoController(IControllerView controllerView) {
+    public DefaultVideoController(Context context, IControllerView controllerView) {
+        this.mContext = context;
         this.mControllerView = controllerView;
     }
 
@@ -32,35 +52,75 @@ public class DefaultVideoController implements IVideoController {
     }
 
     @Override
-    public void setUp(HappyVideo happyVideo) {
+    public void setUp(HappyVideo happyVideo, CharSequence title) {
         this.mHappyVideo = happyVideo;
         mHappyVideo.addMediaEventListener(mControllerMediaEventListener);
         mHappyVideo.addMediaProgressListener(mControllerMediaProgressListener);
-    }
 
-    @Override
-    public void setTitle(CharSequence text) {
-        mControllerView.setTitle(text);
+        mControllerView.setTitle(title);
+        mControllerView.setInitialViewClickListener(new ControllerClickListener(ControllerClickListener.FLAG_CONTROLLER_VIEW));
+        mControllerView.setControllerViewClickListener(new ControllerClickListener(ControllerClickListener.FLAG_CONTROLLER_VIEW));
+        mControllerView.setStartIconClickListener(new ControllerClickListener(ControllerClickListener.FLAG_START_ICON));
+        mControllerView.setReplayIconClickListener(new ControllerClickListener(ControllerClickListener.FLAG_REPLAY_ICON));
+        mControllerView.setRetryIconClickListener(new ControllerClickListener(ControllerClickListener.FLAG_RETRY_ICON));
+        mControllerView.setFullScreenToggleClickListener(new ControllerClickListener(ControllerClickListener.FLAG_FULLSCREEN_TOGGLE));
+        mControllerView.setMobileDataConfirmIconClickListener(new ControllerClickListener(ControllerClickListener.FLAG_MOBILE_DATA_CONFIRM));
+        mControllerView.setBackIconClickListener(new ControllerClickListener(ControllerClickListener.FLAG_BACK_ICON));
+
+
+        mControllerView.showInitialView(happyVideo.getDataSource());
     }
 
     @Override
     public boolean interceptPrepare(boolean autoStart) {
-
+        if (!VideoUtils.isNetEnv(mContext)) {
+            Toast.makeText(mContext, "网络不可用", Toast.LENGTH_SHORT).show();
+            return true;
+        }
+        if (!sAllowPlayWhenMobileData && !VideoUtils.isWifiEnv(mContext)) {
+            this.mInterceptPrepareAutoStart = autoStart;
+            mControllerView.showMobileDataConfirm();
+            return true;
+        }
         return false;
     }
 
     @Override
     public boolean interceptStart() {
+        if (!VideoUtils.isNetEnv(mContext)) {
+            Toast.makeText(mContext, "网络不可用", Toast.LENGTH_SHORT).show();
+            return true;
+        }
+        if (!sAllowPlayWhenMobileData && !VideoUtils.isWifiEnv(mContext)) {
+            mControllerView.showMobileDataConfirm();
+            return true;
+        }
         return false;
     }
 
     @Override
-    public boolean interceptReStart() {
+    public boolean interceptRestart() {
+        if (!VideoUtils.isNetEnv(mContext)) {
+            Toast.makeText(mContext, "网络不可用", Toast.LENGTH_SHORT).show();
+            return true;
+        }
+        if (!sAllowPlayWhenMobileData && !VideoUtils.isWifiEnv(mContext)) {
+            mControllerView.showMobileDataConfirm();
+            return true;
+        }
         return false;
     }
 
     @Override
     public boolean interceptRetry() {
+        if (!VideoUtils.isNetEnv(mContext)) {
+            Toast.makeText(mContext, "网络不可用", Toast.LENGTH_SHORT).show();
+            return true;
+        }
+        if (!sAllowPlayWhenMobileData && !VideoUtils.isWifiEnv(mContext)) {
+            mControllerView.showMobileDataConfirm();
+            return true;
+        }
         return false;
     }
 
@@ -77,7 +137,6 @@ public class DefaultVideoController implements IVideoController {
         @Override
         public void onPreparing() {
             mControllerView.showLoadingView();
-            mControllerView.hideErrorView();
         }
 
         @Override
@@ -134,7 +193,6 @@ public class DefaultVideoController implements IVideoController {
             mControllerView.showErrorView();
             mControllerView.hideLoadingView();
             mControllerView.hideControllerView();
-            mControllerView.showBottomProgress();
         }
 
         @Override
@@ -153,11 +211,73 @@ public class DefaultVideoController implements IVideoController {
     }
 
 
-    private class ControllerClickListener implements View.OnClickListener{
+    private class ControllerClickListener implements View.OnClickListener {
+
+        private static final int FLAG_INITIAL_VIEW = 1;
+        private static final int FLAG_CONTROLLER_VIEW = 2;
+        private static final int FLAG_START_ICON = 3;
+        private static final int FLAG_REPLAY_ICON = 4;
+        private static final int FLAG_RETRY_ICON = 5;
+        private static final int FLAG_FULLSCREEN_TOGGLE = 6;
+        private static final int FLAG_MOBILE_DATA_CONFIRM = 7;
+        private static final int FLAG_BACK_ICON = 8;
+
+        private final int flag;
+
+        ControllerClickListener(int flag) {
+            this.flag = flag;
+        }
 
         @Override
         public void onClick(View v) {
+            switch (flag) {
+                case FLAG_INITIAL_VIEW: {
+                    mHappyVideo.start();
+                    break;
+                }
+                case FLAG_CONTROLLER_VIEW: {
 
+                    break;
+                }
+                case FLAG_START_ICON: {
+
+                    break;
+                }
+                case FLAG_REPLAY_ICON: {
+                    break;
+                }
+                case FLAG_RETRY_ICON: {
+                    break;
+                }
+                case FLAG_FULLSCREEN_TOGGLE: {
+                    break;
+                }
+                case FLAG_MOBILE_DATA_CONFIRM: {
+                    sAllowPlayWhenMobileData = true;
+                    switch (mCurInterceptCommand) {
+                        case INTERCEPT_PREPARE: {
+                            mHappyVideo.prepare(mInterceptPrepareAutoStart);
+                            break;
+                        }
+                        case INTERCEPT_START: {
+                            mHappyVideo.start();
+                            break;
+                        }
+                        case INTERCEPT_RESTART: {
+                            mHappyVideo.restart();
+                            break;
+                        }
+                        case INTERCEPT_RETRY: {
+                            mHappyVideo.retry();
+                            break;
+                        }
+                    }
+                    break;
+                }
+                case FLAG_BACK_ICON: {
+                    break;
+                }
+            }
         }
     }
 }

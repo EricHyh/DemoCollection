@@ -19,14 +19,4 @@ public class DefaultVideoPreview implements IVideoPreview {
     public void setPreviewVisibility(int visibility) {
 
     }
-
-    @Override
-    public void onViewAdded() {
-
-    }
-
-    @Override
-    public void onViewRemoved() {
-
-    }
 }

@@ -106,7 +106,7 @@ public class VideoActivity extends Activity implements SeekBar.OnSeekBarChangeLi
     }
 
     public void replay(View view) {
-        mMediaSystem.reStart();
+        mMediaSystem.restart();
     }
 
     public void changeUrl(View view) {

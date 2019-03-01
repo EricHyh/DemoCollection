@@ -12,8 +12,4 @@ public interface IVideoPreview {
 
     void setPreviewVisibility(int visibility);
 
-    void onViewAdded();
-
-    void onViewRemoved();
-
 }

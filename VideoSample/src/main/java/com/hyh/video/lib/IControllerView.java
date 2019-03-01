@@ -12,7 +12,7 @@ public interface IControllerView {
 
     View getView();
 
-    void setTitle(CharSequence text);
+    void setTitle(CharSequence title);
 
     void setMediaProgress(int progress);
 
@@ -22,35 +22,31 @@ public interface IControllerView {
 
     void setDuration(int duration);
 
-    void setStartButtonStartStyle();
+    void setStarIconStartStyle();
 
-    void setStartButtonPauseStyle();
+    void setStartIconPauseStyle();
+
+    void setInitialViewClickListener(View.OnClickListener listener);
 
     void setControllerViewClickListener(View.OnClickListener listener);
 
-    void setStartButtonClickListener(View.OnClickListener listener);
+    void setStartIconClickListener(View.OnClickListener listener);
 
-    void setReplayButtonClickListener(View.OnClickListener listener);
+    void setReplayIconClickListener(View.OnClickListener listener);
 
-    void setRetryButtonClickListener(View.OnClickListener listener);
+    void setRetryIconClickListener(View.OnClickListener listener);
 
     void setFullScreenToggleClickListener(View.OnClickListener listener);
 
-    void setMobileDataConfirmClickListener(View.OnClickListener listener);
+    void setMobileDataConfirmIconClickListener(View.OnClickListener listener);
 
-    void setBackClickListener(View.OnClickListener listener);
+    void setBackIconClickListener(View.OnClickListener listener);
+
+    void showInitialView(DataSource source);
 
     void showControllerView();
 
     void hideControllerView();
-
-    void showBottomProgress();
-
-    void hideBottomProgress();
-
-    void onFullScreenOpen();
-
-    void onFullScreenClose();
 
     void showLoadingView();
 
@@ -58,13 +54,12 @@ public interface IControllerView {
 
     void showErrorView();
 
-    void hideErrorView();
-
     void showEndView();
 
-    void hideEndView();
+    void showMobileDataConfirm();
 
-    void showMobileDataHint();
+    void onFullScreenOpen();
 
-    void hideMobileDataHint();
+    void onFullScreenClose();
+
 }

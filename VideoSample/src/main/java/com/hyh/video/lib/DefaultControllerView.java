@@ -20,7 +20,7 @@ public class DefaultControllerView implements IControllerView {
     }
 
     @Override
-    public void setTitle(CharSequence text) {
+    public void setTitle(CharSequence title) {
 
     }
 
@@ -45,12 +45,17 @@ public class DefaultControllerView implements IControllerView {
     }
 
     @Override
-    public void setStartButtonStartStyle() {
+    public void setStarIconStartStyle() {
 
     }
 
     @Override
-    public void setStartButtonPauseStyle() {
+    public void setStartIconPauseStyle() {
+
+    }
+
+    @Override
+    public void setInitialViewClickListener(View.OnClickListener listener) {
 
     }
 
@@ -60,17 +65,17 @@ public class DefaultControllerView implements IControllerView {
     }
 
     @Override
-    public void setStartButtonClickListener(View.OnClickListener listener) {
+    public void setStartIconClickListener(View.OnClickListener listener) {
 
     }
 
     @Override
-    public void setReplayButtonClickListener(View.OnClickListener listener) {
+    public void setReplayIconClickListener(View.OnClickListener listener) {
 
     }
 
     @Override
-    public void setRetryButtonClickListener(View.OnClickListener listener) {
+    public void setRetryIconClickListener(View.OnClickListener listener) {
 
     }
 
@@ -80,7 +85,17 @@ public class DefaultControllerView implements IControllerView {
     }
 
     @Override
-    public void setBackClickListener(View.OnClickListener listener) {
+    public void setMobileDataConfirmIconClickListener(View.OnClickListener listener) {
+
+    }
+
+    @Override
+    public void setBackIconClickListener(View.OnClickListener listener) {
+
+    }
+
+    @Override
+    public void showInitialView(DataSource source) {
 
     }
 
@@ -91,26 +106,6 @@ public class DefaultControllerView implements IControllerView {
 
     @Override
     public void hideControllerView() {
-
-    }
-
-    @Override
-    public void showBottomProgress() {
-
-    }
-
-    @Override
-    public void hideBottomProgress() {
-
-    }
-
-    @Override
-    public void onFullScreenOpen() {
-
-    }
-
-    @Override
-    public void onFullScreenClose() {
 
     }
 
@@ -130,17 +125,22 @@ public class DefaultControllerView implements IControllerView {
     }
 
     @Override
-    public void hideErrorView() {
+    public void showEndView() {
 
     }
 
     @Override
-    public void showMobileDataHint() {
+    public void showMobileDataConfirm() {
 
     }
 
     @Override
-    public void hideMobileDataHint() {
+    public void onFullScreenOpen() {
+
+    }
+
+    @Override
+    public void onFullScreenClose() {
 
     }
 }

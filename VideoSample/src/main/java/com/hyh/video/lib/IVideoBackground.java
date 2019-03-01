@@ -12,8 +12,4 @@ public interface IVideoBackground {
 
     View getView();
 
-    void onViewAdded();
-
-    void onViewRemoved();
-
 }

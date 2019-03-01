@@ -10,29 +10,33 @@ import android.view.Surface;
 
 public interface IMediaPlayer {
 
-    boolean setDataSource(String source);
+    boolean setDataSource(DataSource source);
 
     void setMediaEventListener(MediaEventListener listener);
 
     void setMediaProgressListener(MediaProgressListener listener);
 
-    String getDataSource();
+    DataSource getDataSource();
 
     boolean isLooping();
 
     void setLooping(boolean looping);
 
+    int getMediaState();
+
     void prepare(boolean autoStart);
 
     void start();
 
-    void reStart();
+    void restart();
 
     void retry();
 
     void pause();
 
     void stop();
+
+    boolean isStart();
 
     boolean isPlaying();
 
@@ -54,4 +58,27 @@ public interface IMediaPlayer {
 
     void release();
 
+    class State {
+
+        public static final int IDLE = 0;
+
+        public static final int INITIALIZED = 1;
+
+        public static final int PREPARING = 2;
+
+        public static final int PREPARED = 3;
+
+        public static final int STARTED = 4;
+
+        public static final int PAUSED = 5;
+
+        public static final int STOPPED = 6;
+
+        public static final int COMPLETED = 7;
+
+        public static final int ERROR = 8;
+
+        public static final int END = 9;
+
+    }
 }

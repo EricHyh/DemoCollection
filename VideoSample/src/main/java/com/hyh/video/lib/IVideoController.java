@@ -12,15 +12,13 @@ public interface IVideoController {
 
     View getView();
 
-    void setUp(HappyVideo happyVideo);
-
-    void setTitle(CharSequence text);
+    void setUp(HappyVideo happyVideo, CharSequence title);
 
     boolean interceptPrepare(boolean autoStart);
 
     boolean interceptStart();
 
-    boolean interceptReStart();
+    boolean interceptRestart();
 
     boolean interceptRetry();
 
