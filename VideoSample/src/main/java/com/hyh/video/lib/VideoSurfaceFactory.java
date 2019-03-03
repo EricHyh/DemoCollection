@@ -11,6 +11,6 @@ import android.content.Context;
 public class VideoSurfaceFactory {
 
     public static IVideoSurface create(Context context) {
-        return new HappyTextureView(context);
+        return new TextureSurface(context);
     }
 }

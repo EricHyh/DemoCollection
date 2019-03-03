@@ -2,7 +2,6 @@ package com.hyh.video.lib;
 
 import android.content.Context;
 import android.graphics.SurfaceTexture;
-import android.util.Log;
 import android.view.Surface;
 import android.view.TextureView;
 import android.view.View;
@@ -13,14 +12,15 @@ import android.view.View;
  * @data 2019/2/23
  */
 
-public class HappyTextureView extends TextureView implements IVideoSurface {
-
-    private static final String TAG = "HappyTextureView";
+public class TextureSurface extends TextureView implements IVideoSurface {
 
     private final ISurfaceMeasurer mSurfaceMeasurer = SurfaceMeasurerFactory.create(this);
 
-    public HappyTextureView(Context context) {
+    private SurfaceListener mSurfaceListener;
+
+    public TextureSurface(Context context) {
         super(context);
+        setSurfaceTextureListener(new SurfaceListenerWrapper());
     }
 
     @Override
@@ -36,11 +36,7 @@ public class HappyTextureView extends TextureView implements IVideoSurface {
 
     @Override
     public void setSurfaceListener(SurfaceListener listener) {
-        if (listener == null) {
-            setSurfaceTextureListener(null);
-        } else {
-            setSurfaceTextureListener(new SurfaceListenerWrapper(listener));
-        }
+        this.mSurfaceListener = listener;
     }
 
     @Override
@@ -49,25 +45,19 @@ public class HappyTextureView extends TextureView implements IVideoSurface {
     }
 
     @Override
-    public void setSurfaceSize(int width, int height) {
-
+    public void setVideoSize(int width, int height) {
+        mSurfaceMeasurer.setVideoWidth(width, height);
     }
 
-    private static class SurfaceListenerWrapper implements SurfaceTextureListener {
 
-        private final SurfaceListener mSurfaceListener;
+    private class SurfaceListenerWrapper implements SurfaceTextureListener {
 
         private SurfaceTexture mSurfaceTexture;
 
         private Surface mSurface;
 
-        SurfaceListenerWrapper(SurfaceListener listener) {
-            this.mSurfaceListener = listener;
-        }
-
         @Override
         public void onSurfaceTextureAvailable(SurfaceTexture surface, int width, int height) {
-            Log.d(TAG, "onSurfaceTextureAvailable: surface = " + surface);
             this.mSurfaceTexture = surface;
             this.mSurface = new Surface(surface);
             mSurfaceListener.onSurfaceCreate(mSurface);
@@ -75,7 +65,6 @@ public class HappyTextureView extends TextureView implements IVideoSurface {
 
         @Override
         public void onSurfaceTextureSizeChanged(SurfaceTexture surface, int width, int height) {
-            Log.d(TAG, "onSurfaceTextureSizeChanged: ");
             if (mSurfaceTexture != surface) {
                 this.mSurfaceTexture = surface;
                 this.mSurface = new Surface(surface);
@@ -85,7 +74,6 @@ public class HappyTextureView extends TextureView implements IVideoSurface {
 
         @Override
         public boolean onSurfaceTextureDestroyed(SurfaceTexture surface) {
-            Log.d(TAG, "onSurfaceTextureDestroyed: ");
             if (mSurfaceTexture != surface) {
                 this.mSurfaceTexture = surface;
                 this.mSurface = new Surface(surface);
@@ -96,8 +84,6 @@ public class HappyTextureView extends TextureView implements IVideoSurface {
 
         @Override
         public void onSurfaceTextureUpdated(SurfaceTexture surface) {
-            Log.d(TAG, "onSurfaceTextureUpdated: ");
         }
     }
-
 }

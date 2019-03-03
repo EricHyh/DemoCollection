@@ -1,6 +1,9 @@
 package com.hyh.video.lib;
 
 import android.content.Context;
+import android.os.Handler;
+import android.os.Looper;
+import android.view.Surface;
 import android.view.View;
 import android.widget.Toast;
 
@@ -21,17 +24,25 @@ public class DefaultVideoController implements IVideoController {
     //
 
     //
-    private static final int VIEW_STATE_CONTROLLER = 1;
+    private static final int CONTROL_STATE_INITIAL = 0;
+    private static final int CONTROL_STATE_MOBILE_DATA_CONFIRM = 1;
+    private static final int CONTROL_STATE_OPERATE = 2;
+    private static final int CONTROL_STATE_END = 3;
+    private static final int CONTROL_STATE_ERROR = 4;
+
 
     private static boolean sAllowPlayWhenMobileData;
 
     private final MediaEventListener mControllerMediaEventListener = new ControllerMediaEventListener();
     private final MediaProgressListener mControllerMediaProgressListener = new ControllerMediaProgressListener();
+    private final IVideoSurface.SurfaceListener mControllerSurfaceListener = new ControllerSurfaceListener();
     private final Context mContext;
     private final IControllerView mControllerView;
     private HappyVideo mHappyVideo;
 
     private int mCurInterceptCommand = INTERCEPT_NONE;
+    private int mCurControlState = CONTROL_STATE_INITIAL;
+
     private boolean mInterceptPrepareAutoStart;
 
 
@@ -56,9 +67,9 @@ public class DefaultVideoController implements IVideoController {
         this.mHappyVideo = happyVideo;
         mHappyVideo.addMediaEventListener(mControllerMediaEventListener);
         mHappyVideo.addMediaProgressListener(mControllerMediaProgressListener);
+        mHappyVideo.addSurfaceListener(mControllerSurfaceListener);
 
         mControllerView.setTitle(title);
-        mControllerView.setInitialViewClickListener(new ControllerClickListener(ControllerClickListener.FLAG_CONTROLLER_VIEW));
         mControllerView.setControllerViewClickListener(new ControllerClickListener(ControllerClickListener.FLAG_CONTROLLER_VIEW));
         mControllerView.setStartIconClickListener(new ControllerClickListener(ControllerClickListener.FLAG_START_ICON));
         mControllerView.setReplayIconClickListener(new ControllerClickListener(ControllerClickListener.FLAG_REPLAY_ICON));
@@ -79,6 +90,7 @@ public class DefaultVideoController implements IVideoController {
         }
         if (!sAllowPlayWhenMobileData && !VideoUtils.isWifiEnv(mContext)) {
             this.mInterceptPrepareAutoStart = autoStart;
+            mCurInterceptCommand = INTERCEPT_PREPARE;
             mControllerView.showMobileDataConfirm();
             return true;
         }
@@ -92,6 +104,7 @@ public class DefaultVideoController implements IVideoController {
             return true;
         }
         if (!sAllowPlayWhenMobileData && !VideoUtils.isWifiEnv(mContext)) {
+            mCurInterceptCommand = INTERCEPT_START;
             mControllerView.showMobileDataConfirm();
             return true;
         }
@@ -105,6 +118,7 @@ public class DefaultVideoController implements IVideoController {
             return true;
         }
         if (!sAllowPlayWhenMobileData && !VideoUtils.isWifiEnv(mContext)) {
+            mCurInterceptCommand = INTERCEPT_RESTART;
             mControllerView.showMobileDataConfirm();
             return true;
         }
@@ -118,18 +132,11 @@ public class DefaultVideoController implements IVideoController {
             return true;
         }
         if (!sAllowPlayWhenMobileData && !VideoUtils.isWifiEnv(mContext)) {
+            mCurInterceptCommand = INTERCEPT_RETRY;
             mControllerView.showMobileDataConfirm();
             return true;
         }
         return false;
-    }
-
-    @Override
-    public void onSurfaceCreate() {
-    }
-
-    @Override
-    public void onSurfaceDestroyed() {
     }
 
     private class ControllerMediaEventListener extends SimpleMediaEventListener {
@@ -146,6 +153,7 @@ public class DefaultVideoController implements IVideoController {
 
         @Override
         public void onStart(int currentPosition, int duration) {
+            mControllerView.setStartIconPauseStyle();
         }
 
         @Override
@@ -155,12 +163,14 @@ public class DefaultVideoController implements IVideoController {
 
         @Override
         public void onPause(int currentPosition, int duration) {
+            mControllerView.setStartIconStartStyle();
         }
 
         @Override
         public void onStop(int currentPosition, int duration) {
             mControllerView.setMediaProgress(0);
             mControllerView.setCurrentPosition(0);
+            mControllerView.showInitialView(mHappyVideo.getDataSource());
         }
 
         @Override
@@ -192,12 +202,16 @@ public class DefaultVideoController implements IVideoController {
         public void onError(int what, int extra) {
             mControllerView.showErrorView();
             mControllerView.hideLoadingView();
-            mControllerView.hideControllerView();
         }
 
         @Override
         public void onCompletion() {
             mControllerView.showEndView();
+        }
+
+        @Override
+        public void onRelease(int currentPosition, int duration) {
+            mControllerView.showInitialView(mHappyVideo.getDataSource());
         }
     }
 
@@ -210,18 +224,34 @@ public class DefaultVideoController implements IVideoController {
         }
     }
 
+    private class ControllerSurfaceListener implements IVideoSurface.SurfaceListener {
+
+        @Override
+        public void onSurfaceCreate(Surface surface) {
+        }
+
+        @Override
+        public void onSurfaceSizeChanged(Surface surface, int width, int height) {
+        }
+
+        @Override
+        public void onSurfaceDestroyed(Surface surface) {
+            mControllerView.showInitialView(mHappyVideo.getDataSource());
+        }
+    }
 
     private class ControllerClickListener implements View.OnClickListener {
 
-        private static final int FLAG_INITIAL_VIEW = 1;
-        private static final int FLAG_CONTROLLER_VIEW = 2;
-        private static final int FLAG_START_ICON = 3;
-        private static final int FLAG_REPLAY_ICON = 4;
-        private static final int FLAG_RETRY_ICON = 5;
-        private static final int FLAG_FULLSCREEN_TOGGLE = 6;
-        private static final int FLAG_MOBILE_DATA_CONFIRM = 7;
-        private static final int FLAG_BACK_ICON = 8;
+        private static final int FLAG_CONTROLLER_VIEW = 1;
+        private static final int FLAG_START_ICON = 2;
+        private static final int FLAG_REPLAY_ICON = 3;
+        private static final int FLAG_RETRY_ICON = 4;
+        private static final int FLAG_FULLSCREEN_TOGGLE = 5;
+        private static final int FLAG_MOBILE_DATA_CONFIRM = 6;
+        private static final int FLAG_BACK_ICON = 7;
 
+
+        private final HideOperateViewTask mHideOperateViewTask = new HideOperateViewTask();
         private final int flag;
 
         ControllerClickListener(int flag) {
@@ -231,53 +261,108 @@ public class DefaultVideoController implements IVideoController {
         @Override
         public void onClick(View v) {
             switch (flag) {
-                case FLAG_INITIAL_VIEW: {
-                    mHappyVideo.start();
-                    break;
-                }
                 case FLAG_CONTROLLER_VIEW: {
-
+                    handleControllerViewClick();
                     break;
                 }
                 case FLAG_START_ICON: {
-
+                    handleStartIconClick();
                     break;
                 }
                 case FLAG_REPLAY_ICON: {
+                    mHappyVideo.restart();
                     break;
                 }
                 case FLAG_RETRY_ICON: {
+                    mHappyVideo.retry();
                     break;
                 }
                 case FLAG_FULLSCREEN_TOGGLE: {
+                    //TODO 暂不实现
                     break;
                 }
                 case FLAG_MOBILE_DATA_CONFIRM: {
-                    sAllowPlayWhenMobileData = true;
-                    switch (mCurInterceptCommand) {
-                        case INTERCEPT_PREPARE: {
-                            mHappyVideo.prepare(mInterceptPrepareAutoStart);
-                            break;
-                        }
-                        case INTERCEPT_START: {
-                            mHappyVideo.start();
-                            break;
-                        }
-                        case INTERCEPT_RESTART: {
-                            mHappyVideo.restart();
-                            break;
-                        }
-                        case INTERCEPT_RETRY: {
-                            mHappyVideo.retry();
-                            break;
+                    handleMobileDataConfirmClick();
+                    break;
+                }
+                case FLAG_BACK_ICON: {
+                    //TODO 暂不实现
+                    break;
+                }
+            }
+        }
+
+        private void handleControllerViewClick() {
+            switch (mCurControlState) {
+                case CONTROL_STATE_INITIAL: {
+                    mHappyVideo.start();
+                    break;
+                }
+                case CONTROL_STATE_OPERATE: {
+                    mHideOperateViewTask.remove();
+                    if (mControllerView.isShowOperateView()) {
+                        mControllerView.hideOperateView();
+                    } else {
+                        mControllerView.showOperateView();
+                        if (mHappyVideo.isExecuteStart()) {
+                            mHideOperateViewTask.post();
                         }
                     }
                     break;
                 }
-                case FLAG_BACK_ICON: {
+            }
+        }
+
+        private void handleStartIconClick() {
+            mHideOperateViewTask.remove();
+            if (mHappyVideo.isExecuteStart()) {
+                mHappyVideo.pause();
+                mControllerView.setStartIconStartStyle();
+            } else {
+                mHappyVideo.start();
+                mControllerView.setStartIconPauseStyle();
+                mHideOperateViewTask.post();
+            }
+        }
+
+        private void handleMobileDataConfirmClick() {
+            sAllowPlayWhenMobileData = true;
+            switch (mCurInterceptCommand) {
+                case INTERCEPT_PREPARE: {
+                    mHappyVideo.prepare(mInterceptPrepareAutoStart);
+                    break;
+                }
+                case INTERCEPT_START: {
+                    mHappyVideo.start();
+                    break;
+                }
+                case INTERCEPT_RESTART: {
+                    mHappyVideo.restart();
+                    break;
+                }
+                case INTERCEPT_RETRY: {
+                    mHappyVideo.retry();
                     break;
                 }
             }
+        }
+    }
+
+    private class HideOperateViewTask implements Runnable {
+
+        private final Handler mHandler = new Handler(Looper.getMainLooper());
+
+        @Override
+        public void run() {
+            mControllerView.hideOperateView();
+        }
+
+        void post() {
+            mHandler.postDelayed(this, 3000);
+        }
+
+        void remove() {
+            mHandler.removeCallbacks(this);
         }
     }
 }

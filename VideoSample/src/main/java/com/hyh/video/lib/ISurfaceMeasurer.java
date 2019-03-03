@@ -9,6 +9,8 @@ public interface ISurfaceMeasurer {
 
     void setScaleType(HappyVideo.ScaleType scaleType);
 
+    void setVideoWidth(int width, int height);
+
     int[] onMeasure(int widthMeasureSpec, int heightMeasureSpec);
 
 }

@@ -36,7 +36,7 @@ public interface IMediaPlayer {
 
     void stop();
 
-    boolean isStart();
+    boolean isExecuteStart();
 
     boolean isPlaying();
 
@@ -55,6 +55,8 @@ public interface IMediaPlayer {
     boolean isSupportSpeed();
 
     void setSpeed(float speed);
+
+    boolean isReleased();
 
     void release();
 

@@ -22,11 +22,9 @@ public interface IControllerView {
 
     void setDuration(int duration);
 
-    void setStarIconStartStyle();
+    void setStartIconStartStyle();
 
     void setStartIconPauseStyle();
-
-    void setInitialViewClickListener(View.OnClickListener listener);
 
     void setControllerViewClickListener(View.OnClickListener listener);
 
@@ -44,19 +42,21 @@ public interface IControllerView {
 
     void showInitialView(DataSource source);
 
-    void showControllerView();
+    void showMobileDataConfirm();
 
-    void hideControllerView();
+    boolean isShowOperateView();
+
+    void showOperateView();
+
+    void hideOperateView();
+
+    void showEndView();
+
+    void showErrorView();
 
     void showLoadingView();
 
     void hideLoadingView();
-
-    void showErrorView();
-
-    void showEndView();
-
-    void showMobileDataConfirm();
 
     void onFullScreenOpen();
 

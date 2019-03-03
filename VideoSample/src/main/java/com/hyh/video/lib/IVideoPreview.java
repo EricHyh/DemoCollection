@@ -10,6 +10,6 @@ public interface IVideoPreview {
 
     View getView();
 
-    void setPreviewVisibility(int visibility);
+    void setUp(HappyVideo happyVideo);
 
 }

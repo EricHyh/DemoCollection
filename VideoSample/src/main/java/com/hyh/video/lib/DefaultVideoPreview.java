@@ -16,7 +16,8 @@ public class DefaultVideoPreview implements IVideoPreview {
     }
 
     @Override
-    public void setPreviewVisibility(int visibility) {
+    public void setUp(HappyVideo happyVideo) {
 
     }
+
 }

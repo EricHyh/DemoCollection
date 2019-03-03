@@ -9,6 +9,10 @@ package com.hyh.video.lib;
 public class SimpleMediaEventListener implements MediaEventListener {
 
     @Override
+    public void onInitialized() {
+    }
+
+    @Override
     public void onPreparing() {
     }
 

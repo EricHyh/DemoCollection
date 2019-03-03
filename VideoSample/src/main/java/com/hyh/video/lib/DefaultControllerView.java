@@ -14,6 +14,7 @@ public class DefaultControllerView implements IControllerView {
     public DefaultControllerView(Context context) {
     }
 
+
     @Override
     public View getView() {
         return null;
@@ -45,17 +46,12 @@ public class DefaultControllerView implements IControllerView {
     }
 
     @Override
-    public void setStarIconStartStyle() {
+    public void setStartIconStartStyle() {
 
     }
 
     @Override
     public void setStartIconPauseStyle() {
-
-    }
-
-    @Override
-    public void setInitialViewClickListener(View.OnClickListener listener) {
 
     }
 
@@ -100,12 +96,32 @@ public class DefaultControllerView implements IControllerView {
     }
 
     @Override
-    public void showControllerView() {
+    public void showMobileDataConfirm() {
 
     }
 
     @Override
-    public void hideControllerView() {
+    public boolean isShowOperateView() {
+        return false;
+    }
+
+    @Override
+    public void showOperateView() {
+
+    }
+
+    @Override
+    public void hideOperateView() {
+
+    }
+
+    @Override
+    public void showEndView() {
+
+    }
+
+    @Override
+    public void showErrorView() {
 
     }
 
@@ -116,21 +132,6 @@ public class DefaultControllerView implements IControllerView {
 
     @Override
     public void hideLoadingView() {
-
-    }
-
-    @Override
-    public void showErrorView() {
-
-    }
-
-    @Override
-    public void showEndView() {
-
-    }
-
-    @Override
-    public void showMobileDataConfirm() {
 
     }
 

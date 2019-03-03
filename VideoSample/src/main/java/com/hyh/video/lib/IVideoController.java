@@ -22,8 +22,4 @@ public interface IVideoController {
 
     boolean interceptRetry();
 
-    void onSurfaceCreate();
-
-    void onSurfaceDestroyed();
-
 }

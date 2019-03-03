@@ -1,10 +1,13 @@
 package com.hyh.video.lib;
 
 import android.content.Context;
+import android.graphics.Color;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.util.AttributeSet;
+import android.view.Gravity;
 import android.view.Surface;
+import android.view.ViewGroup;
 import android.widget.FrameLayout;
 
 import java.util.ArrayList;
@@ -25,6 +28,7 @@ public class HappyVideo extends FrameLayout {
     private final MediaProgressListener mMediaProgressListener = new InnerMediaProgressListener();
     private final List<MediaEventListener> mMediaEventListeners = new ArrayList<>();
     private final List<MediaProgressListener> mMediaProgressListeners = new ArrayList<>();
+    private final List<IVideoSurface.SurfaceListener> mSurfaceListeners = new ArrayList<>();
 
     private IVideoBackground mVideoBackground;
     private IVideoSurface mVideoSurface;
@@ -44,16 +48,18 @@ public class HappyVideo extends FrameLayout {
 
     public HappyVideo(@NonNull Context context, @Nullable AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
+        setBackgroundColor(Color.BLACK);
         mMediaPlayer.setMediaEventListener(mMediaEventListener);
         mMediaPlayer.setMediaProgressListener(mMediaProgressListener);
 
         this.mVideoSurface = VideoSurfaceFactory.create(context);
         this.mVideoController = new DefaultVideoController(context);
 
-        addView(mVideoSurface.getView());
-        addView(mVideoPreview.getView());
-        addView(mVideoController.getView());
-
+        LayoutParams params = new LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
+        params.gravity = Gravity.CENTER;
+        addView(mVideoSurface.getView(), params);
+        //addView(mVideoPreview.getView());
+        //addView(mVideoController.getView());
         mVideoSurface.setSurfaceListener(mSurfaceListener);
     }
 
@@ -65,6 +71,22 @@ public class HappyVideo extends FrameLayout {
         this.mVideoBackground = background;
         if (mVideoBackground != null) {
             addView(mVideoBackground.getView(), 0);
+        }
+    }
+
+
+    public void setVideoPreview(IVideoPreview videoPreview) {
+        if (mVideoPreview == videoPreview) return;
+        if (mVideoPreview != null) {
+            removeView(mVideoPreview.getView());
+        }
+        this.mVideoPreview = videoPreview;
+        if (mVideoPreview != null) {
+            if (mVideoBackground != null) {
+                addView(mVideoPreview.getView(), 2);
+            } else {
+                addView(mVideoPreview.getView(), 1);
+            }
         }
     }
 
@@ -94,6 +116,14 @@ public class HappyVideo extends FrameLayout {
 
     public void removeMediaProgressListener(MediaProgressListener listener) {
         mMediaProgressListeners.remove(listener);
+    }
+
+    public void addSurfaceListener(IVideoSurface.SurfaceListener listener) {
+        mSurfaceListeners.add(listener);
+    }
+
+    public void removeSurfaceListener(IVideoSurface.SurfaceListener listener) {
+        mSurfaceListeners.remove(listener);
     }
 
     public boolean setup(DataSource source, CharSequence title, boolean looping) {
@@ -152,8 +182,16 @@ public class HappyVideo extends FrameLayout {
         mMediaPlayer.stop();
     }
 
+    public boolean isExecuteStart() {
+        return mMediaPlayer.isExecuteStart();
+    }
+
     public boolean isPlaying() {
         return mMediaPlayer.isPlaying();
+    }
+
+    public boolean isReleased() {
+        return mMediaPlayer.isReleased();
     }
 
     public void seekTimeTo(int milliSeconds) {
@@ -198,28 +236,36 @@ public class HappyVideo extends FrameLayout {
 
         @Override
         public void onSurfaceCreate(Surface surface) {
-            if (mSurface == surface) return;
             this.mSurface = surface;
             mMediaPlayer.setSurface(mSurface);
-
-            if (mVideoController != null) {
-                mVideoController.onSurfaceCreate();
+            for (IVideoSurface.SurfaceListener listener : mSurfaceListeners) {
+                listener.onSurfaceCreate(surface);
             }
         }
 
         @Override
         public void onSurfaceSizeChanged(Surface surface, int width, int height) {
+            for (IVideoSurface.SurfaceListener listener : mSurfaceListeners) {
+                listener.onSurfaceSizeChanged(surface, width, height);
+            }
         }
 
         @Override
         public void onSurfaceDestroyed(Surface surface) {
-            if (mVideoController != null) {
-                mVideoController.onSurfaceDestroyed();
+            for (IVideoSurface.SurfaceListener listener : mSurfaceListeners) {
+                listener.onSurfaceDestroyed(surface);
             }
         }
     }
 
     private class InnerMediaEventListener implements MediaEventListener {
+
+        @Override
+        public void onInitialized() {
+            for (MediaEventListener listener : mMediaEventListeners) {
+                listener.onInitialized();
+            }
+        }
 
         @Override
         public void onPreparing() {
@@ -307,6 +353,7 @@ public class HappyVideo extends FrameLayout {
 
         @Override
         public void onVideoSizeChanged(int width, int height) {
+            mVideoSurface.setVideoSize(width, height);
             for (MediaEventListener listener : mMediaEventListeners) {
                 listener.onVideoSizeChanged(width, height);
             }
@@ -341,7 +388,6 @@ public class HappyVideo extends FrameLayout {
     public enum ScaleType {
         FIT_XY,
         FIT_CENTER,
-        CENTER_CROP,
         CENTER_INSIDE;
     }
 }

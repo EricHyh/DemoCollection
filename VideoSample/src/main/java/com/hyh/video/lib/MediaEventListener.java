@@ -8,6 +8,8 @@ package com.hyh.video.lib;
 
 public interface MediaEventListener {
 
+    void onInitialized();
+
     void onPreparing();
 
     void onPrepared(int duration);
@@ -37,5 +39,4 @@ public interface MediaEventListener {
     void onCompletion();
 
     void onRelease(int currentPosition, int duration);
-
 }

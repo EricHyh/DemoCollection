@@ -35,8 +35,6 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
 
     private MediaProgressListener mProgressListener;
 
-    private boolean mIsReleased;
-
     private int mPendingCommand;
 
     private Integer mPendingSeekMilliSeconds;
@@ -45,7 +43,7 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
 
     @Override
     public boolean setDataSource(DataSource source) {
-        if (mCurrentState == State.END) return false;
+        if (isReleased()) return false;
         if (mDataSource != null && mDataSource.equals(source)) return false;
         if (mDataSource == null && source == null) return false;
 
@@ -55,8 +53,7 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
         boolean init = initMediaPlayer(source);
         if (init) {
             this.mDataSource = source;
-            this.mCurrentState = State.INITIALIZED;
-
+            postInitialized();
         }
         return init;
     }
@@ -174,7 +171,6 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
             seekTimeTo(0);
             if (!isPlaying()) {
                 mMediaPlayer.start();
-                mCurrentState = State.STARTED;
                 postStart();
                 if (mProgressListener != null) {
                     startObserveProgress();
@@ -233,13 +229,13 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
     }
 
     @Override
-    public boolean isStart() {
-        return !mIsReleased && (isPlaying() || mPendingCommand == PENDING_COMMAND_START);
+    public boolean isExecuteStart() {
+        return !isReleased() && (isPlaying() || mPendingCommand == PENDING_COMMAND_START);
     }
 
     @Override
     public boolean isPlaying() {
-        if (mIsReleased) return false;
+        if (isReleased()) return false;
         try {
             return mMediaPlayer.isPlaying();
         } catch (Exception e) {
@@ -288,9 +284,8 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
 
     @Override
     public void release() {
-        if (mIsReleased) return;
+        if (isReleased()) return;
         stopObserveProgress();
-        mIsReleased = true;
         postRelease();
         mMediaPlayer.release();
         mMediaEventListener = null;
@@ -325,13 +320,13 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
 
     @Override
     public void setSurface(Surface surface) {
-        if (mIsReleased) return;
+        if (isReleased()) return;
         mMediaPlayer.setSurface(surface);
     }
 
     @Override
     public void setVolume(float leftVolume, float rightVolume) {
-        if (mIsReleased) return;
+        if (isReleased()) return;
         mMediaPlayer.setVolume(leftVolume, rightVolume);
     }
 
@@ -342,7 +337,7 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
 
     @Override
     public void setSpeed(float speed) {
-        if (mIsReleased) return;
+        if (isReleased()) return;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             PlaybackParams pp = mMediaPlayer.getPlaybackParams();
             pp.setSpeed(speed);
@@ -351,8 +346,13 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
     }
 
     @Override
+    public boolean isReleased() {
+        return mCurrentState == State.END;
+    }
+
+    @Override
     public void onPrepared(MediaPlayer mediaPlayer) {
-        if (mIsReleased) {
+        if (isReleased()) {
             mediaPlayer.release();
             postRelease();
             return;
@@ -459,6 +459,13 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
         mProgressHandler.stop();
     }
 
+    private void postInitialized() {
+        this.mCurrentState = State.INITIALIZED;
+        if (mMediaEventListener != null) {
+            mMediaEventListener.onInitialized();
+        }
+    }
+
     private void postPreparing() {
         mCurrentState = State.PREPARING;
         if (mMediaEventListener != null) {
@@ -547,6 +554,9 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
     }
 
     private void postError(int what, int extra) {
+        if (mPendingCommand == PENDING_COMMAND_START) {
+            mPendingCommand = PENDING_COMMAND_NONE;
+        }
         mCurrentState = State.ERROR;
         if (mMediaEventListener != null) {
             mMediaEventListener.onError(what, extra);
