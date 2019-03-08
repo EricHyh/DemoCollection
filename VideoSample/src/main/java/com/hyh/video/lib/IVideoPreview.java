@@ -10,6 +10,8 @@ public interface IVideoPreview {
 
     View getView();
 
-    void setUp(HappyVideo happyVideo);
+    void setSurfaceMeasurer(ISurfaceMeasurer surfaceMeasurer);
+
+    void setUp(HappyVideo happyVideo, IMediaInfo mediaInfo);
 
 }

@@ -5,6 +5,8 @@ import android.graphics.SurfaceTexture;
 import android.view.Surface;
 import android.view.TextureView;
 import android.view.View;
+import android.view.ViewGroup;
+import android.view.ViewParent;
 
 /**
  * @author Administrator
@@ -14,7 +16,7 @@ import android.view.View;
 
 public class TextureSurface extends TextureView implements IVideoSurface {
 
-    private final ISurfaceMeasurer mSurfaceMeasurer = SurfaceMeasurerFactory.create(this);
+    private ISurfaceMeasurer mSurfaceMeasurer;
 
     private SurfaceListener mSurfaceListener;
 
@@ -25,8 +27,15 @@ public class TextureSurface extends TextureView implements IVideoSurface {
 
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
-        int[] size = mSurfaceMeasurer.onMeasure(widthMeasureSpec, heightMeasureSpec);
-        setMeasuredDimension(size[0], size[1]);
+        ViewParent parent = getParent();
+        if (mSurfaceMeasurer == null || parent == null || !(parent instanceof ViewGroup)) {
+            super.onMeasure(widthMeasureSpec, heightMeasureSpec);
+        } else {
+            ViewGroup viewGroup = (ViewGroup) parent;
+            int[] size = mSurfaceMeasurer.onMeasure(viewGroup.getMeasuredWidth(),
+                    viewGroup.getMeasuredHeight());
+            setMeasuredDimension(size[0], size[1]);
+        }
     }
 
     @Override
@@ -40,15 +49,10 @@ public class TextureSurface extends TextureView implements IVideoSurface {
     }
 
     @Override
-    public void setScaleType(HappyVideo.ScaleType scaleType) {
-        mSurfaceMeasurer.setScaleType(scaleType);
+    public void setSurfaceMeasurer(ISurfaceMeasurer surfaceMeasurer) {
+        this.mSurfaceMeasurer = surfaceMeasurer;
+        requestLayout();
     }
-
-    @Override
-    public void setVideoSize(int width, int height) {
-        mSurfaceMeasurer.setVideoWidth(width, height);
-    }
-
 
     private class SurfaceListenerWrapper implements SurfaceTextureListener {
 

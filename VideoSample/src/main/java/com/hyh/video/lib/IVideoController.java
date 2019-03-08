@@ -12,7 +12,7 @@ public interface IVideoController {
 
     View getView();
 
-    void setUp(HappyVideo happyVideo, CharSequence title);
+    void setUp(HappyVideo happyVideo, CharSequence title, IMediaInfo mediaInfo);
 
     boolean interceptPrepare(boolean autoStart);
 

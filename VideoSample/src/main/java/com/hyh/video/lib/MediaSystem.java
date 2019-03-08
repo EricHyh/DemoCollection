@@ -249,7 +249,7 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
                 || mCurrentState == State.STARTED
                 || mCurrentState == State.PAUSED
                 || mCurrentState == State.COMPLETED) {
-            int duration = getDuration();
+            long duration = getDuration();
             if (duration > 0) {
                 int progress = Math.round(milliSeconds * 1.0f / duration * 100);
                 mMediaPlayer.seekTo(milliSeconds);
@@ -268,7 +268,7 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
                 || mCurrentState == State.STARTED
                 || mCurrentState == State.PAUSED
                 || mCurrentState == State.COMPLETED) {
-            int duration = getDuration();
+            long duration = getDuration();
             if (duration > 0) {
                 int milliSeconds = Math.round(duration * 1.0f * progress / 100);
                 mMediaPlayer.seekTo(milliSeconds);
@@ -293,7 +293,7 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
     }
 
     @Override
-    public int getCurrentPosition() {
+    public long getCurrentPosition() {
         if (mCurrentState == State.PREPARED
                 || mCurrentState == State.STARTED
                 || mCurrentState == State.PAUSED
@@ -306,7 +306,7 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
     }
 
     @Override
-    public int getDuration() {
+    public long getDuration() {
         if (mCurrentState == State.PREPARED
                 || mCurrentState == State.STARTED
                 || mCurrentState == State.PAUSED
@@ -384,7 +384,7 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
 
     private void handlePendingSeek() {
         if (mPendingSeekMilliSeconds != null) {
-            int duration = getDuration();
+            long duration = getDuration();
             if (duration > 0) {
                 int progress = Math.round(mPendingSeekMilliSeconds * 1.0f / duration * 100);
                 mMediaPlayer.seekTo(mPendingSeekMilliSeconds);
@@ -393,7 +393,7 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
             mPendingSeekMilliSeconds = null;
         }
         if (mPendingSeekProgress != null) {
-            int duration = getDuration();
+            long duration = getDuration();
             if (duration > 0) {
                 int milliSeconds = Math.round(duration * 1.0f * mPendingSeekProgress / 100);
                 mMediaPlayer.seekTo(milliSeconds);
@@ -520,11 +520,11 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
     }
 
     private void postProgress() {
-        int duration = getDuration();
-        int currentPosition = getCurrentPosition();
+        long duration = getDuration();
+        long currentPosition = getCurrentPosition();
         int progress = Math.round(currentPosition * 1.0f / duration * 100);
         if (mProgressListener != null) {
-            mProgressListener.onMediaProgress(progress, currentPosition);
+            mProgressListener.onMediaProgress(progress, currentPosition, duration);
         }
     }
 

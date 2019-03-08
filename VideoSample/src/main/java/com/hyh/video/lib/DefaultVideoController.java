@@ -63,7 +63,7 @@ public class DefaultVideoController implements IVideoController {
     }
 
     @Override
-    public void setUp(HappyVideo happyVideo, CharSequence title) {
+    public void setUp(HappyVideo happyVideo, CharSequence title, IMediaInfo mediaInfo) {
         this.mHappyVideo = happyVideo;
         mHappyVideo.addMediaEventListener(mControllerMediaEventListener);
         mHappyVideo.addMediaProgressListener(mControllerMediaProgressListener);
@@ -147,27 +147,27 @@ public class DefaultVideoController implements IVideoController {
         }
 
         @Override
-        public void onPrepared(int duration) {
+        public void onPrepared(long duration) {
             mControllerView.setDuration(duration);
         }
 
         @Override
-        public void onStart(int currentPosition, int duration) {
+        public void onStart(long currentPosition, long duration) {
             mControllerView.setStartIconPauseStyle();
         }
 
         @Override
-        public void onPlaying(int currentPosition, int duration) {
+        public void onPlaying(long currentPosition, long duration) {
             mControllerView.hideLoadingView();
         }
 
         @Override
-        public void onPause(int currentPosition, int duration) {
+        public void onPause(long currentPosition, long duration) {
             mControllerView.setStartIconStartStyle();
         }
 
         @Override
-        public void onStop(int currentPosition, int duration) {
+        public void onStop(long currentPosition, long duration) {
             mControllerView.setMediaProgress(0);
             mControllerView.setCurrentPosition(0);
             mControllerView.showInitialView(mHappyVideo.getDataSource());
@@ -189,7 +189,7 @@ public class DefaultVideoController implements IVideoController {
         }
 
         @Override
-        public void onSeekStart(int seekMilliSeconds, int seekProgress) {
+        public void onSeekStart(long seekMilliSeconds, int seekProgress) {
             mControllerView.setMediaProgress(seekProgress);
             mControllerView.setCurrentPosition(seekMilliSeconds);
         }
@@ -210,7 +210,7 @@ public class DefaultVideoController implements IVideoController {
         }
 
         @Override
-        public void onRelease(int currentPosition, int duration) {
+        public void onRelease(long currentPosition, long duration) {
             mControllerView.showInitialView(mHappyVideo.getDataSource());
         }
     }
@@ -218,7 +218,7 @@ public class DefaultVideoController implements IVideoController {
     private class ControllerMediaProgressListener implements MediaProgressListener {
 
         @Override
-        public void onMediaProgress(int progress, int currentPosition) {
+        public void onMediaProgress(int progress, long currentPosition, long duration) {
             mControllerView.setMediaProgress(progress);
             mControllerView.setCurrentPosition(currentPosition);
         }

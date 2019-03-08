@@ -17,23 +17,23 @@ public class SimpleMediaEventListener implements MediaEventListener {
     }
 
     @Override
-    public void onPrepared(int duration) {
+    public void onPrepared(long duration) {
     }
 
     @Override
-    public void onStart(int currentPosition, int duration) {
+    public void onStart(long currentPosition, long duration) {
     }
 
     @Override
-    public void onPlaying(int currentPosition, int duration) {
+    public void onPlaying(long currentPosition, long duration) {
     }
 
     @Override
-    public void onPause(int currentPosition, int duration) {
+    public void onPause(long currentPosition, long duration) {
     }
 
     @Override
-    public void onStop(int currentPosition, int duration) {
+    public void onStop(long currentPosition, long duration) {
     }
 
     @Override
@@ -49,7 +49,7 @@ public class SimpleMediaEventListener implements MediaEventListener {
     }
 
     @Override
-    public void onSeekStart(int seekMilliSeconds, int seekProgress) {
+    public void onSeekStart(long seekMilliSeconds, int seekProgress) {
     }
 
     @Override
@@ -69,6 +69,6 @@ public class SimpleMediaEventListener implements MediaEventListener {
     }
 
     @Override
-    public void onRelease(int currentPosition, int duration) {
+    public void onRelease(long currentPosition, long duration) {
     }
 }

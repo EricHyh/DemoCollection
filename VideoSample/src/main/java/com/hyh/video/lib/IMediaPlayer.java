@@ -44,9 +44,9 @@ public interface IMediaPlayer {
 
     void seekProgressTo(int progress);
 
-    int getCurrentPosition();
+    long getCurrentPosition();
 
-    int getDuration();
+    long getDuration();
 
     void setSurface(Surface surface);
 

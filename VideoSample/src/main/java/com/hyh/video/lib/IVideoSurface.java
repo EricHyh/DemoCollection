@@ -12,11 +12,9 @@ public interface IVideoSurface {
 
     View getView();
 
+    void setSurfaceMeasurer(ISurfaceMeasurer surfaceMeasurer);
+
     void setSurfaceListener(SurfaceListener listener);
-
-    void setScaleType(HappyVideo.ScaleType scaleType);
-
-    void setVideoSize(int width, int height);
 
     interface SurfaceListener {
 

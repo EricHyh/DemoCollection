@@ -11,13 +11,15 @@ import android.view.View;
 
 public class DefaultControllerView implements IControllerView {
 
-    public DefaultControllerView(Context context) {
-    }
+    private final Context mContext;
 
+    public DefaultControllerView(Context context) {
+        this.mContext = context;
+    }
 
     @Override
     public View getView() {
-        return null;
+        return new View(mContext);
     }
 
     @Override
@@ -36,12 +38,12 @@ public class DefaultControllerView implements IControllerView {
     }
 
     @Override
-    public void setCurrentPosition(int currentPosition) {
+    public void setCurrentPosition(long currentPosition) {
 
     }
 
     @Override
-    public void setDuration(int duration) {
+    public void setDuration(long duration) {
 
     }
 
@@ -132,16 +134,6 @@ public class DefaultControllerView implements IControllerView {
 
     @Override
     public void hideLoadingView() {
-
-    }
-
-    @Override
-    public void onFullScreenOpen() {
-
-    }
-
-    @Override
-    public void onFullScreenClose() {
 
     }
 }

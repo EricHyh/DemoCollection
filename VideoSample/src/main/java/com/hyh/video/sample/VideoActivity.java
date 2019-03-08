@@ -41,7 +41,8 @@ public class VideoActivity extends Activity implements SeekBar.OnSeekBarChangeLi
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_texture);
         mHappyVideo = findViewById(R.id.HappyVideo);
-        mHappyVideo.setup(new DataSource(mVideoUrl1, DataSource.TYPE_NET), null, true);
+        mHappyVideo.setVolume(0, 0);
+        mHappyVideo.setup(new DataSource(mVideoUrl1, DataSource.TYPE_NET), null, false);
 
         mSeekBar = findViewById(R.id.seek_bar);
         mSeekBar.setOnSeekBarChangeListener(this);
@@ -94,12 +95,12 @@ public class VideoActivity extends Activity implements SeekBar.OnSeekBarChangeLi
     }
 
     public void getCurrentPosition(View view) {
-        int currentPosition = mHappyVideo.getCurrentPosition();
+        long currentPosition = mHappyVideo.getCurrentPosition();
         Toast.makeText(this, "currentPosition:" + currentPosition, Toast.LENGTH_SHORT).show();
     }
 
     public void getDuration(View view) {
-        int duration = mHappyVideo.getDuration();
+        long duration = mHappyVideo.getDuration();
         Toast.makeText(this, "duration:" + duration, Toast.LENGTH_SHORT).show();
     }
 
@@ -127,27 +128,27 @@ public class VideoActivity extends Activity implements SeekBar.OnSeekBarChangeLi
     }
 
     @Override
-    public void onPrepared(int duration) {
+    public void onPrepared(long duration) {
 
     }
 
     @Override
-    public void onStart(int currentPosition, int duration) {
+    public void onStart(long currentPosition, long duration) {
 
     }
 
     @Override
-    public void onPlaying(int currentPosition, int duration) {
+    public void onPlaying(long currentPosition, long duration) {
 
     }
 
     @Override
-    public void onPause(int currentPosition, int duration) {
+    public void onPause(long currentPosition, long duration) {
 
     }
 
     @Override
-    public void onStop(int currentPosition, int duration) {
+    public void onStop(long currentPosition, long duration) {
 
     }
 
@@ -162,7 +163,7 @@ public class VideoActivity extends Activity implements SeekBar.OnSeekBarChangeLi
     }
 
     @Override
-    public void onMediaProgress(int progress, int currentPosition) {
+    public void onMediaProgress(int progress, long currentPosition, long duration) {
         mSeekBar.setProgress(progress);
     }
 
@@ -172,7 +173,7 @@ public class VideoActivity extends Activity implements SeekBar.OnSeekBarChangeLi
     }
 
     @Override
-    public void onSeekStart(int seekMilliSeconds, int seekProgress) {
+    public void onSeekStart(long seekMilliSeconds, int seekProgress) {
     }
 
     @Override
@@ -194,7 +195,7 @@ public class VideoActivity extends Activity implements SeekBar.OnSeekBarChangeLi
     }
 
     @Override
-    public void onRelease(int currentPosition, int duration) {
+    public void onRelease(long currentPosition, long duration) {
         mSeekBar.setProgress(0);
     }
 
