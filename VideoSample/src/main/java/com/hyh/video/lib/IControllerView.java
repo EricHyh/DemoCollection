@@ -1,6 +1,7 @@
 package com.hyh.video.lib;
 
 import android.view.View;
+import android.widget.SeekBar;
 
 /**
  * @author Administrator
@@ -12,7 +13,7 @@ public interface IControllerView {
 
     View getView();
 
-    void setTitle(CharSequence title);
+    void setup(CharSequence title, IMediaInfo mediaInfo);
 
     void setMediaProgress(int progress);
 
@@ -22,7 +23,7 @@ public interface IControllerView {
 
     void setDuration(long duration);
 
-    void setStartIconStartStyle();
+    void setStartIconPlayStyle();
 
     void setStartIconPauseStyle();
 
@@ -32,17 +33,23 @@ public interface IControllerView {
 
     void setReplayIconClickListener(View.OnClickListener listener);
 
-    void setRetryIconClickListener(View.OnClickListener listener);
+    void setRetryButtonClickListener(View.OnClickListener listener);
 
     void setFullScreenToggleClickListener(View.OnClickListener listener);
 
-    void setMobileDataConfirmIconClickListener(View.OnClickListener listener);
+    void setMobileDataConfirmButtonClickListener(View.OnClickListener listener);
 
     void setBackIconClickListener(View.OnClickListener listener);
 
-    void showInitialView(DataSource source);
+    void setOnSeekBarChangeListener(SeekBar.OnSeekBarChangeListener listener);
+
+    void showInitialView();
+
+    void hideInitialView();
 
     void showMobileDataConfirm();
+
+    void hideMobileDataConfirm();
 
     boolean isShowOperateView();
 
@@ -52,7 +59,11 @@ public interface IControllerView {
 
     void showEndView();
 
+    void hideEndView();
+
     void showErrorView();
+
+    void hideErrorView();
 
     void showLoadingView();
 

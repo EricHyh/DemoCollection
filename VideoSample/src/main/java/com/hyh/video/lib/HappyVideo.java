@@ -119,7 +119,7 @@ public class HappyVideo extends FrameLayout {
         this.mVideoController = controller;
         if (mVideoController != null) {
             addView(mVideoController.getView());
-            mVideoController.setUp(this, mTitle, mMediaInfo);
+            mVideoController.setup(this, mTitle, mMediaInfo);
         }
     }
 
@@ -160,7 +160,7 @@ public class HappyVideo extends FrameLayout {
                 mVideoPreview.setUp(this, mMediaInfo);
             }
             if (mVideoController != null) {
-                mVideoController.setUp(this, title, mMediaInfo);
+                mVideoController.setup(this, title, mMediaInfo);
             }
         }
         return set;

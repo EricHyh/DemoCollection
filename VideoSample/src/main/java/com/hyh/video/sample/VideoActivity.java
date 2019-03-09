@@ -42,7 +42,7 @@ public class VideoActivity extends Activity implements SeekBar.OnSeekBarChangeLi
         setContentView(R.layout.activity_texture);
         mHappyVideo = findViewById(R.id.HappyVideo);
         mHappyVideo.setVolume(0, 0);
-        mHappyVideo.setup(new DataSource(mVideoUrl1, DataSource.TYPE_NET), null, false);
+        mHappyVideo.setup(new DataSource(mVideoUrl1, DataSource.TYPE_NET), "厉害了，我的哥！", false);
 
         mSeekBar = findViewById(R.id.seek_bar);
         mSeekBar.setOnSeekBarChangeListener(this);
