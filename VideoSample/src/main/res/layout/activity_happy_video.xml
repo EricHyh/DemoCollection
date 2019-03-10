@@ -5,8 +5,8 @@
     android:layout_height="match_parent"
     android:orientation="vertical">
 
-    <TextureView
-        android:id="@+id/TextureView"
+    <com.hyh.video.lib.HappyVideo
+        android:id="@+id/HappyVideo"
         android:layout_width="match_parent"
         android:layout_height="200dp"/>
 

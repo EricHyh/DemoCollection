@@ -16,18 +16,19 @@ import android.widget.ImageView;
  * @data 2019/2/25
  */
 
-public class DefaultVideoPreview extends FrameLayout implements IVideoPreview {
+public class FirstFramePreview extends FrameLayout implements IVideoPreview {
 
     private final IVideoSurface.SurfaceListener mPreviewSurfaceListener = new PreviewSurfaceListener();
     private final MediaEventListener mPreviewMediaEventListener = new PreviewMediaEventListener();
 
     private ISurfaceMeasurer mSurfaceMeasurer;
     private ImageView mPreviewImage;
+    private DataSource mDataSource;
     private int mVideoWidth;
     private int mVideoHeight;
 
 
-    public DefaultVideoPreview(Context context) {
+    public FirstFramePreview(Context context) {
         super(context);
         {
             mPreviewImage = new ImageView(context);
@@ -53,6 +54,13 @@ public class DefaultVideoPreview extends FrameLayout implements IVideoPreview {
     public void setUp(HappyVideo happyVideo, IMediaInfo mediaInfo) {
         happyVideo.addSurfaceListener(mPreviewSurfaceListener);
         happyVideo.addMediaEventListener(mPreviewMediaEventListener);
+
+        DataSource dataSource = happyVideo.getDataSource();
+        if (mDataSource != null && !mDataSource.equals(dataSource)) {
+            mPreviewImage.setImageBitmap(null);
+        }
+        mDataSource = dataSource;
+
         this.setBackgroundColor(0xFFE8E8E8);
         requestFirstFrame(mediaInfo);
         int mediaState = happyVideo.getMediaState();
@@ -83,7 +91,7 @@ public class DefaultVideoPreview extends FrameLayout implements IVideoPreview {
                     mVideoHeight = bitmap.getHeight();
                     mPreviewImage.setImageBitmap(bitmap);
                     resetImageSize();
-                    DefaultVideoPreview.this.setBackgroundColor(Color.TRANSPARENT);
+                    FirstFramePreview.this.setBackgroundColor(Color.TRANSPARENT);
                 }
             }
         });
@@ -115,40 +123,40 @@ public class DefaultVideoPreview extends FrameLayout implements IVideoPreview {
         @Override
         public void onPlaying(long currentPosition, long duration) {
             super.onPlaying(currentPosition, duration);
-            if (DefaultVideoPreview.this.getVisibility() == View.VISIBLE) {
-                DefaultVideoPreview.this.setVisibility(View.GONE);
+            if (FirstFramePreview.this.getVisibility() == View.VISIBLE) {
+                FirstFramePreview.this.setVisibility(View.GONE);
             }
         }
 
         @Override
         public void onStop(long currentPosition, long duration) {
             super.onStop(currentPosition, duration);
-            if (DefaultVideoPreview.this.getVisibility() == INVISIBLE || DefaultVideoPreview.this.getVisibility() == GONE) {
-                DefaultVideoPreview.this.setVisibility(VISIBLE);
+            if (FirstFramePreview.this.getVisibility() == INVISIBLE || FirstFramePreview.this.getVisibility() == GONE) {
+                FirstFramePreview.this.setVisibility(VISIBLE);
             }
         }
 
         @Override
         public void onError(int what, int extra) {
             super.onError(what, extra);
-            if (DefaultVideoPreview.this.getVisibility() == INVISIBLE || DefaultVideoPreview.this.getVisibility() == GONE) {
-                DefaultVideoPreview.this.setVisibility(VISIBLE);
+            if (FirstFramePreview.this.getVisibility() == INVISIBLE || FirstFramePreview.this.getVisibility() == GONE) {
+                FirstFramePreview.this.setVisibility(VISIBLE);
             }
         }
 
         @Override
         public void onCompletion() {
             super.onCompletion();
-            if (DefaultVideoPreview.this.getVisibility() == INVISIBLE || DefaultVideoPreview.this.getVisibility() == GONE) {
-                DefaultVideoPreview.this.setVisibility(VISIBLE);
+            if (FirstFramePreview.this.getVisibility() == INVISIBLE || FirstFramePreview.this.getVisibility() == GONE) {
+                FirstFramePreview.this.setVisibility(VISIBLE);
             }
         }
 
         @Override
         public void onRelease(long currentPosition, long duration) {
             super.onRelease(currentPosition, duration);
-            if (DefaultVideoPreview.this.getVisibility() == INVISIBLE || DefaultVideoPreview.this.getVisibility() == GONE) {
-                DefaultVideoPreview.this.setVisibility(VISIBLE);
+            if (FirstFramePreview.this.getVisibility() == INVISIBLE || FirstFramePreview.this.getVisibility() == GONE) {
+                FirstFramePreview.this.setVisibility(VISIBLE);
             }
         }
     }
@@ -179,8 +187,8 @@ public class DefaultVideoPreview extends FrameLayout implements IVideoPreview {
 
         @Override
         public void onSurfaceDestroyed(Surface surface) {
-            if (DefaultVideoPreview.this.getVisibility() == INVISIBLE || DefaultVideoPreview.this.getVisibility() == GONE) {
-                DefaultVideoPreview.this.setVisibility(VISIBLE);
+            if (FirstFramePreview.this.getVisibility() == INVISIBLE || FirstFramePreview.this.getVisibility() == GONE) {
+                FirstFramePreview.this.setVisibility(VISIBLE);
             }
         }
     }

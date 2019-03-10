@@ -84,6 +84,20 @@ public class DefaultControllerView extends RelativeLayout implements IController
     @Override
     public void setup(CharSequence title, IMediaInfo mediaInfo) {
         mTitle.setText(title);
+        mSeekBar.setProgress(0);
+        mBottomProgress.setProgress(0);
+        mInitialInfoDuration.setVisibility(GONE);
+        if (mediaInfo != null) {
+            mediaInfo.getDuration(new IMediaInfo.Result<Long>() {
+                @Override
+                public void onResult(Long duration) {
+                    if (duration != null) {
+                        mInitialInfoDuration.setVisibility(VISIBLE);
+                        mInitialInfoDuration.setText(formatTimeMillis(duration));
+                    }
+                }
+            });
+        }
     }
 
     @Override
@@ -214,6 +228,7 @@ public class DefaultControllerView extends RelativeLayout implements IController
         mPlayOrPauseIcon.setVisibility(VISIBLE);
 
         mBottomProgress.setVisibility(GONE);
+        mInitialInfoContainer.setVisibility(GONE);
     }
 
     @Override

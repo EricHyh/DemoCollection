@@ -7,15 +7,17 @@ import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.text.TextUtils;
 import android.util.Log;
+import android.view.SurfaceHolder;
+import android.view.SurfaceView;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.SeekBar;
 import android.widget.Toast;
 
 import com.hyh.video.lib.DataSource;
-import com.hyh.video.lib.HappyVideo;
 import com.hyh.video.lib.MediaEventListener;
 import com.hyh.video.lib.MediaProgressListener;
+import com.hyh.video.lib.MediaSystem;
 
 import java.util.HashMap;
 
@@ -25,11 +27,12 @@ import java.util.HashMap;
  * @data 2019/2/11
  */
 
-public class VideoActivity extends Activity implements SeekBar.OnSeekBarChangeListener, MediaEventListener, MediaProgressListener {
+public class SurfaceActivity extends Activity implements SeekBar.OnSeekBarChangeListener, MediaEventListener, MediaProgressListener {
 
-    private static final String TAG = "VideoActivity";
+    private static final String TAG = "TextureActivity";
 
-    private HappyVideo mHappyVideo;
+    private MediaSystem mMediaSystem = new MediaSystem();
+    private SurfaceView mSurfaceView;
     private SeekBar mSeekBar;
     private ImageView mVideoImage;
 
@@ -39,47 +42,71 @@ public class VideoActivity extends Activity implements SeekBar.OnSeekBarChangeLi
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_happy_video);
-        mHappyVideo = findViewById(R.id.HappyVideo);
-        mHappyVideo.setup(new DataSource(mVideoUrl1, DataSource.TYPE_NET), "厉害了，我的哥！", false);
+        setContentView(R.layout.activity_surface);
+        mSurfaceView = findViewById(R.id.SurfaceView);
 
         mSeekBar = findViewById(R.id.seek_bar);
         mSeekBar.setOnSeekBarChangeListener(this);
 
         mVideoImage = findViewById(R.id.video_image);
+
+        mMediaSystem.setDataSource(new DataSource(mVideoUrl1, DataSource.TYPE_NET));
+
+        mSurfaceView.getHolder().addCallback(new SurfaceHolder.Callback2() {
+            @Override
+            public void surfaceCreated(SurfaceHolder holder) {
+                mMediaSystem.setSurface(holder.getSurface());
+            }
+
+            @Override
+            public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
+
+            }
+
+            @Override
+            public void surfaceDestroyed(SurfaceHolder holder) {
+                Log.d(TAG, "surfaceDestroyed: ");
+                mMediaSystem.pause();
+            }
+
+            @Override
+            public void surfaceRedrawNeeded(SurfaceHolder holder) {
+                
+            }
+        });
     }
 
     public void prepare(View view) {
-        mHappyVideo.prepare(false);
+        mMediaSystem.prepare(false);
     }
 
     public void play(View view) {
-        mHappyVideo.start();
+        mMediaSystem.start();
     }
 
     public void pause(View view) {
-        mHappyVideo.pause();
+        mMediaSystem.pause();
     }
 
     public void stop(View view) {
-        mHappyVideo.stop();
+        mMediaSystem.stop();
     }
 
     public void replay(View view) {
-        mHappyVideo.restart();
+        mMediaSystem.restart();
     }
 
     public void changeUrl(View view) {
-        if (mHappyVideo.getDataSource() != null && TextUtils.equals(mHappyVideo.getDataSource().getPath(), mVideoUrl1)) {
-            mHappyVideo.setup(new DataSource(mVideoUrl2, DataSource.TYPE_NET), null, true);
+        if (mMediaSystem.getDataSource() != null && TextUtils.equals(mMediaSystem.getDataSource().getPath(), mVideoUrl1)) {
+            mMediaSystem.setDataSource(new DataSource(mVideoUrl2, DataSource.TYPE_NET));
         } else {
-            mHappyVideo.setup(new DataSource(mVideoUrl1, DataSource.TYPE_NET), null, false);
+            mMediaSystem.setDataSource(new DataSource(mVideoUrl1, DataSource.TYPE_NET));
         }
     }
 
     public void release(View view) {
-        mHappyVideo.seekTimeTo(0);
-        mHappyVideo.release();
+        mMediaSystem.seekTimeTo(0);
+        mMediaSystem.release();
     }
 
     public void getFistImage(View view) {
@@ -94,12 +121,12 @@ public class VideoActivity extends Activity implements SeekBar.OnSeekBarChangeLi
     }
 
     public void getCurrentPosition(View view) {
-        long currentPosition = mHappyVideo.getCurrentPosition();
+        long currentPosition = mMediaSystem.getCurrentPosition();
         Toast.makeText(this, "currentPosition:" + currentPosition, Toast.LENGTH_SHORT).show();
     }
 
     public void getDuration(View view) {
-        long duration = mHappyVideo.getDuration();
+        long duration = mMediaSystem.getDuration();
         Toast.makeText(this, "duration:" + duration, Toast.LENGTH_SHORT).show();
     }
 
@@ -113,7 +140,7 @@ public class VideoActivity extends Activity implements SeekBar.OnSeekBarChangeLi
 
     @Override
     public void onStopTrackingTouch(SeekBar seekBar) {
-        mHappyVideo.seekProgressTo(seekBar.getProgress());
+        mMediaSystem.seekProgressTo(seekBar.getProgress());
     }
 
     @Override
@@ -185,8 +212,6 @@ public class VideoActivity extends Activity implements SeekBar.OnSeekBarChangeLi
 
     @Override
     public void onVideoSizeChanged(int width, int height) {
-        Log.d(TAG, "onVideoSizeChanged: video width=" + width + ", video height=" + height);
-        Log.d(TAG, "onVideoSizeChanged: view width=" + mHappyVideo.getMeasuredWidth() + ", view height=" + mHappyVideo.getMeasuredHeight());
     }
 
     @Override
@@ -199,6 +224,6 @@ public class VideoActivity extends Activity implements SeekBar.OnSeekBarChangeLi
     }
 
     public void isStart(View view) {
-        Toast.makeText(this, "" + mHappyVideo.isExecuteStart(), Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, "" + mMediaSystem.isExecuteStart(), Toast.LENGTH_SHORT).show();
     }
 }

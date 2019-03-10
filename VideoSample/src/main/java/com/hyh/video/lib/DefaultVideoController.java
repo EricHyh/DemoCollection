@@ -167,6 +167,7 @@ public class DefaultVideoController implements IVideoController {
         @Override
         public void onPreparing() {
             mControllerView.showLoadingView();
+            mCurControlState = CONTROL_STATE_OPERATE;
         }
 
         @Override
@@ -183,12 +184,14 @@ public class DefaultVideoController implements IVideoController {
         @Override
         public void onPlaying(long currentPosition, long duration) {
             mControllerView.hideLoadingView();
+            mCurControlState = CONTROL_STATE_OPERATE;
         }
 
         @Override
         public void onPause(long currentPosition, long duration) {
             mControllerView.setStartIconPlayStyle();
             mHideOperateViewTask.remove();
+            mControllerView.hideLoadingView();
             mControllerView.showOperateView();
         }
 
@@ -197,6 +200,7 @@ public class DefaultVideoController implements IVideoController {
             mControllerView.setMediaProgress(0);
             mControllerView.setCurrentPosition(0);
             mHideOperateViewTask.remove();
+            mControllerView.hideLoadingView();
             mControllerView.showInitialView();
             mCurControlState = CONTROL_STATE_INITIAL;
         }
@@ -235,6 +239,7 @@ public class DefaultVideoController implements IVideoController {
 
         @Override
         public void onCompletion() {
+            mHideOperateViewTask.remove();
             mControllerView.showEndView();
             mCurControlState = CONTROL_STATE_END;
         }
@@ -269,6 +274,7 @@ public class DefaultVideoController implements IVideoController {
         @Override
         public void onSurfaceDestroyed(Surface surface) {
             mHideOperateViewTask.remove();
+            mHappyVideo.pause();
             mControllerView.showInitialView();
             mCurControlState = CONTROL_STATE_INITIAL;
         }
@@ -302,13 +308,11 @@ public class DefaultVideoController implements IVideoController {
                     break;
                 }
                 case FLAG_REPLAY_ICON: {
-                    mHappyVideo.restart();
-                    mControllerView.hideEndView();
+                    handleReplayIconCLick();
                     break;
                 }
                 case FLAG_RETRY_BUTTON: {
-                    mHappyVideo.retry();
-                    mControllerView.hideErrorView();
+                    handleRetryButtonClick();
                     break;
                 }
                 case FLAG_FULLSCREEN_TOGGLE: {
@@ -329,8 +333,12 @@ public class DefaultVideoController implements IVideoController {
         private void handleControllerViewClick() {
             switch (mCurControlState) {
                 case CONTROL_STATE_INITIAL: {
-                    mHappyVideo.start();
-                    mControllerView.hideInitialView();
+                    if (!VideoUtils.isNetEnv(mContext)) {
+                        Toast.makeText(mContext, "网络不可用", Toast.LENGTH_SHORT).show();
+                    } else {
+                        mControllerView.hideInitialView();
+                        mHappyVideo.start();
+                    }
                     break;
                 }
                 case CONTROL_STATE_OPERATE: {
@@ -354,9 +362,32 @@ public class DefaultVideoController implements IVideoController {
                 mHappyVideo.pause();
                 mControllerView.setStartIconPlayStyle();
             } else {
-                mHappyVideo.start();
-                mControllerView.setStartIconPauseStyle();
-                mHideOperateViewTask.post();
+                if (!VideoUtils.isNetEnv(mContext)) {
+                    Toast.makeText(mContext, "网络不可用", Toast.LENGTH_SHORT).show();
+                } else {
+                    mHappyVideo.start();
+                    mControllerView.setStartIconPauseStyle();
+                    mHideOperateViewTask.post();
+                }
+            }
+        }
+
+        private void handleReplayIconCLick() {
+            if (!VideoUtils.isNetEnv(mContext)) {
+                Toast.makeText(mContext, "网络不可用", Toast.LENGTH_SHORT).show();
+            } else {
+                mHappyVideo.restart();
+                mControllerView.hideEndView();
+            }
+        }
+
+
+        private void handleRetryButtonClick() {
+            if (!VideoUtils.isNetEnv(mContext)) {
+                Toast.makeText(mContext, "网络不可用", Toast.LENGTH_SHORT).show();
+            } else {
+                mHappyVideo.retry();
+                mControllerView.hideErrorView();
             }
         }
 

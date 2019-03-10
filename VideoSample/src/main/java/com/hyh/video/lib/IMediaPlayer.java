@@ -40,7 +40,7 @@ public interface IMediaPlayer {
 
     boolean isPlaying();
 
-    void seekTimeTo(int milliSeconds);
+    void seekTimeTo(int millis);
 
     void seekProgressTo(int progress);
 

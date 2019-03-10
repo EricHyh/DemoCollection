@@ -21,6 +21,7 @@ import java.util.List;
 
 public class HappyVideo extends FrameLayout {
 
+    private final static VideoManager VIDEO_MANAGER = new VideoManager();
 
     private final IMediaPlayer mMediaPlayer = new MediaSystem();
     private final IMediaInfo mMediaInfo;
@@ -56,7 +57,7 @@ public class HappyVideo extends FrameLayout {
         mMediaInfo = new MediaInfoImpl(context);
 
         this.mVideoSurface = new TextureSurface(context);
-        this.mVideoPreview = new DefaultVideoPreview(context);
+        this.mVideoPreview = new FirstFramePreview(context);
         this.mVideoController = new DefaultVideoController(context);
 
         LayoutParams params = new LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
@@ -185,29 +186,42 @@ public class HappyVideo extends FrameLayout {
     public void prepare(boolean autoStart) {
         if (mVideoController != null && mVideoController.interceptPrepare(autoStart)) return;
         mMediaPlayer.prepare(autoStart);
+        if (autoStart) {
+            VIDEO_MANAGER.onStart(this);
+        }
     }
 
     public void start() {
         if (mVideoController != null && mVideoController.interceptStart()) return;
         mMediaPlayer.start();
+        VIDEO_MANAGER.onStart(this);
     }
 
     public void restart() {
         if (mVideoController != null && mVideoController.interceptRestart()) return;
         mMediaPlayer.restart();
+        VIDEO_MANAGER.onStart(this);
     }
 
     public void retry() {
         if (mVideoController != null && mVideoController.interceptRetry()) return;
         mMediaPlayer.retry();
+        VIDEO_MANAGER.onStart(this);
     }
 
     public void pause() {
         mMediaPlayer.pause();
+        VIDEO_MANAGER.onEnd(this);
     }
 
     public void stop() {
         mMediaPlayer.stop();
+        VIDEO_MANAGER.onEnd(this);
+    }
+
+    public void release() {
+        mMediaPlayer.release();
+        VIDEO_MANAGER.onEnd(this);
     }
 
     public boolean isExecuteStart() {
@@ -248,10 +262,6 @@ public class HappyVideo extends FrameLayout {
 
     public void setSpeed(float speed) {
         mMediaPlayer.setSpeed(speed);
-    }
-
-    public void release() {
-        mMediaPlayer.release();
     }
 
     private class InnerSurfaceListener implements IVideoSurface.SurfaceListener {
