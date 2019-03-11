@@ -4,19 +4,17 @@ import android.app.Activity;
 import android.content.Context;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
-import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
+import android.widget.FrameLayout;
 import android.widget.ListView;
 
 import com.hyh.video.base.VideoConstant;
-import com.hyh.video.lib.DataSource;
-import com.hyh.video.lib.HappyVideo;
-import com.hyh.video.lib.ImagePreview;
-import com.hyh.video.lib.MediaProgressListener;
-import com.squareup.picasso.Picasso;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Created by Eric_He on 2019/3/10.
@@ -37,10 +35,17 @@ public class VideoListActivity extends Activity {
 
     private static class VideoListAdapter extends BaseAdapter {
 
-        private Context mContext;
+        private final Context mContext;
+
+        private final List<VideoData> mVideoDataList;
+
 
         public VideoListAdapter(Context context) {
             this.mContext = context;
+            mVideoDataList = new ArrayList<>();
+            for (int index = 0; index < VideoConstant.videoUrlList.length; index++) {
+                mVideoDataList.add(new VideoData(VideoConstant.videoUrlList[index], VideoConstant.videoThumbList[index]));
+            }
         }
 
         @Override
@@ -68,38 +73,21 @@ public class VideoListActivity extends Activity {
                 holder = new VideoHolder(convertView);
                 convertView.setTag(holder);
             }
-            holder.onBindViewHolder(VideoConstant.videoUrlList[position], VideoConstant.videoThumbList[position]);
+            holder.onBindViewHolder(mVideoDataList.get(position));
             return convertView;
         }
     }
 
-    private static class VideoHolder implements MediaProgressListener {
+    private static class VideoHolder {
 
-        private final Context mContext;
-        private final HappyVideo mHappyVideo;
-        private final ImagePreview mImagePreview;
+        private final FrameLayout mVideoContainer;
 
         VideoHolder(View itemView) {
-            mContext = itemView.getContext();
-            mHappyVideo = itemView.findViewById(R.id.video);
-            mImagePreview = new ImagePreview(mContext);
-            mHappyVideo.setVideoPreview(mImagePreview);
+            mVideoContainer = itemView.findViewById(R.id.video_container);
         }
 
-        void onBindViewHolder(String url, String image) {
-            mHappyVideo.setup(new DataSource(url, DataSource.TYPE_NET), null, false);
-            if (!TextUtils.isEmpty(image)) {
-                Picasso.with(mContext)
-                        .load(image)
-                        .fit()
-                        .into(mImagePreview);
-            }
-            mHappyVideo.addMediaProgressListener(this);
-        }
-
-        @Override
-        public void onMediaProgress(int progress, long currentPosition, long duration) {
-
+        void onBindViewHolder(VideoData videoData) {
+            videoData.bindVideoView(mVideoContainer);
         }
     }
 }

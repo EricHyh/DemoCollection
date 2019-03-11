@@ -11,6 +11,7 @@ import android.util.Log;
 import android.view.Surface;
 import android.view.TextureView;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.SeekBar;
 import android.widget.Toast;
@@ -102,11 +103,22 @@ public class TextureActivity extends Activity implements SeekBar.OnSeekBarChange
         } else {
             mMediaSystem.setDataSource(new DataSource(mVideoUrl1, DataSource.TYPE_NET));
         }
+        mMediaSystem.prepare(false);
     }
 
     public void release(View view) {
         mMediaSystem.seekTimeTo(0);
         mMediaSystem.release();
+    }
+
+    public void fullscreen(View view) {
+        ViewGroup parent = (ViewGroup) mTextureView.getParent();
+        parent.removeView(mTextureView);
+        ViewGroup decorView = (ViewGroup) getWindow().getDecorView();
+        ViewGroup.LayoutParams params = mTextureView.getLayoutParams();
+        params.width = ViewGroup.LayoutParams.MATCH_PARENT;
+        params.height = ViewGroup.LayoutParams.MATCH_PARENT;
+        decorView.addView(mTextureView);
     }
 
     public void getFistImage(View view) {
@@ -149,12 +161,17 @@ public class TextureActivity extends Activity implements SeekBar.OnSeekBarChange
     }
 
     @Override
-    public void onPreparing() {
+    public void onPreparing(boolean autoStart) {
 
     }
 
     @Override
     public void onPrepared(long duration) {
+
+    }
+
+    @Override
+    public void onExecuteStart() {
 
     }
 
@@ -226,4 +243,5 @@ public class TextureActivity extends Activity implements SeekBar.OnSeekBarChange
     public void isStart(View view) {
         Toast.makeText(this, "" + mMediaSystem.isExecuteStart(), Toast.LENGTH_SHORT).show();
     }
+
 }

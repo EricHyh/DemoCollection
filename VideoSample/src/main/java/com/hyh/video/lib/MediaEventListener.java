@@ -10,9 +10,11 @@ public interface MediaEventListener {
 
     void onInitialized();
 
-    void onPreparing();
+    void onPreparing(boolean autoStart);
 
     void onPrepared(long duration);
+
+    void onExecuteStart();
 
     void onStart(long currentPosition, long duration);
 
@@ -39,4 +41,5 @@ public interface MediaEventListener {
     void onCompletion();
 
     void onRelease(long currentPosition, long duration);
+
 }

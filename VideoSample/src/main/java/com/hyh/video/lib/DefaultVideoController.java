@@ -165,9 +165,11 @@ public class DefaultVideoController implements IVideoController {
     private class ControllerMediaEventListener extends SimpleMediaEventListener {
 
         @Override
-        public void onPreparing() {
-            mControllerView.showLoadingView();
-            mCurControlState = CONTROL_STATE_OPERATE;
+        public void onPreparing(boolean autoStart) {
+            if (autoStart || mHappyVideo.isExecuteStart()) {
+                mControllerView.showLoadingView();
+                mCurControlState = CONTROL_STATE_OPERATE;
+            }
         }
 
         @Override
@@ -176,9 +178,14 @@ public class DefaultVideoController implements IVideoController {
         }
 
         @Override
-        public void onStart(long currentPosition, long duration) {
+        public void onExecuteStart() {
+            mControllerView.showLoadingView();
             mControllerView.setStartIconPauseStyle();
             mCurControlState = CONTROL_STATE_OPERATE;
+        }
+
+        @Override
+        public void onStart(long currentPosition, long duration) {
         }
 
         @Override

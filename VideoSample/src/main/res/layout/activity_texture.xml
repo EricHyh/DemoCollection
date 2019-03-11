@@ -74,6 +74,12 @@
 
     </LinearLayout>
 
+    <Button
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:onClick="fullscreen"
+        android:text="全屏"/>
+
     <SeekBar
         android:id="@+id/seek_bar"
         android:layout_width="match_parent"

@@ -151,6 +151,10 @@ public class HappyVideo extends FrameLayout {
         mMediaEventListeners.remove(listener);
     }
 
+    public void removeMediaEventListeners() {
+        mMediaEventListeners.clear();
+    }
+
     public void addMediaProgressListener(MediaProgressListener listener) {
         if (listener == null || mMediaProgressListeners.contains(listener)) return;
         mMediaProgressListeners.add(listener);
@@ -160,6 +164,10 @@ public class HappyVideo extends FrameLayout {
         mMediaProgressListeners.remove(listener);
     }
 
+    public void removeMediaProgressListeners() {
+        mMediaProgressListeners.clear();
+    }
+
     public void addSurfaceListener(IVideoSurface.SurfaceListener listener) {
         if (listener == null || mSurfaceListeners.contains(listener)) return;
         mSurfaceListeners.add(listener);
@@ -167,6 +175,10 @@ public class HappyVideo extends FrameLayout {
 
     public void removeSurfaceListener(IVideoSurface.SurfaceListener listener) {
         mSurfaceListeners.remove(listener);
+    }
+
+    public void removeSurfaceListeners() {
+        mSurfaceListeners.clear();
     }
 
     public boolean setup(DataSource source, CharSequence title, boolean looping) {
@@ -320,9 +332,9 @@ public class HappyVideo extends FrameLayout {
         }
 
         @Override
-        public void onPreparing() {
+        public void onPreparing(boolean autoStart) {
             for (MediaEventListener listener : mMediaEventListeners) {
-                listener.onPreparing();
+                listener.onPreparing(autoStart);
             }
         }
 
@@ -330,6 +342,13 @@ public class HappyVideo extends FrameLayout {
         public void onPrepared(long duration) {
             for (MediaEventListener listener : mMediaEventListeners) {
                 listener.onPrepared(duration);
+            }
+        }
+
+        @Override
+        public void onExecuteStart() {
+            for (MediaEventListener listener : mMediaEventListeners) {
+                listener.onExecuteStart();
             }
         }
 

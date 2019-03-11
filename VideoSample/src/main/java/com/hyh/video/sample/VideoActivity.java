@@ -122,12 +122,17 @@ public class VideoActivity extends Activity implements SeekBar.OnSeekBarChangeLi
     }
 
     @Override
-    public void onPreparing() {
+    public void onPreparing(boolean autoStart) {
 
     }
 
     @Override
     public void onPrepared(long duration) {
+
+    }
+
+    @Override
+    public void onExecuteStart() {
 
     }
 

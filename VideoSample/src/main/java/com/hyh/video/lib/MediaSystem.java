@@ -119,6 +119,7 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
             mMediaPlayer.setDataSource(path);
             return true;
         } catch (Exception e) {
+            e.printStackTrace();
             return false;
         }
     }
@@ -127,15 +128,19 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
     public void prepare(boolean autoStart) {
         boolean preparing = false;
         if (mCurrentState == State.INITIALIZED || mCurrentState == State.STOPPED) {
-            mMediaPlayer.prepareAsync();
-            postPreparing();
-            preparing = true;
+            try {
+                mMediaPlayer.prepareAsync();
+                postPreparing(autoStart);
+                preparing = true;
+            } catch (Exception e) {
+                postError(0, 0);
+            }
         } else if (mCurrentState == State.ERROR) {
             mMediaPlayer.reset();
             if (initMediaPlayer(mDataSource)) {
                 try {
                     mMediaPlayer.prepareAsync();
-                    postPreparing();
+                    postPreparing(autoStart);
                     preparing = true;
                 } catch (Exception e) {
                     postError(0, 0);
@@ -153,6 +158,7 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
 
     @Override
     public void start() {
+        postExecuteStart();
         if (mCurrentState == State.PREPARED
                 || mCurrentState == State.STARTED
                 || mCurrentState == State.PAUSED
@@ -178,6 +184,7 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
                 || mCurrentState == State.STARTED
                 || mCurrentState == State.PAUSED
                 || mCurrentState == State.COMPLETED) {
+            postExecuteStart();
             seekTimeTo(0);
             if (!isPlaying()) {
                 mMediaPlayer.start();
@@ -201,7 +208,7 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
             mMediaPlayer.reset();
             if (initMediaPlayer(mDataSource)) {
                 mMediaPlayer.prepareAsync();
-                postPreparing();
+                postPreparing(true);
                 mPendingCommand = PENDING_COMMAND_START;
                 mPendingSeekMilliSeconds = mErrorPosition;
             } else {
@@ -497,10 +504,10 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
         }
     }
 
-    private void postPreparing() {
+    private void postPreparing(boolean autoStart) {
         mCurrentState = State.PREPARING;
         if (mMediaEventListener != null) {
-            mMediaEventListener.onPreparing();
+            mMediaEventListener.onPreparing(autoStart);
         }
     }
 
@@ -508,6 +515,12 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
         mCurrentState = State.PREPARED;
         if (mMediaEventListener != null) {
             mMediaEventListener.onPrepared(getDuration());
+        }
+    }
+
+    private void postExecuteStart() {
+        if (mMediaEventListener != null) {
+            mMediaEventListener.onExecuteStart();
         }
     }
 
