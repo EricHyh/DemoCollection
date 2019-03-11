@@ -7,11 +7,14 @@ import android.support.annotation.Nullable;
 import android.util.AttributeSet;
 import android.view.Gravity;
 import android.view.Surface;
+import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewParent;
 import android.widget.FrameLayout;
 
 import java.util.ArrayList;
 import java.util.List;
+
 
 /**
  * @author Administrator
@@ -21,7 +24,8 @@ import java.util.List;
 
 public class HappyVideo extends FrameLayout {
 
-    private final static VideoManager VIDEO_MANAGER = new VideoManager();
+    private static final String TAG = "HappyVideo";
+    private static final VideoManager VIDEO_MANAGER = new VideoManager();
 
     private final IMediaPlayer mMediaPlayer = new MediaSystem();
     private final IMediaInfo mMediaInfo;
@@ -31,6 +35,8 @@ public class HappyVideo extends FrameLayout {
     private final List<MediaEventListener> mMediaEventListeners = new ArrayList<>();
     private final List<MediaProgressListener> mMediaProgressListeners = new ArrayList<>();
     private final List<IVideoSurface.SurfaceListener> mSurfaceListeners = new ArrayList<>();
+    private final WindowAttachListenerView mWindowAttachListenerView;
+
 
     private ISurfaceMeasurer mSurfaceMeasurer = new FitCenterMeasurer();
     private IVideoBackground mVideoBackground;
@@ -52,6 +58,8 @@ public class HappyVideo extends FrameLayout {
     public HappyVideo(@NonNull Context context, @Nullable AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
         setBackgroundColor(Color.BLACK);
+        setVolume(0, 0);
+        mWindowAttachListenerView = new WindowAttachListenerView(context);
         mMediaPlayer.setMediaEventListener(mMediaEventListener);
         mMediaPlayer.setMediaProgressListener(mMediaProgressListener);
         mMediaInfo = new MediaInfoImpl(context);
@@ -71,6 +79,16 @@ public class HappyVideo extends FrameLayout {
         mVideoSurface.setSurfaceMeasurer(mSurfaceMeasurer);
         mVideoSurface.setSurfaceListener(mSurfaceListener);
         mVideoPreview.setSurfaceMeasurer(mSurfaceMeasurer);
+    }
+
+
+    @Override
+    protected void onAttachedToWindow() {
+        super.onAttachedToWindow();
+        ViewParent parent = mWindowAttachListenerView.getParent();
+        if (parent == null) {
+            ((ViewGroup) getRootView()).addView(mWindowAttachListenerView);
+        }
     }
 
     public void setSurfaceMeasurer(ISurfaceMeasurer surfaceMeasurer) {
@@ -421,6 +439,27 @@ public class HappyVideo extends FrameLayout {
             for (MediaProgressListener listener : mMediaProgressListeners) {
                 listener.onMediaProgress(progress, currentPosition, duration);
             }
+        }
+    }
+
+
+    private class WindowAttachListenerView extends View {
+
+        public WindowAttachListenerView(Context context) {
+            super(context);
+            setBackgroundColor(Color.TRANSPARENT);
+            setLayoutParams(new ViewGroup.LayoutParams(1, 1));
+        }
+
+        @Override
+        protected void onAttachedToWindow() {
+            super.onAttachedToWindow();
+        }
+
+        @Override
+        protected void onDetachedFromWindow() {
+            super.onDetachedFromWindow();
+            release();
         }
     }
 }

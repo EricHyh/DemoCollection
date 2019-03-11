@@ -79,14 +79,14 @@ public class VideoListActivity extends Activity {
         private final HappyVideo mHappyVideo;
         private final ImagePreview mImagePreview;
 
-        public VideoHolder(View itemView) {
+        VideoHolder(View itemView) {
             mContext = itemView.getContext();
             mHappyVideo = itemView.findViewById(R.id.video);
             mImagePreview = new ImagePreview(mContext);
             mHappyVideo.setVideoPreview(mImagePreview);
         }
 
-        public void onBindViewHolder(String url, String image) {
+        void onBindViewHolder(String url, String image) {
             mHappyVideo.setup(new DataSource(url, DataSource.TYPE_NET), null, false);
             if (!TextUtils.isEmpty(image)) {
                 Picasso.with(mContext)

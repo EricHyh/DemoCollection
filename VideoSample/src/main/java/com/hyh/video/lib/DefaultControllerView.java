@@ -175,44 +175,46 @@ public class DefaultControllerView extends RelativeLayout implements IController
     @Override
     public void showInitialView() {
         setBackgroundColor(Color.TRANSPARENT);
-        mTopContainer.setVisibility(VISIBLE);
-        mInitialInfoContainer.setVisibility(VISIBLE);
-        mPlayOrPauseIcon.setVisibility(VISIBLE);
         mPlayOrPauseIcon.setImageResource(R.drawable.video_play_selector);
 
-        mBottomProgress.setVisibility(GONE);
-        mBottomContainer.setVisibility(GONE);
-        mMobileDataConfirmContainer.setVisibility(GONE);
-        mRetryContainer.setVisibility(GONE);
-        mReplayContainer.setVisibility(GONE);
+        setVisibility(mTopContainer, VISIBLE);
+        setVisibility(mInitialInfoContainer, VISIBLE);
+        setVisibility(mPlayOrPauseIcon, VISIBLE);
+
+        setVisibility(mBottomProgress, GONE);
+        setVisibility(mBottomContainer, GONE);
+        setVisibility(mMobileDataConfirmContainer, GONE);
+        setVisibility(mRetryContainer, GONE);
+        setVisibility(mReplayContainer, GONE);
     }
 
     @Override
     public void hideInitialView() {
-        mTopContainer.setVisibility(GONE);
-        mInitialInfoContainer.setVisibility(GONE);
-        mPlayOrPauseIcon.setVisibility(GONE);
+        setVisibility(mTopContainer, GONE);
+        setVisibility(mInitialInfoContainer, GONE);
+        setVisibility(mPlayOrPauseIcon, GONE);
     }
 
     @Override
     public void showMobileDataConfirm() {
         setBackgroundColor(Color.BLACK);
-        mMobileDataConfirmContainer.setVisibility(VISIBLE);
 
-        mTopContainer.setVisibility(GONE);
-        mInitialInfoContainer.setVisibility(GONE);
-        mPlayOrPauseIcon.setVisibility(GONE);
+        setVisibility(mMobileDataConfirmContainer, VISIBLE);
 
-        mBottomProgress.setVisibility(GONE);
-        mBottomContainer.setVisibility(GONE);
-        mRetryContainer.setVisibility(GONE);
-        mReplayContainer.setVisibility(GONE);
+        setVisibility(mTopContainer, GONE);
+        setVisibility(mInitialInfoContainer, GONE);
+        setVisibility(mPlayOrPauseIcon, GONE);
+
+        setVisibility(mBottomProgress, GONE);
+        setVisibility(mBottomContainer, GONE);
+        setVisibility(mRetryContainer, GONE);
+        setVisibility(mReplayContainer, GONE);
     }
 
     @Override
     public void hideMobileDataConfirm() {
         setBackgroundColor(Color.TRANSPARENT);
-        mMobileDataConfirmContainer.setVisibility(GONE);
+        setVisibility(mMobileDataConfirmContainer, GONE);
     }
 
     @Override
@@ -223,71 +225,77 @@ public class DefaultControllerView extends RelativeLayout implements IController
     @Override
     public void showOperateView() {
         setBackgroundColor(Color.TRANSPARENT);
-        mTopContainer.setVisibility(VISIBLE);
-        mBottomContainer.setVisibility(VISIBLE);
-        mPlayOrPauseIcon.setVisibility(VISIBLE);
+        setVisibility(mTopContainer, VISIBLE);
+        setVisibility(mBottomContainer, VISIBLE);
+        setVisibility(mPlayOrPauseIcon, VISIBLE);
 
-        mBottomProgress.setVisibility(GONE);
-        mInitialInfoContainer.setVisibility(GONE);
+        setVisibility(mBottomProgress, GONE);
+        setVisibility(mInitialInfoContainer, GONE);
     }
 
     @Override
     public void hideOperateView() {
-        mTopContainer.setVisibility(GONE);
-        mBottomContainer.setVisibility(GONE);
-        mPlayOrPauseIcon.setVisibility(GONE);
+        setVisibility(mTopContainer, GONE);
+        setVisibility(mBottomContainer, GONE);
+        setVisibility(mPlayOrPauseIcon, GONE);
 
-        mBottomProgress.setVisibility(VISIBLE);
+        setVisibility(mBottomProgress, VISIBLE);
     }
 
     @Override
     public void showEndView() {
         setBackgroundColor(0x55000000);
-        mReplayContainer.setVisibility(VISIBLE);
 
-        mTopContainer.setVisibility(GONE);
-        mInitialInfoContainer.setVisibility(GONE);
-        mPlayOrPauseIcon.setVisibility(GONE);
-        mBottomContainer.setVisibility(GONE);
+        setVisibility(mReplayContainer, VISIBLE);
 
-        mBottomProgress.setVisibility(GONE);
-
-        mRetryContainer.setVisibility(GONE);
+        setVisibility(mTopContainer, GONE);
+        setVisibility(mInitialInfoContainer, GONE);
+        setVisibility(mPlayOrPauseIcon, GONE);
+        setVisibility(mBottomContainer, GONE);
+        setVisibility(mBottomProgress, GONE);
+        setVisibility(mRetryContainer, GONE);
     }
 
     @Override
     public void hideEndView() {
         setBackgroundColor(Color.TRANSPARENT);
-        mReplayContainer.setVisibility(GONE);
+        setVisibility(mReplayContainer, GONE);
     }
 
     @Override
     public void showErrorView() {
         setBackgroundColor(Color.TRANSPARENT);
-        mRetryContainer.setVisibility(VISIBLE);
 
-        mTopContainer.setVisibility(GONE);
-        mInitialInfoContainer.setVisibility(GONE);
-        mPlayOrPauseIcon.setVisibility(GONE);
+        setVisibility(mRetryContainer, VISIBLE);
 
-        mBottomProgress.setVisibility(GONE);
-        mBottomContainer.setVisibility(GONE);
-        mReplayContainer.setVisibility(GONE);
+        setVisibility(mTopContainer, GONE);
+        setVisibility(mInitialInfoContainer, GONE);
+        setVisibility(mPlayOrPauseIcon, GONE);
+
+        setVisibility(mBottomProgress, GONE);
+        setVisibility(mBottomContainer, GONE);
+        setVisibility(mReplayContainer, GONE);
     }
 
     @Override
     public void hideErrorView() {
-        mRetryContainer.setVisibility(GONE);
+        setVisibility(mRetryContainer, GONE);
     }
 
     @Override
     public void showLoadingView() {
-        mLoadingProgress.setVisibility(VISIBLE);
+        setVisibility(mLoadingProgress, VISIBLE);
     }
 
     @Override
     public void hideLoadingView() {
-        mLoadingProgress.setVisibility(GONE);
+        setVisibility(mLoadingProgress, GONE);
+    }
+
+
+    private void setVisibility(View view, int visibility) {
+        if (view.getVisibility() == visibility) return;
+        view.setVisibility(visibility);
     }
 
     //00:00:00
