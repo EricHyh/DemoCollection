@@ -49,10 +49,9 @@ public class TextureActivity extends Activity implements SeekBar.OnSeekBarChange
 
         mSeekBar = findViewById(R.id.seek_bar);
         mSeekBar.setOnSeekBarChangeListener(this);
-
         mVideoImage = findViewById(R.id.video_image);
-
         mMediaSystem.setDataSource(new DataSource(mVideoUrl1, DataSource.TYPE_NET));
+
         mTextureView.setSurfaceTextureListener(new TextureView.SurfaceTextureListener() {
             @Override
             public void onSurfaceTextureAvailable(SurfaceTexture surface, int width, int height) {

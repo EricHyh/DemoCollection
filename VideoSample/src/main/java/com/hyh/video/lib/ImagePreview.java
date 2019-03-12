@@ -44,7 +44,6 @@ public class ImagePreview extends ImageView implements IVideoPreview {
             setImageBitmap(null);
         }
         mDataSource = dataSource;
-        this.setBackgroundColor(0xFFE8E8E8);
         int mediaState = happyVideo.getMediaState();
         if (mediaState == IMediaPlayer.State.IDLE
                 || mediaState == IMediaPlayer.State.INITIALIZED

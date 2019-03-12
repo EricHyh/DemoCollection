@@ -214,7 +214,9 @@ public class DefaultVideoController implements IVideoController {
 
         @Override
         public void onBufferingStart() {
-            mControllerView.showLoadingView();
+            if (mCurControlState != CONTROL_STATE_INITIAL) {
+                mControllerView.showLoadingView();
+            }
         }
 
         @Override

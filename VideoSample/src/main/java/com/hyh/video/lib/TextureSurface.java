@@ -31,9 +31,9 @@ public class TextureSurface extends TextureView implements IVideoSurface {
         if (mSurfaceMeasurer == null || parent == null || !(parent instanceof ViewGroup)) {
             super.onMeasure(widthMeasureSpec, heightMeasureSpec);
         } else {
-            ViewGroup viewGroup = (ViewGroup) parent;
-            int[] size = mSurfaceMeasurer.onMeasure(viewGroup.getMeasuredWidth(),
-                    viewGroup.getMeasuredHeight());
+            int defaultWidth = getDefaultSize(getSuggestedMinimumWidth(), widthMeasureSpec);
+            int defaultHeight = getDefaultSize(getSuggestedMinimumHeight(), heightMeasureSpec);
+            int[] size = mSurfaceMeasurer.onMeasure(defaultWidth, defaultHeight);
             setMeasuredDimension(size[0], size[1]);
         }
     }

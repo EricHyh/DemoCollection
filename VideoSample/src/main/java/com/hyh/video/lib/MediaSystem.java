@@ -7,6 +7,7 @@ import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
+import android.os.SystemClock;
 import android.util.Log;
 import android.view.Surface;
 
@@ -23,7 +24,7 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
     private static final int PENDING_COMMAND_PAUSE = 2;
     private static final int PENDING_COMMAND_STOP = 3;
 
-    private final ProgressHandler mProgressHandler = new ProgressHandler(this);
+    private final EventHandler mEventHandler = new EventHandler(this);
 
     private final MediaPlayer mMediaPlayer = newMediaPlayer();
 
@@ -45,12 +46,21 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
 
     private Surface mSurface;
 
+    private Boolean mIsLooping;
+
+    private float[] mVolume = {1.0f, 1.0f};
+
+    private Float mSpeed;
+
+    private long mInitTimeMillis;
+
     @Override
     public boolean setDataSource(DataSource source) {
         if (isReleased()) return false;
         if (mDataSource != null && mDataSource.equals(source)) return false;
         if (mDataSource == null && source == null) return false;
 
+        mEventHandler.cancelPrepareTask();
         if (mDataSource != null) {
             mMediaPlayer.reset();
             this.mErrorPosition = 0;
@@ -86,11 +96,13 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
 
     @Override
     public boolean isLooping() {
-        return mMediaPlayer.isLooping();
+        return mIsLooping != null && mIsLooping;
     }
 
     @Override
     public void setLooping(boolean looping) {
+        this.mIsLooping = looping;
+        if (isReleased()) return;
         mMediaPlayer.setLooping(looping);
     }
 
@@ -117,6 +129,7 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
         try {
             String path = source.getPath();
             mMediaPlayer.setDataSource(path);
+            mInitTimeMillis = SystemClock.elapsedRealtime();
             return true;
         } catch (Exception e) {
             e.printStackTrace();
@@ -129,9 +142,17 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
         boolean preparing = false;
         if (mCurrentState == State.INITIALIZED || mCurrentState == State.STOPPED) {
             try {
-                mMediaPlayer.prepareAsync();
-                postPreparing(autoStart);
-                preparing = true;
+                long currentTimeMillis = SystemClock.elapsedRealtime();
+                long timeInterval = Math.abs(currentTimeMillis - mInitTimeMillis);
+                if (timeInterval > 1000) {
+                    mMediaPlayer.prepareAsync();
+                    postPreparing(autoStart);
+                    preparing = true;
+                } else {
+                    mEventHandler.startPrepareTask(1000 - timeInterval);
+                    postPreparing(autoStart);
+                    preparing = true;
+                }
             } catch (Exception e) {
                 postError(0, 0);
             }
@@ -139,9 +160,17 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
             mMediaPlayer.reset();
             if (initMediaPlayer(mDataSource)) {
                 try {
-                    mMediaPlayer.prepareAsync();
-                    postPreparing(autoStart);
-                    preparing = true;
+                    long currentTimeMillis = SystemClock.elapsedRealtime();
+                    long timeInterval = Math.abs(currentTimeMillis - mInitTimeMillis);
+                    if (timeInterval > 1000) {
+                        mMediaPlayer.prepareAsync();
+                        postPreparing(autoStart);
+                        preparing = true;
+                    } else {
+                        mEventHandler.startPrepareTask(1000 - timeInterval);
+                        postPreparing(autoStart);
+                        preparing = true;
+                    }
                 } catch (Exception e) {
                     postError(0, 0);
                 }
@@ -151,14 +180,16 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
         } else if (mCurrentState == State.IDLE) {
             postError(0, 0);
         }
-        if (autoStart && preparing) {
+        if (autoStart && (preparing || mCurrentState == State.PREPARING)) {
             mPendingCommand = PENDING_COMMAND_START;
         }
     }
 
     @Override
     public void start() {
-        postExecuteStart();
+        if (mCurrentState != State.STARTED) {
+            postExecuteStart();
+        }
         if (mCurrentState == State.PREPARED
                 || mCurrentState == State.STARTED
                 || mCurrentState == State.PAUSED
@@ -180,11 +211,13 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
 
     @Override
     public void restart() {
+        if (mCurrentState != State.STARTED) {
+            postExecuteStart();
+        }
         if (mCurrentState == State.PREPARED
                 || mCurrentState == State.STARTED
                 || mCurrentState == State.PAUSED
                 || mCurrentState == State.COMPLETED) {
-            postExecuteStart();
             seekTimeTo(0);
             if (!isPlaying()) {
                 mMediaPlayer.start();
@@ -249,7 +282,7 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
 
     @Override
     public boolean isExecuteStart() {
-        return !isReleased() && (isPlaying() || mPendingCommand == PENDING_COMMAND_START);
+        return !isReleased() && (isPlaying() || mCurrentState == State.STARTED || mPendingCommand == PENDING_COMMAND_START);
     }
 
     @Override
@@ -365,6 +398,8 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
     @Override
     public void setVolume(float leftVolume, float rightVolume) {
         if (isReleased()) return;
+        mVolume[0] = leftVolume;
+        mVolume[1] = rightVolume;
         mMediaPlayer.setVolume(leftVolume, rightVolume);
     }
 
@@ -377,6 +412,7 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
     public void setSpeed(float speed) {
         if (isReleased()) return;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            mSpeed = speed;
             PlaybackParams pp = mMediaPlayer.getPlaybackParams();
             pp.setSpeed(speed);
             mMediaPlayer.setPlaybackParams(pp);
@@ -490,11 +526,11 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
     }
 
     private void startObserveProgress() {
-        mProgressHandler.start();
+        mEventHandler.startObserveProgress();
     }
 
     private void stopObserveProgress() {
-        mProgressHandler.stop();
+        mEventHandler.stopObserveProgress();
     }
 
     private void postInitialized() {
@@ -628,13 +664,18 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
         }
     }
 
-    private static class ProgressHandler extends Handler {
+    private static class EventHandler extends Handler {
+
+        private static final int MESSAGE_PROGRESS = 0;
+        private static final int MESSAGE_PREPARE = 1;
 
         private final WeakReference<MediaSystem> mMediaSystemRef;
 
-        private boolean mIsStart;
+        private volatile boolean mIsStartObserveProgress;
 
-        ProgressHandler(MediaSystem mediaSystem) {
+        private volatile boolean mIsCancelPrepareTask;
+
+        EventHandler(MediaSystem mediaSystem) {
             super(Looper.getMainLooper());
             mMediaSystemRef = new WeakReference<>(mediaSystem);
         }
@@ -643,18 +684,47 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
         public void handleMessage(Message msg) {
             super.handleMessage(msg);
             MediaSystem mediaSystem = mMediaSystemRef.get();
-            if (!mIsStart) return;
-            mediaSystem.postProgress();
-            sendEmptyMessageDelayed(0, 1000);
+            if (mediaSystem == null || mediaSystem.isReleased()) return;
+            switch (msg.what) {
+                case MESSAGE_PROGRESS: {
+                    if (!mIsStartObserveProgress) return;
+                    mediaSystem.postProgress();
+                    sendEmptyMessageDelayed(0, 1000);
+                    break;
+                }
+                case MESSAGE_PREPARE: {
+                    if (mIsCancelPrepareTask) return;
+                    try {
+                        mediaSystem.mMediaPlayer.prepareAsync();
+                    } catch (Exception e) {
+                        mediaSystem.postError(0, 0);
+                    }
+                    break;
+                }
+            }
         }
 
-        void start() {
-            mIsStart = true;
+        void startObserveProgress() {
+            mIsStartObserveProgress = true;
             sendEmptyMessage(0);
         }
 
-        void stop() {
-            mIsStart = false;
+        void stopObserveProgress() {
+            mIsStartObserveProgress = false;
+        }
+
+        boolean hasPrepareMessage() {
+            return hasMessages(MESSAGE_PREPARE);
+        }
+
+        void startPrepareTask(long delayMillis) {
+            mIsCancelPrepareTask = false;
+            sendEmptyMessageDelayed(MESSAGE_PREPARE, delayMillis);
+        }
+
+        void cancelPrepareTask() {
+            mIsCancelPrepareTask = true;
+            removeMessages(MESSAGE_PREPARE);
         }
     }
 }

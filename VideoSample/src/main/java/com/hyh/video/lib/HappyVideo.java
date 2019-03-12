@@ -2,8 +2,6 @@ package com.hyh.video.lib;
 
 import android.content.Context;
 import android.graphics.Color;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
 import android.util.AttributeSet;
 import android.view.Gravity;
 import android.view.Surface;
@@ -32,9 +30,11 @@ public class HappyVideo extends FrameLayout {
     private final IVideoSurface.SurfaceListener mSurfaceListener = new InnerSurfaceListener();
     private final MediaEventListener mMediaEventListener = new InnerMediaEventListener();
     private final MediaProgressListener mMediaProgressListener = new InnerMediaProgressListener();
+
     private final List<MediaEventListener> mMediaEventListeners = new ArrayList<>();
     private final List<MediaProgressListener> mMediaProgressListeners = new ArrayList<>();
     private final List<IVideoSurface.SurfaceListener> mSurfaceListeners = new ArrayList<>();
+
     private final WindowAttachListenerView mWindowAttachListenerView;
 
 
@@ -47,16 +47,17 @@ public class HappyVideo extends FrameLayout {
     private CharSequence mTitle;
 
 
-    public HappyVideo(@NonNull Context context) {
+    public HappyVideo(Context context) {
         this(context, null);
     }
 
-    public HappyVideo(@NonNull Context context, @Nullable AttributeSet attrs) {
+    public HappyVideo(Context context, AttributeSet attrs) {
         this(context, attrs, 0);
     }
 
-    public HappyVideo(@NonNull Context context, @Nullable AttributeSet attrs, int defStyleAttr) {
+    public HappyVideo(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
+
         setBackgroundColor(Color.BLACK);
         setVolume(0, 0);
         mWindowAttachListenerView = new WindowAttachListenerView(context);
@@ -64,9 +65,9 @@ public class HappyVideo extends FrameLayout {
         mMediaPlayer.setMediaProgressListener(mMediaProgressListener);
         mMediaInfo = new MediaInfoImpl(context);
 
-        this.mVideoSurface = new TextureSurface(context);
-        this.mVideoPreview = new FirstFramePreview(context);
-        this.mVideoController = new DefaultVideoController(context);
+        this.mVideoSurface = newVideoSurface(context);
+        this.mVideoPreview = newVideoPreview(context);
+        this.mVideoController = newVideoController(context);
 
         LayoutParams params = new LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
         params.gravity = Gravity.CENTER;
@@ -75,12 +76,22 @@ public class HappyVideo extends FrameLayout {
         addView(mVideoPreview.getView(), params);
         params = new LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
         addView(mVideoController.getView(), params);
-
         mVideoSurface.setSurfaceMeasurer(mSurfaceMeasurer);
         mVideoSurface.setSurfaceListener(mSurfaceListener);
         mVideoPreview.setSurfaceMeasurer(mSurfaceMeasurer);
     }
 
+    protected IVideoSurface newVideoSurface(Context context) {
+        return new TextureSurface(context);
+    }
+
+    protected IVideoPreview newVideoPreview(Context context) {
+        return new FirstFramePreview(context);
+    }
+
+    protected IVideoController newVideoController(Context context) {
+        return new DefaultVideoController(context);
+    }
 
     @Override
     protected void onAttachedToWindow() {
@@ -103,7 +114,7 @@ public class HappyVideo extends FrameLayout {
         requestLayout();
     }
 
-    public void setVideoBackground(IVideoBackground background) {
+    /*public void setVideoBackground(IVideoBackground background) {
         if (mVideoBackground == background) return;
         if (mVideoBackground != null) {
             removeView(mVideoBackground.getView());
@@ -112,8 +123,7 @@ public class HappyVideo extends FrameLayout {
         if (mVideoBackground != null) {
             addView(mVideoBackground.getView(), 0);
         }
-    }
-
+    }*/
 
     public void setVideoPreview(IVideoPreview videoPreview) {
         if (mVideoPreview == videoPreview) return;
@@ -151,21 +161,14 @@ public class HappyVideo extends FrameLayout {
         mMediaEventListeners.remove(listener);
     }
 
-    public void removeMediaEventListeners() {
-        mMediaEventListeners.clear();
-    }
-
     public void addMediaProgressListener(MediaProgressListener listener) {
         if (listener == null || mMediaProgressListeners.contains(listener)) return;
         mMediaProgressListeners.add(listener);
     }
 
+
     public void removeMediaProgressListener(MediaProgressListener listener) {
         mMediaProgressListeners.remove(listener);
-    }
-
-    public void removeMediaProgressListeners() {
-        mMediaProgressListeners.clear();
     }
 
     public void addSurfaceListener(IVideoSurface.SurfaceListener listener) {
@@ -175,10 +178,6 @@ public class HappyVideo extends FrameLayout {
 
     public void removeSurfaceListener(IVideoSurface.SurfaceListener listener) {
         mSurfaceListeners.remove(listener);
-    }
-
-    public void removeSurfaceListeners() {
-        mSurfaceListeners.clear();
     }
 
     public boolean setup(DataSource source, CharSequence title, boolean looping) {
