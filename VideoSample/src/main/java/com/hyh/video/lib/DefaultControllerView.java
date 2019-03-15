@@ -2,8 +2,10 @@ package com.hyh.video.lib;
 
 import android.content.Context;
 import android.graphics.Color;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
@@ -22,35 +24,41 @@ import java.util.Locale;
 
 public class DefaultControllerView extends RelativeLayout implements IControllerView {
 
-    private final Context mContext;
-    private final View mTopContainer;
-    private final View mFullscreenBackIcon;
-    private final TextView mTitle;
-    private final View mBatteryTimeContainer;
-    private final ImageView mBatteryLevel;
-    private final TextView mSystemTime;
-    private final View mBottomContainer;
-    private final TextView mCurrentPosition;
-    private final SeekBar mSeekBar;
-    private final TextView mDuration;
-    private final TextView mDefinition;
-    private final ImageView mFullscreenToggle;
-    private final View mInitialInfoContainer;
-    private final TextView mInitialInfoPlayTimes;
-    private final TextView mInitialInfoDuration;
-    private final ProgressBar mBottomProgress;
-    private final ImageView mPlayOrPauseIcon;
-    private final View mReplayContainer;
-    private final View mRetryContainer;
-    private final View mRetryButton;
-    private final View mMobileDataConfirmContainer;
-    private final View mMobileDataSureButton;
-    private final ProgressBar mLoadingProgress;
+    protected final Context mContext;
+    protected final View mTopContainer;
+    protected final View mFullscreenBackIcon;
+    protected final TextView mTitle;
+    protected final View mBatteryTimeContainer;
+    protected final ImageView mBatteryLevel;
+    protected final TextView mSystemTime;
+    protected final View mBottomContainer;
+    protected final TextView mCurrentPosition;
+    protected final SeekBar mSeekBar;
+    protected final TextView mDuration;
+    protected final TextView mDefinition;
+    protected final ImageView mFullscreenToggle;
+    protected final View mInitialInfoContainer;
+    protected final TextView mInitialInfoPlayTimes;
+    protected final TextView mInitialInfoDuration;
+    protected final ProgressBar mBottomProgress;
+    protected final ImageView mPlayOrPauseIcon;
+    protected final FrameLayout mEndViewContainer;
+    protected final View mReplayContainer;
+    protected final View mRetryContainer;
+    protected final View mRetryButton;
+    protected final View mMobileDataConfirmContainer;
+    protected final View mMobileDataSureButton;
+    protected final ProgressBar mLoadingProgress;
+
+    protected HappyVideo mHappyVideo;
 
     public DefaultControllerView(Context context) {
         super(context);
+        long start = System.currentTimeMillis();
         this.mContext = context;
         LayoutInflater.from(mContext).inflate(R.layout.view_video_controller, this);
+        long end = System.currentTimeMillis();
+        Log.d("NativeVideoController", "DefaultControllerView: use time1 = " + (end - start));
         mTopContainer = findViewById(R.id.video_top_container);
         mFullscreenBackIcon = findViewById(R.id.video_fullscreen_back_icon);
         mTitle = findViewById(R.id.video_title);
@@ -68,12 +76,15 @@ public class DefaultControllerView extends RelativeLayout implements IController
         mInitialInfoDuration = findViewById(R.id.video_initial_info_duration);
         mBottomProgress = findViewById(R.id.video_bottom_progress);
         mPlayOrPauseIcon = findViewById(R.id.video_play_or_pause_icon);
+        mEndViewContainer = findViewById(R.id.video_end_view_container);
         mReplayContainer = findViewById(R.id.video_replay_container);
         mRetryContainer = findViewById(R.id.video_retry_container);
         mRetryButton = findViewById(R.id.video_retry_btn);
         mMobileDataConfirmContainer = findViewById(R.id.video_mobile_data_confirm_container);
         mMobileDataSureButton = findViewById(R.id.video_mobile_data_sure_btn);
         mLoadingProgress = findViewById(R.id.video_loading);
+        end = System.currentTimeMillis();
+        Log.d("NativeVideoController", "DefaultControllerView: use time2 = " + (end - start));
     }
 
     @Override
@@ -82,7 +93,8 @@ public class DefaultControllerView extends RelativeLayout implements IController
     }
 
     @Override
-    public void setup(CharSequence title, IMediaInfo mediaInfo) {
+    public void setup(HappyVideo video, CharSequence title, IMediaInfo mediaInfo) {
+        this.mHappyVideo = video;
         mTitle.setText(title);
         mSeekBar.setProgress(0);
         mBottomProgress.setProgress(0);
@@ -138,7 +150,7 @@ public class DefaultControllerView extends RelativeLayout implements IController
     }
 
     @Override
-    public void setStartIconClickListener(View.OnClickListener listener) {
+    public void setPlayOrPauseIconClickListener(View.OnClickListener listener) {
         mPlayOrPauseIcon.setOnClickListener(listener);
     }
 
@@ -185,7 +197,7 @@ public class DefaultControllerView extends RelativeLayout implements IController
         setVisibility(mBottomContainer, GONE);
         setVisibility(mMobileDataConfirmContainer, GONE);
         setVisibility(mRetryContainer, GONE);
-        setVisibility(mReplayContainer, GONE);
+        setVisibility(mEndViewContainer, GONE);
     }
 
     @Override
@@ -208,7 +220,7 @@ public class DefaultControllerView extends RelativeLayout implements IController
         setVisibility(mBottomProgress, GONE);
         setVisibility(mBottomContainer, GONE);
         setVisibility(mRetryContainer, GONE);
-        setVisibility(mReplayContainer, GONE);
+        setVisibility(mEndViewContainer, GONE);
     }
 
     @Override
@@ -244,9 +256,7 @@ public class DefaultControllerView extends RelativeLayout implements IController
 
     @Override
     public void showEndView() {
-        setBackgroundColor(0x55000000);
-
-        setVisibility(mReplayContainer, VISIBLE);
+        setVisibility(mEndViewContainer, VISIBLE);
 
         setVisibility(mTopContainer, GONE);
         setVisibility(mInitialInfoContainer, GONE);
@@ -258,8 +268,7 @@ public class DefaultControllerView extends RelativeLayout implements IController
 
     @Override
     public void hideEndView() {
-        setBackgroundColor(Color.TRANSPARENT);
-        setVisibility(mReplayContainer, GONE);
+        setVisibility(mEndViewContainer, GONE);
     }
 
     @Override
@@ -274,7 +283,7 @@ public class DefaultControllerView extends RelativeLayout implements IController
 
         setVisibility(mBottomProgress, GONE);
         setVisibility(mBottomContainer, GONE);
-        setVisibility(mReplayContainer, GONE);
+        setVisibility(mEndViewContainer, GONE);
     }
 
     @Override
@@ -293,7 +302,7 @@ public class DefaultControllerView extends RelativeLayout implements IController
     }
 
 
-    private void setVisibility(View view, int visibility) {
+    protected void setVisibility(View view, int visibility) {
         if (view.getVisibility() == visibility) return;
         view.setVisibility(visibility);
     }

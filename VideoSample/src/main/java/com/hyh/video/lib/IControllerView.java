@@ -13,7 +13,7 @@ public interface IControllerView {
 
     View getView();
 
-    void setup(CharSequence title, IMediaInfo mediaInfo);
+    void setup(HappyVideo video, CharSequence title, IMediaInfo mediaInfo);
 
     void setMediaProgress(int progress);
 
@@ -29,7 +29,7 @@ public interface IControllerView {
 
     void setControllerViewClickListener(View.OnClickListener listener);
 
-    void setStartIconClickListener(View.OnClickListener listener);
+    void setPlayOrPauseIconClickListener(View.OnClickListener listener);
 
     void setReplayIconClickListener(View.OnClickListener listener);
 

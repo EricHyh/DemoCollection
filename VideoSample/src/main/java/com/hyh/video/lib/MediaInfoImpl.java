@@ -17,6 +17,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 
+import static android.os.Build.VERSION.SDK_INT;
+import static android.os.Build.VERSION_CODES.KITKAT;
+
 /**
  * @author Administrator
  * @description
@@ -25,7 +28,16 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 public class MediaInfoImpl implements IMediaInfo {
 
-    private final static LruCache<String, Bitmap> FRAME_CACHE = new LruCache<>(8 * 1024 * 1024);
+    private final static LruCache<String, Bitmap> FRAME_CACHE = new LruCache<String, Bitmap>(8 * 1024 * 1024) {
+        @Override
+        protected int sizeOf(String key, Bitmap value) {
+            int result = SDK_INT >= KITKAT ? value.getAllocationByteCount() : value.getByteCount();
+            if (result < 0) {
+                throw new IllegalStateException("Negative size: " + value);
+            }
+            return result;
+        }
+    };
     private final static Map<String, Long> VIDEO_DURATION_CACHE = new HashMap<>();
 
     private final Object mLock = new Object();
@@ -64,7 +76,10 @@ public class MediaInfoImpl implements IMediaInfo {
 
     @Override
     public void getDuration(Result<Long> result) {
-        if (mDataSource == null) result.onResult(null);
+        if (mDataSource == null) {
+            result.onResult(null);
+            return;
+        }
         Long duration = VIDEO_DURATION_CACHE.get(mDataSource.getPath());
         if (duration != null) {
             result.onResult(duration);
@@ -78,7 +93,10 @@ public class MediaInfoImpl implements IMediaInfo {
 
     @Override
     public void getVideoSize(Result<int[]> result) {
-        if (mDataSource == null) result.onResult(null);
+        if (mDataSource == null) {
+            result.onResult(null);
+            return;
+        }
         synchronized (mLock) {
             VideoSizeTask task = new VideoSizeTask(mContext, mDataSource, mRunningTaskList, result);
             task.execute();
@@ -87,7 +105,10 @@ public class MediaInfoImpl implements IMediaInfo {
 
     @Override
     public void getFrameAtTime(long timeUs, Result<Bitmap> result) {
-        if (mDataSource == null) result.onResult(null);
+        if (mDataSource == null) {
+            result.onResult(null);
+            return;
+        }
         Bitmap bitmap = FRAME_CACHE.get(mDataSource.getPath() + "-" + timeUs);
         if (bitmap != null) {
             result.onResult(bitmap);

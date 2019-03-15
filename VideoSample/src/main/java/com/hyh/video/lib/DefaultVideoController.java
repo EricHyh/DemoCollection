@@ -71,9 +71,9 @@ public class DefaultVideoController implements IVideoController {
         mHappyVideo.addMediaProgressListener(mControllerMediaProgressListener);
         mHappyVideo.addSurfaceListener(mControllerSurfaceListener);
 
-        mControllerView.setup(title, mediaInfo);
+        mControllerView.setup(happyVideo, title, mediaInfo);
         mControllerView.setControllerViewClickListener(new ControllerClickListener(ControllerClickListener.FLAG_CONTROLLER_VIEW));
-        mControllerView.setStartIconClickListener(new ControllerClickListener(ControllerClickListener.FLAG_START_ICON));
+        mControllerView.setPlayOrPauseIconClickListener(new ControllerClickListener(ControllerClickListener.FLAG_PLAY_OR_PAUSE_ICON));
         mControllerView.setReplayIconClickListener(new ControllerClickListener(ControllerClickListener.FLAG_REPLAY_ICON));
         mControllerView.setRetryButtonClickListener(new ControllerClickListener(ControllerClickListener.FLAG_RETRY_BUTTON));
         mControllerView.setFullScreenToggleClickListener(new ControllerClickListener(ControllerClickListener.FLAG_FULLSCREEN_TOGGLE));
@@ -179,6 +179,11 @@ public class DefaultVideoController implements IVideoController {
 
         @Override
         public void onExecuteStart() {
+            mControllerView.hideInitialView();
+            mControllerView.hideEndView();
+            mControllerView.hideErrorView();
+            mControllerView.hideMobileDataConfirm();
+
             mControllerView.showLoadingView();
             mControllerView.setStartIconPauseStyle();
             mCurControlState = CONTROL_STATE_OPERATE;
@@ -292,7 +297,7 @@ public class DefaultVideoController implements IVideoController {
     private class ControllerClickListener implements View.OnClickListener {
 
         private static final int FLAG_CONTROLLER_VIEW = 1;
-        private static final int FLAG_START_ICON = 2;
+        private static final int FLAG_PLAY_OR_PAUSE_ICON = 2;
         private static final int FLAG_REPLAY_ICON = 3;
         private static final int FLAG_RETRY_BUTTON = 4;
         private static final int FLAG_FULLSCREEN_TOGGLE = 5;
@@ -312,7 +317,7 @@ public class DefaultVideoController implements IVideoController {
                     handleControllerViewClick();
                     break;
                 }
-                case FLAG_START_ICON: {
+                case FLAG_PLAY_OR_PAUSE_ICON: {
                     handleStartIconClick();
                     break;
                 }
@@ -345,7 +350,6 @@ public class DefaultVideoController implements IVideoController {
                     if (!VideoUtils.isNetEnv(mContext)) {
                         Toast.makeText(mContext, "网络不可用", Toast.LENGTH_SHORT).show();
                     } else {
-                        mControllerView.hideInitialView();
                         mHappyVideo.start();
                     }
                     break;
