@@ -140,7 +140,7 @@
 
     </LinearLayout>
 
-    <RelativeLayout
+    <FrameLayout
         android:id="@+id/video_initial_info_container"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -153,7 +153,7 @@
             android:id="@+id/video_initial_info_play_times"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_centerVertical="true"
+            android:layout_gravity="left|center_vertical"
             android:textColor="#FFDEDEDE"
             android:textSize="12sp"
             android:visibility="gone"
@@ -163,8 +163,7 @@
             android:id="@+id/video_initial_info_duration"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_alignParentRight="true"
-            android:layout_centerVertical="true"
+            android:layout_gravity="right|center_vertical"
             android:background="@drawable/video_initial_info_duration_bg"
             android:paddingBottom="3dp"
             android:paddingLeft="8dp"
@@ -175,7 +174,7 @@
             android:visibility="gone"
             tools:text="00:00"/>
 
-    </RelativeLayout>
+    </FrameLayout>
 
     <ProgressBar
         android:id="@+id/video_bottom_progress"
@@ -231,11 +230,10 @@
     </FrameLayout>
 
     <LinearLayout
-        android:id="@+id/video_retry_container"
+        android:id="@+id/video_error_view_container"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_centerHorizontal="true"
-        android:layout_centerVertical="true"
+        android:layout_centerInParent="true"
         android:gravity="center_horizontal"
         android:orientation="vertical"
         android:visibility="gone">
@@ -268,8 +266,7 @@
         android:id="@+id/video_mobile_data_confirm_container"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_centerHorizontal="true"
-        android:layout_centerVertical="true"
+        android:layout_centerInParent="true"
         android:gravity="center_horizontal"
         android:orientation="vertical"
         android:visibility="gone">

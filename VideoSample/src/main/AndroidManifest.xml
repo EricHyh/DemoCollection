@@ -45,6 +45,15 @@
         <activity
             android:name=".VideoListActivity"
             android:configChanges="screenSize|keyboard|keyboardHidden|orientation">
+            <!--<intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>-->
+        </activity>
+        <activity
+            android:name=".MultiListActivity"
+            android:configChanges="screenSize|keyboard|keyboardHidden|orientation">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
 

@@ -3,6 +3,7 @@ package com.hyh.video.lib;
 import android.content.Context;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Log;
 import android.view.Surface;
 import android.view.View;
 import android.widget.SeekBar;
@@ -67,18 +68,19 @@ public class DefaultVideoController implements IVideoController {
     @Override
     public void setup(HappyVideo happyVideo, CharSequence title, IMediaInfo mediaInfo) {
         this.mHappyVideo = happyVideo;
+
         mHappyVideo.addMediaEventListener(mControllerMediaEventListener);
         mHappyVideo.addMediaProgressListener(mControllerMediaProgressListener);
         mHappyVideo.addSurfaceListener(mControllerSurfaceListener);
 
         mControllerView.setup(happyVideo, title, mediaInfo);
         mControllerView.setControllerViewClickListener(new ControllerClickListener(ControllerClickListener.FLAG_CONTROLLER_VIEW));
-        mControllerView.setPlayOrPauseIconClickListener(new ControllerClickListener(ControllerClickListener.FLAG_PLAY_OR_PAUSE_ICON));
-        mControllerView.setReplayIconClickListener(new ControllerClickListener(ControllerClickListener.FLAG_REPLAY_ICON));
-        mControllerView.setRetryButtonClickListener(new ControllerClickListener(ControllerClickListener.FLAG_RETRY_BUTTON));
+        mControllerView.setPlayOrPauseClickListener(new ControllerClickListener(ControllerClickListener.FLAG_PLAY_OR_PAUSE));
+        mControllerView.setReplayClickListener(new ControllerClickListener(ControllerClickListener.FLAG_REPLAY));
+        mControllerView.setRetryClickListener(new ControllerClickListener(ControllerClickListener.FLAG_RETRY));
         mControllerView.setFullScreenToggleClickListener(new ControllerClickListener(ControllerClickListener.FLAG_FULLSCREEN_TOGGLE));
-        mControllerView.setMobileDataConfirmButtonClickListener(new ControllerClickListener(ControllerClickListener.FLAG_MOBILE_DATA_CONFIRM));
-        mControllerView.setBackIconClickListener(new ControllerClickListener(ControllerClickListener.FLAG_BACK_ICON));
+        mControllerView.setMobileDataConfirmClickListener(new ControllerClickListener(ControllerClickListener.FLAG_MOBILE_DATA_CONFIRM));
+        mControllerView.setFullscreenBackClickListener(new ControllerClickListener(ControllerClickListener.FLAG_FULLSCREEN_BACK_ICON));
         mControllerView.setOnSeekBarChangeListener(new ControllerSeekBarChangeListener());
 
         mHideOperateViewTask.remove();
@@ -185,7 +187,7 @@ public class DefaultVideoController implements IVideoController {
             mControllerView.hideMobileDataConfirm();
 
             mControllerView.showLoadingView();
-            mControllerView.setStartIconPauseStyle();
+            mControllerView.setPauseStyle();
             mCurControlState = CONTROL_STATE_OPERATE;
         }
 
@@ -201,7 +203,7 @@ public class DefaultVideoController implements IVideoController {
 
         @Override
         public void onPause(long currentPosition, long duration) {
-            mControllerView.setStartIconPlayStyle();
+            mControllerView.setPlayStyle();
             mHideOperateViewTask.remove();
             mControllerView.hideLoadingView();
             mControllerView.showOperateView();
@@ -279,6 +281,7 @@ public class DefaultVideoController implements IVideoController {
 
         @Override
         public void onSurfaceCreate(Surface surface) {
+            Log.d("", "onSurfaceCreate: ");
         }
 
         @Override
@@ -297,12 +300,12 @@ public class DefaultVideoController implements IVideoController {
     private class ControllerClickListener implements View.OnClickListener {
 
         private static final int FLAG_CONTROLLER_VIEW = 1;
-        private static final int FLAG_PLAY_OR_PAUSE_ICON = 2;
-        private static final int FLAG_REPLAY_ICON = 3;
-        private static final int FLAG_RETRY_BUTTON = 4;
+        private static final int FLAG_PLAY_OR_PAUSE = 2;
+        private static final int FLAG_REPLAY = 3;
+        private static final int FLAG_RETRY = 4;
         private static final int FLAG_FULLSCREEN_TOGGLE = 5;
         private static final int FLAG_MOBILE_DATA_CONFIRM = 6;
-        private static final int FLAG_BACK_ICON = 7;
+        private static final int FLAG_FULLSCREEN_BACK_ICON = 7;
 
         private final int flag;
 
@@ -317,32 +320,33 @@ public class DefaultVideoController implements IVideoController {
                     handleControllerViewClick();
                     break;
                 }
-                case FLAG_PLAY_OR_PAUSE_ICON: {
+                case FLAG_PLAY_OR_PAUSE: {
                     handleStartIconClick();
                     break;
                 }
-                case FLAG_REPLAY_ICON: {
+                case FLAG_REPLAY: {
                     handleReplayIconCLick();
                     break;
                 }
-                case FLAG_RETRY_BUTTON: {
+                case FLAG_RETRY: {
                     handleRetryButtonClick();
                     break;
                 }
                 case FLAG_FULLSCREEN_TOGGLE: {
-                    //TODO 暂不实现
+                    handleFullscreenToggleClick();
                     break;
                 }
                 case FLAG_MOBILE_DATA_CONFIRM: {
                     handleMobileDataConfirmClick();
                     break;
                 }
-                case FLAG_BACK_ICON: {
+                case FLAG_FULLSCREEN_BACK_ICON: {
                     //TODO 暂不实现
                     break;
                 }
             }
         }
+
 
         private void handleControllerViewClick() {
             switch (mCurControlState) {
@@ -373,13 +377,13 @@ public class DefaultVideoController implements IVideoController {
             mHideOperateViewTask.remove();
             if (mHappyVideo.isExecuteStart()) {
                 mHappyVideo.pause();
-                mControllerView.setStartIconPlayStyle();
+                mControllerView.setPlayStyle();
             } else {
                 if (!VideoUtils.isNetEnv(mContext)) {
                     Toast.makeText(mContext, "网络不可用", Toast.LENGTH_SHORT).show();
                 } else {
                     mHappyVideo.start();
-                    mControllerView.setStartIconPauseStyle();
+                    mControllerView.setPauseStyle();
                     mHideOperateViewTask.post();
                 }
             }
@@ -402,6 +406,10 @@ public class DefaultVideoController implements IVideoController {
                 mHappyVideo.retry();
                 mControllerView.hideErrorView();
             }
+        }
+
+        private void handleFullscreenToggleClick() {
+            mHappyVideo.fullscreen();
         }
 
         private void handleMobileDataConfirmClick() {

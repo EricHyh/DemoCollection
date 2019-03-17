@@ -9,6 +9,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewParent;
 import android.widget.FrameLayout;
+import android.widget.LinearLayout;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -166,7 +167,6 @@ public class HappyVideo extends FrameLayout {
         mMediaProgressListeners.add(listener);
     }
 
-
     public void removeMediaProgressListener(MediaProgressListener listener) {
         mMediaProgressListeners.remove(listener);
     }
@@ -194,6 +194,17 @@ public class HappyVideo extends FrameLayout {
             }
         }
         return set;
+    }
+
+    private ViewGroup.LayoutParams mOldParams;
+
+    public void fullscreen() {
+        //setRotation(90);
+        ViewGroup rootView = (ViewGroup) getRootView();
+        ViewGroup parent = (ViewGroup) getParent();
+        mOldParams = getLayoutParams();
+        parent.removeView(this);
+        rootView.addView(this, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
     }
 
     public int getMediaState() {

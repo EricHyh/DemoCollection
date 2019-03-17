@@ -1,5 +1,6 @@
 package com.hyh.video.sample;
 
+import android.util.Log;
 import android.view.ViewGroup;
 
 import com.hyh.video.lib.DataSource;
@@ -31,6 +32,7 @@ public class VideoData implements MediaProgressListener {
     }
 
     public void bindVideoView(ViewGroup viewGroup) {
+        long start = System.currentTimeMillis();
         mVideo = viewGroup.findViewById(VIDEO_ID);
         if (mVideo == null) {
             mVideo = new HappyVideo(viewGroup.getContext());
@@ -38,6 +40,8 @@ public class VideoData implements MediaProgressListener {
             mVideo.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
             viewGroup.addView(mVideo);
         }
+        long end = System.currentTimeMillis();
+        Log.d("NativeVideoController", "bindVideoView: use time1 = " + (end - start));
 
         Object tag = mVideo.getTag();
         if (tag != null && tag instanceof VideoData && tag != this) {
@@ -45,23 +49,22 @@ public class VideoData implements MediaProgressListener {
             videoData.unBindVideoView(mVideo);
         }
         mVideo.setTag(this);
+        end = System.currentTimeMillis();
+        Log.d("NativeVideoController", "bindVideoView: use time2 = " + (end - start));
 
-        mVideo.setup(new DataSource(videoUrl, DataSource.TYPE_NET), "", false);
+        mVideo.setup(new DataSource(videoUrl, DataSource.TYPE_NET), "视频标题", false);
+
+        end = System.currentTimeMillis();
+        Log.d("NativeVideoController", "bindVideoView: use time3 = " + (end - start));
+
         if (currentPosition != null) {
             mVideo.seekTimeTo(currentPosition);
         }
-        /*new Handler().post(new Runnable() {
-            @Override
-            public void run() {
-                mVideo.prepare(false);
-            }
-        });*/
         mVideo.prepare(false);
-
-        //video.removeMediaProgressListeners();
         mVideo.addMediaProgressListener(this);
-        //video.removeMediaEventListeners();
         mVideo.addMediaEventListener(mMediaEventListener);
+        end = System.currentTimeMillis();
+        Log.d("NativeVideoController", "bindVideoView: use time4 = " + (end - start));
     }
 
     private void unBindVideoView(HappyVideo video) {

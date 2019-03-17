@@ -23,23 +23,23 @@ public interface IControllerView {
 
     void setDuration(long duration);
 
-    void setStartIconPlayStyle();
+    void setPlayStyle();
 
-    void setStartIconPauseStyle();
+    void setPauseStyle();
 
     void setControllerViewClickListener(View.OnClickListener listener);
 
-    void setPlayOrPauseIconClickListener(View.OnClickListener listener);
+    void setPlayOrPauseClickListener(View.OnClickListener listener);
 
-    void setReplayIconClickListener(View.OnClickListener listener);
+    void setReplayClickListener(View.OnClickListener listener);
 
-    void setRetryButtonClickListener(View.OnClickListener listener);
+    void setRetryClickListener(View.OnClickListener listener);
 
     void setFullScreenToggleClickListener(View.OnClickListener listener);
 
-    void setMobileDataConfirmButtonClickListener(View.OnClickListener listener);
+    void setMobileDataConfirmClickListener(View.OnClickListener listener);
 
-    void setBackIconClickListener(View.OnClickListener listener);
+    void setFullscreenBackClickListener(View.OnClickListener listener);
 
     void setOnSeekBarChangeListener(SeekBar.OnSeekBarChangeListener listener);
 
