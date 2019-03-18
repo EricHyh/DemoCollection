@@ -55,7 +55,7 @@ public class VideoDelegate {
 
     public VideoDelegate(Context context) {
         this.mContext = context;
-        setVolume(0, 0);
+        //setVolume(0, 0);
         mWindowAttachListenerView = new WindowAttachListenerView(context);
         mMediaPlayer.setMediaEventListener(mMediaEventListener);
         mMediaPlayer.setMediaProgressListener(mMediaProgressListener);
@@ -212,9 +212,13 @@ public class VideoDelegate {
         mStartFullscreenSceneTimeMills = System.currentTimeMillis();
         ViewGroup rootView = (ViewGroup) mVideoContainer.getRootView();
         mNormalVideoContainer = mVideoContainer;
+        long currentPosition = getCurrentPosition();
         detachedFromContainer();
         HappyVideo happyVideo = new HappyVideo(mContext, null, 0, this);
         rootView.addView(happyVideo, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        if (currentPosition > 0) {
+            seekTimeTo(currentPosition > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) currentPosition);
+        }
         return true;
     }
 
@@ -234,6 +238,7 @@ public class VideoDelegate {
         if (mScene != Scene.FULLSCREEN) return false;
         mScene = Scene.NORMAL;
         mRecoverNormalSceneTimeMills = System.currentTimeMillis();
+        long currentPosition = getCurrentPosition();
         ViewGroup parent = (ViewGroup) mVideoContainer.getParent();
         if (parent != null) {
             parent.removeView(mVideoContainer);
@@ -242,6 +247,9 @@ public class VideoDelegate {
         detachedFromContainer();
         attachedToContainer(mNormalVideoContainer);
         mNormalVideoContainer = null;
+        if (currentPosition > 0) {
+            seekTimeTo(currentPosition > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) currentPosition);
+        }
         return true;
     }
 

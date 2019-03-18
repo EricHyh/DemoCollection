@@ -83,7 +83,7 @@ public class DefaultVideoController implements IVideoController {
         mControllerView.setRetryClickListener(new ControllerClickListener(ControllerClickListener.FLAG_RETRY));
         mControllerView.setFullScreenToggleClickListener(new ControllerClickListener(ControllerClickListener.FLAG_FULLSCREEN_TOGGLE));
         mControllerView.setMobileDataConfirmClickListener(new ControllerClickListener(ControllerClickListener.FLAG_MOBILE_DATA_CONFIRM));
-        mControllerView.setFullscreenBackClickListener(new ControllerClickListener(ControllerClickListener.FLAG_FULLSCREEN_BACK_ICON));
+        mControllerView.setFullscreenBackClickListener(new ControllerClickListener(ControllerClickListener.FLAG_FULLSCREEN_BACK));
         mControllerView.setOnSeekBarChangeListener(new ControllerSeekBarChangeListener());
 
         mHideOperateViewTask.remove();
@@ -306,7 +306,7 @@ public class DefaultVideoController implements IVideoController {
         private static final int FLAG_RETRY = 4;
         private static final int FLAG_FULLSCREEN_TOGGLE = 5;
         private static final int FLAG_MOBILE_DATA_CONFIRM = 6;
-        private static final int FLAG_FULLSCREEN_BACK_ICON = 7;
+        private static final int FLAG_FULLSCREEN_BACK = 7;
 
         private final int flag;
 
@@ -341,13 +341,12 @@ public class DefaultVideoController implements IVideoController {
                     handleMobileDataConfirmClick();
                     break;
                 }
-                case FLAG_FULLSCREEN_BACK_ICON: {
-                    //TODO 暂不实现
+                case FLAG_FULLSCREEN_BACK: {
+                    handleFullscreenBackClick();
                     break;
                 }
             }
         }
-
 
         private void handleControllerViewClick() {
             switch (mCurControlState) {
@@ -438,6 +437,13 @@ public class DefaultVideoController implements IVideoController {
                 }
             }
             mControllerView.hideMobileDataConfirm();
+        }
+    }
+
+
+    private void handleFullscreenBackClick() {
+        if (mVideoDelegate.getScene() == VideoDelegate.Scene.FULLSCREEN) {
+            mVideoDelegate.recoverNormalScene();
         }
     }
 

@@ -5,6 +5,7 @@ import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.Surface;
 import android.view.View;
@@ -140,6 +141,7 @@ public class FirstFramePreview extends FrameLayout implements IVideoPreview {
             super.onStop(currentPosition, duration);
             if (FirstFramePreview.this.getVisibility() == INVISIBLE || FirstFramePreview.this.getVisibility() == GONE) {
                 FirstFramePreview.this.setVisibility(VISIBLE);
+                Log.d("MediaSystem", "onStop: FirstFramePreview: ");
             }
         }
 
@@ -148,6 +150,7 @@ public class FirstFramePreview extends FrameLayout implements IVideoPreview {
             super.onError(what, extra);
             if (FirstFramePreview.this.getVisibility() == INVISIBLE || FirstFramePreview.this.getVisibility() == GONE) {
                 FirstFramePreview.this.setVisibility(VISIBLE);
+                Log.d("MediaSystem", "onError: FirstFramePreview: ");
             }
         }
 
@@ -156,6 +159,7 @@ public class FirstFramePreview extends FrameLayout implements IVideoPreview {
             super.onCompletion();
             if (FirstFramePreview.this.getVisibility() == INVISIBLE || FirstFramePreview.this.getVisibility() == GONE) {
                 FirstFramePreview.this.setVisibility(VISIBLE);
+                Log.d("MediaSystem", "onCompletion: FirstFramePreview: ");
             }
         }
 
@@ -164,6 +168,7 @@ public class FirstFramePreview extends FrameLayout implements IVideoPreview {
             super.onRelease(currentPosition, duration);
             if (FirstFramePreview.this.getVisibility() == INVISIBLE || FirstFramePreview.this.getVisibility() == GONE) {
                 FirstFramePreview.this.setVisibility(VISIBLE);
+                Log.d("MediaSystem", "onRelease: FirstFramePreview: ");
             }
         }
     }
@@ -201,11 +206,12 @@ public class FirstFramePreview extends FrameLayout implements IVideoPreview {
             if (FirstFramePreview.this.getVisibility() == INVISIBLE || FirstFramePreview.this.getVisibility() == GONE) {
                 FirstFramePreview.this.setVisibility(VISIBLE);
             }*/
-            if (mVideoDelegate != null && mVideoDelegate.isPlaying()) {
+            if (mVideoDelegate != null && mVideoDelegate.isExecuteStart()) {
                 mSurfaceDestroyTask.post();
             } else {
                 if (FirstFramePreview.this.getVisibility() == INVISIBLE || FirstFramePreview.this.getVisibility() == GONE) {
                     FirstFramePreview.this.setVisibility(VISIBLE);
+                    Log.d("MediaSystem", "onSurfaceDestroyed: FirstFramePreview: ");
                 }
             }
         }
