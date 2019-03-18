@@ -12,6 +12,6 @@ public interface IVideoPreview {
 
     void setSurfaceMeasurer(ISurfaceMeasurer surfaceMeasurer);
 
-    void setUp(HappyVideo happyVideo, IMediaInfo mediaInfo);
+    void setUp(VideoDelegate videoDelegate, IMediaInfo mediaInfo);
 
 }

@@ -13,7 +13,7 @@ public interface IControllerView {
 
     View getView();
 
-    void setup(HappyVideo video, CharSequence title, IMediaInfo mediaInfo);
+    void setup(VideoDelegate videoDelegate, CharSequence title, IMediaInfo mediaInfo);
 
     void setMediaProgress(int progress);
 

@@ -8,9 +8,9 @@ public class VideoManager {
 
     private final Object mLock = new Object();
 
-    private HappyVideo mCurrentStartVideo;
+    private VideoDelegate mCurrentStartVideo;
 
-    public void onStart(HappyVideo video) {
+    public void onStart(VideoDelegate video) {
         synchronized (mLock) {
             if (mCurrentStartVideo == video) {
                 return;
@@ -22,7 +22,7 @@ public class VideoManager {
         }
     }
 
-    public void onEnd(HappyVideo video) {
+    public void onEnd(VideoDelegate video) {
         synchronized (mLock) {
             if (mCurrentStartVideo == video) {
                 mCurrentStartVideo = null;

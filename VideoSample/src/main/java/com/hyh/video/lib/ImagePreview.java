@@ -2,9 +2,13 @@ package com.hyh.video.lib;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
+import android.os.Handler;
+import android.os.Looper;
 import android.view.Surface;
 import android.view.View;
 import android.widget.ImageView;
+
+import java.lang.ref.WeakReference;
 
 /**
  * @author Administrator
@@ -15,9 +19,11 @@ import android.widget.ImageView;
 @SuppressLint("AppCompatCustomView")
 public class ImagePreview extends ImageView implements IVideoPreview {
 
+    private final SurfaceDestroyTask mSurfaceDestroyTask = new SurfaceDestroyTask(this);
     private final IVideoSurface.SurfaceListener mPreviewSurfaceListener = new PreviewSurfaceListener();
     private final MediaEventListener mPreviewMediaEventListener = new PreviewMediaEventListener();
 
+    private VideoDelegate mVideoDelegate;
     private DataSource mDataSource;
 
     public ImagePreview(Context context) {
@@ -35,16 +41,17 @@ public class ImagePreview extends ImageView implements IVideoPreview {
     }
 
     @Override
-    public void setUp(HappyVideo happyVideo, IMediaInfo mediaInfo) {
-        happyVideo.addSurfaceListener(mPreviewSurfaceListener);
-        happyVideo.addMediaEventListener(mPreviewMediaEventListener);
+    public void setUp(VideoDelegate videoDelegate, IMediaInfo mediaInfo) {
+        this.mVideoDelegate = videoDelegate;
+        videoDelegate.addSurfaceListener(mPreviewSurfaceListener);
+        videoDelegate.addMediaEventListener(mPreviewMediaEventListener);
 
-        DataSource dataSource = happyVideo.getDataSource();
+        DataSource dataSource = videoDelegate.getDataSource();
         if (mDataSource != null && !mDataSource.equals(dataSource)) {
             setImageBitmap(null);
         }
         mDataSource = dataSource;
-        int mediaState = happyVideo.getMediaState();
+        int mediaState = videoDelegate.getMediaState();
         if (mediaState == IMediaPlayer.State.IDLE
                 || mediaState == IMediaPlayer.State.INITIALIZED
                 || mediaState == IMediaPlayer.State.PREPARING
@@ -111,6 +118,7 @@ public class ImagePreview extends ImageView implements IVideoPreview {
 
         @Override
         public void onSurfaceCreate(Surface surface) {
+            mSurfaceDestroyTask.remove();
         }
 
         @Override
@@ -119,9 +127,50 @@ public class ImagePreview extends ImageView implements IVideoPreview {
 
         @Override
         public void onSurfaceDestroyed(Surface surface) {
+            /*if (mVideoDelegate != null && (mVideoDelegate.isStartFullscreenSceneJustNow() || mVideoDelegate.isRecoverNormalSceneJustNow())) {
+                return;
+            }
             if (ImagePreview.this.getVisibility() == INVISIBLE || ImagePreview.this.getVisibility() == GONE) {
                 ImagePreview.this.setVisibility(VISIBLE);
+            }*/
+            if (mVideoDelegate != null && mVideoDelegate.isPlaying()) {
+                mSurfaceDestroyTask.post();
+            } else {
+                if (ImagePreview.this.getVisibility() == INVISIBLE || ImagePreview.this.getVisibility() == GONE) {
+                    ImagePreview.this.setVisibility(VISIBLE);
+                }
             }
+        }
+    }
+
+    private static class SurfaceDestroyTask implements Runnable {
+
+        private Handler mHandler = new Handler(Looper.getMainLooper());
+        private WeakReference<ImagePreview> mImagePreviewRef;
+
+        SurfaceDestroyTask(ImagePreview imagePreview) {
+            mImagePreviewRef = new WeakReference<>(imagePreview);
+        }
+
+        @Override
+        public void run() {
+            ImagePreview imagePreview = mImagePreviewRef.get();
+            if (imagePreview == null) return;
+            if (imagePreview.getVisibility() == INVISIBLE || imagePreview.getVisibility() == GONE) {
+                imagePreview.setVisibility(VISIBLE);
+            }
+        }
+
+        void post() {
+            ImagePreview imagePreview = mImagePreviewRef.get();
+            if (imagePreview == null) return;
+            mHandler.postDelayed(this, 300);
+        }
+
+        void remove() {
+            ImagePreview imagePreview = mImagePreviewRef.get();
+            if (imagePreview == null) return;
+            mHandler.removeCallbacks(this);
         }
     }
 }

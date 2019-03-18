@@ -89,8 +89,6 @@ public class TextureSurface extends TextureView implements IVideoSurface {
         @Override
         public void onSurfaceTextureUpdated(SurfaceTexture surface) {
 
-
-
         }
     }
 }

@@ -3,7 +3,6 @@ package com.hyh.video.lib;
 import android.content.Context;
 import android.graphics.Color;
 import android.os.Build;
-import android.support.annotation.NonNull;
 import android.text.TextUtils;
 import android.view.Gravity;
 import android.view.View;
@@ -39,7 +38,7 @@ public class DefaultControllerView extends RelativeLayout implements IController
     public final LazyView<MobileDataConfirmContainer> mMobileDataConfirmContainer;
     public final LazyView<ProgressBar> mLoadingProgress;
 
-    public HappyVideo mHappyVideo;
+    public VideoDelegate mVideoDelegate;
 
     public DefaultControllerView(final Context context) {
         super(context);
@@ -166,20 +165,24 @@ public class DefaultControllerView extends RelativeLayout implements IController
     }
 
     @Override
-    public void setup(HappyVideo video, final CharSequence title, IMediaInfo mediaInfo) {
-        this.mHappyVideo = video;
+    public void setup(VideoDelegate videoDelegate, final CharSequence title, IMediaInfo mediaInfo) {
+        this.mVideoDelegate = videoDelegate;
+        setVisibility(mLoadingProgress, View.GONE);
         mTopContainer.saveLazyAction("setTitle", new LazyView.LazyAction<TopContainer>() {
             @Override
             public void doAction(TopContainer topContainer) {
                 topContainer.title.setText(title);
             }
         });
-        mBottomContainer.saveLazyAction("setProgress", new LazyView.LazyAction<BottomContainer>() {
+        mBottomContainer.saveLazyAction("reset", new LazyView.LazyAction<BottomContainer>() {
             @Override
             public void doAction(BottomContainer bottomContainer) {
                 bottomContainer.seekBar.setProgress(0);
+                bottomContainer.seekBar.setSecondaryProgress(0);
+                bottomContainer.currentPosition.setText("00:00");
+                bottomContainer.duration.setText("00:00");
             }
-        }, true);
+        });
         mBottomProgress.saveLazyAction("setProgress", new LazyView.LazyAction<ProgressBar>() {
             @Override
             public void doAction(ProgressBar progressBar) {
@@ -732,7 +735,7 @@ public class DefaultControllerView extends RelativeLayout implements IController
         public final TextView playTimes;
         public final TextView duration;
 
-        public InitialInfoContainer(@NonNull Context context) {
+        public InitialInfoContainer(Context context) {
             super(context);
             int _14dp = VideoUtils.dp2px(context, 14);
             setPadding(_14dp, 0, _14dp, 0);
@@ -767,7 +770,7 @@ public class DefaultControllerView extends RelativeLayout implements IController
 
         private final LinearLayout replayContainer;
 
-        public EndViewContainer(@NonNull Context context) {
+        public EndViewContainer(Context context) {
             super(context);
             setBackgroundColor(0x55000000);
 
