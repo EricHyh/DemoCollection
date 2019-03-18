@@ -285,7 +285,8 @@ public class DefaultVideoController implements IVideoController {
 
         @Override
         public void onSurfaceCreate(Surface surface) {
-            mSurfaceDestroyTask.remove();
+            //mSurfaceDestroyTask.remove();
+            mVideoDelegate.start();
         }
 
         @Override
@@ -294,7 +295,8 @@ public class DefaultVideoController implements IVideoController {
 
         @Override
         public void onSurfaceDestroyed(Surface surface) {
-            mSurfaceDestroyTask.post();
+            //mSurfaceDestroyTask.post();
+            mVideoDelegate.pause();
         }
     }
 

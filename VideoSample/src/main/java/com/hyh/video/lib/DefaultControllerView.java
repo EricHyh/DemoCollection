@@ -257,7 +257,7 @@ public class DefaultControllerView extends RelativeLayout implements IController
         if (mBottomContainer.isCreated()) {
             mBottomContainer.get().currentPosition.setText(formatTimeMillis(currentPosition));
         } else {
-            mBottomContainer.saveLazyAction("", new LazyView.LazyAction<BottomContainer>() {
+            mBottomContainer.saveLazyAction("setCurrentPosition", new LazyView.LazyAction<BottomContainer>() {
                 @Override
                 public void doAction(BottomContainer bottomContainer) {
                     bottomContainer.currentPosition.setText(formatTimeMillis(currentPosition));

@@ -217,7 +217,7 @@ public class VideoDelegate {
         HappyVideo happyVideo = new HappyVideo(mContext, null, 0, this);
         rootView.addView(happyVideo, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         if (currentPosition > 0) {
-            seekTimeTo(currentPosition > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) currentPosition);
+            //seekTimeTo(currentPosition > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) currentPosition);
         }
         return true;
     }
@@ -248,7 +248,7 @@ public class VideoDelegate {
         attachedToContainer(mNormalVideoContainer);
         mNormalVideoContainer = null;
         if (currentPosition > 0) {
-            seekTimeTo(currentPosition > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) currentPosition);
+            //seekTimeTo(currentPosition > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) currentPosition);
         }
         return true;
     }

@@ -84,6 +84,7 @@ public abstract class LazyView<V extends View> {
             List<LazyAction<V>> actions = mLazyActionMap.get(actionKey);
             if (actions == null) {
                 actions = new ArrayList<>();
+                mLazyActionMap.put(actionKey, actions);
             }
             if (unique) {
                 actions.clear();
