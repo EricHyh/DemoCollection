@@ -212,13 +212,9 @@ public class VideoDelegate {
         mStartFullscreenSceneTimeMills = System.currentTimeMillis();
         ViewGroup rootView = (ViewGroup) mVideoContainer.getRootView();
         mNormalVideoContainer = mVideoContainer;
-        long currentPosition = getCurrentPosition();
         detachedFromContainer();
         HappyVideo happyVideo = new HappyVideo(mContext, null, 0, this);
         rootView.addView(happyVideo, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
-        if (currentPosition > 0) {
-            //seekTimeTo(currentPosition > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) currentPosition);
-        }
         return true;
     }
 
@@ -238,18 +234,13 @@ public class VideoDelegate {
         if (mScene != Scene.FULLSCREEN) return false;
         mScene = Scene.NORMAL;
         mRecoverNormalSceneTimeMills = System.currentTimeMillis();
-        long currentPosition = getCurrentPosition();
         ViewGroup parent = (ViewGroup) mVideoContainer.getParent();
         if (parent != null) {
             parent.removeView(mVideoContainer);
         }
-
         detachedFromContainer();
         attachedToContainer(mNormalVideoContainer);
         mNormalVideoContainer = null;
-        if (currentPosition > 0) {
-            //seekTimeTo(currentPosition > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) currentPosition);
-        }
         return true;
     }
 
@@ -372,6 +363,12 @@ public class VideoDelegate {
             for (IVideoSurface.SurfaceListener listener : mSurfaceListeners) {
                 listener.onSurfaceCreate(surface);
             }
+            if (mVideoPreview != null) {
+                mVideoPreview.onSurfaceCreate(surface);
+            }
+            if (mVideoController != null) {
+                mVideoController.onSurfaceCreate(surface);
+            }
         }
 
         @Override
@@ -379,12 +376,24 @@ public class VideoDelegate {
             for (IVideoSurface.SurfaceListener listener : mSurfaceListeners) {
                 listener.onSurfaceSizeChanged(surface, width, height);
             }
+            if (mVideoPreview != null) {
+                mVideoPreview.onSurfaceSizeChanged(surface, width, height);
+            }
+            if (mVideoController != null) {
+                mVideoController.onSurfaceSizeChanged(surface, width, height);
+            }
         }
 
         @Override
         public void onSurfaceDestroyed(Surface surface) {
             for (IVideoSurface.SurfaceListener listener : mSurfaceListeners) {
                 listener.onSurfaceDestroyed(surface);
+            }
+            if (mVideoPreview != null) {
+                mVideoPreview.onSurfaceDestroyed(surface);
+            }
+            if (mVideoController != null) {
+                mVideoController.onSurfaceDestroyed(surface);
             }
         }
     }

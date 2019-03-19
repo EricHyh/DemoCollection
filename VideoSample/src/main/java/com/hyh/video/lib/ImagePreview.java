@@ -20,7 +20,6 @@ import java.lang.ref.WeakReference;
 public class ImagePreview extends ImageView implements IVideoPreview {
 
     private final SurfaceDestroyTask mSurfaceDestroyTask = new SurfaceDestroyTask(this);
-    private final IVideoSurface.SurfaceListener mPreviewSurfaceListener = new PreviewSurfaceListener();
     private final MediaEventListener mPreviewMediaEventListener = new PreviewMediaEventListener();
 
     private VideoDelegate mVideoDelegate;
@@ -43,7 +42,6 @@ public class ImagePreview extends ImageView implements IVideoPreview {
     @Override
     public void setUp(VideoDelegate videoDelegate, IMediaInfo mediaInfo) {
         this.mVideoDelegate = videoDelegate;
-        videoDelegate.addSurfaceListener(mPreviewSurfaceListener);
         videoDelegate.addMediaEventListener(mPreviewMediaEventListener);
 
         DataSource dataSource = videoDelegate.getDataSource();
@@ -66,6 +64,27 @@ public class ImagePreview extends ImageView implements IVideoPreview {
         } else {
             if (this.getVisibility() == VISIBLE) {
                 this.setVisibility(GONE);
+            }
+        }
+    }
+
+    @Override
+    public void onSurfaceCreate(Surface surface) {
+        mSurfaceDestroyTask.remove();
+    }
+
+    @Override
+    public void onSurfaceSizeChanged(Surface surface, int width, int height) {
+
+    }
+
+    @Override
+    public void onSurfaceDestroyed(Surface surface) {
+        if (mVideoDelegate != null && mVideoDelegate.isPlaying()) {
+            mSurfaceDestroyTask.post();
+        } else {
+            if (ImagePreview.this.getVisibility() == INVISIBLE || ImagePreview.this.getVisibility() == GONE) {
+                ImagePreview.this.setVisibility(VISIBLE);
             }
         }
     }
@@ -109,36 +128,6 @@ public class ImagePreview extends ImageView implements IVideoPreview {
             super.onRelease(currentPosition, duration);
             if (ImagePreview.this.getVisibility() == INVISIBLE || ImagePreview.this.getVisibility() == GONE) {
                 ImagePreview.this.setVisibility(VISIBLE);
-            }
-        }
-    }
-
-
-    private class PreviewSurfaceListener implements IVideoSurface.SurfaceListener {
-
-        @Override
-        public void onSurfaceCreate(Surface surface) {
-            mSurfaceDestroyTask.remove();
-        }
-
-        @Override
-        public void onSurfaceSizeChanged(Surface surface, int width, int height) {
-        }
-
-        @Override
-        public void onSurfaceDestroyed(Surface surface) {
-            /*if (mVideoDelegate != null && (mVideoDelegate.isStartFullscreenSceneJustNow() || mVideoDelegate.isRecoverNormalSceneJustNow())) {
-                return;
-            }
-            if (ImagePreview.this.getVisibility() == INVISIBLE || ImagePreview.this.getVisibility() == GONE) {
-                ImagePreview.this.setVisibility(VISIBLE);
-            }*/
-            if (mVideoDelegate != null && mVideoDelegate.isPlaying()) {
-                mSurfaceDestroyTask.post();
-            } else {
-                if (ImagePreview.this.getVisibility() == INVISIBLE || ImagePreview.this.getVisibility() == GONE) {
-                    ImagePreview.this.setVisibility(VISIBLE);
-                }
             }
         }
     }

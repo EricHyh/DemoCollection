@@ -24,7 +24,6 @@ import java.lang.ref.WeakReference;
 public class FirstFramePreview extends FrameLayout implements IVideoPreview {
 
     private final SurfaceDestroyTask mSurfaceDestroyTask = new SurfaceDestroyTask(this);
-    private final IVideoSurface.SurfaceListener mPreviewSurfaceListener = new PreviewSurfaceListener();
     private final MediaEventListener mPreviewMediaEventListener = new PreviewMediaEventListener();
 
     private VideoDelegate mVideoDelegate;
@@ -33,7 +32,6 @@ public class FirstFramePreview extends FrameLayout implements IVideoPreview {
     private DataSource mDataSource;
     private int mVideoWidth;
     private int mVideoHeight;
-
 
     public FirstFramePreview(Context context) {
         super(context);
@@ -46,6 +44,16 @@ public class FirstFramePreview extends FrameLayout implements IVideoPreview {
         }
     }
 
+    public FirstFramePreview(Context context, int backgroundColor) {
+        super(context);
+        {
+            mPreviewImage = new ImageView(context);
+            FrameLayout.LayoutParams imageParams = new FrameLayout.LayoutParams(0, 0);
+            mPreviewImage.setScaleType(ImageView.ScaleType.FIT_CENTER);
+            imageParams.gravity = Gravity.CENTER;
+            addView(mPreviewImage, imageParams);
+        }
+    }
 
     @Override
     public View getView() {
@@ -60,7 +68,6 @@ public class FirstFramePreview extends FrameLayout implements IVideoPreview {
     @Override
     public void setUp(VideoDelegate videoDelegate, IMediaInfo mediaInfo) {
         this.mVideoDelegate = videoDelegate;
-        videoDelegate.addSurfaceListener(mPreviewSurfaceListener);
         videoDelegate.addMediaEventListener(mPreviewMediaEventListener);
 
         DataSource dataSource = videoDelegate.getDataSource();
@@ -126,6 +133,46 @@ public class FirstFramePreview extends FrameLayout implements IVideoPreview {
         }
     }
 
+    @Override
+    public void onSurfaceCreate(Surface surface) {
+        mSurfaceDestroyTask.remove();
+    }
+
+    @Override
+    public void onSurfaceSizeChanged(Surface surface, int width, int height) {
+        ViewGroup.LayoutParams layoutParams = mPreviewImage.getLayoutParams();
+        boolean isSizeChanged = false;
+        if (layoutParams.width != width) {
+            layoutParams.width = width;
+            isSizeChanged = true;
+        }
+        if (layoutParams.height != height) {
+            layoutParams.height = height;
+            isSizeChanged = true;
+        }
+        if (isSizeChanged) {
+            mPreviewImage.requestLayout();
+        }
+    }
+
+    @Override
+    public void onSurfaceDestroyed(Surface surface) {
+        /*if (mVideoDelegate != null && (mVideoDelegate.isStartFullscreenSceneJustNow() || mVideoDelegate.isRecoverNormalSceneJustNow())) {
+                return;
+            }
+            if (FirstFramePreview.this.getVisibility() == INVISIBLE || FirstFramePreview.this.getVisibility() == GONE) {
+                FirstFramePreview.this.setVisibility(VISIBLE);
+            }*/
+        if (mVideoDelegate != null && mVideoDelegate.isExecuteStart()) {
+            mSurfaceDestroyTask.post();
+        } else {
+            if (FirstFramePreview.this.getVisibility() == INVISIBLE || FirstFramePreview.this.getVisibility() == GONE) {
+                FirstFramePreview.this.setVisibility(VISIBLE);
+                Log.d("MediaSystem", "onSurfaceDestroyed: FirstFramePreview: ");
+            }
+        }
+    }
+
     private class PreviewMediaEventListener extends SimpleMediaEventListener {
 
         @Override
@@ -141,7 +188,6 @@ public class FirstFramePreview extends FrameLayout implements IVideoPreview {
             super.onStop(currentPosition, duration);
             if (FirstFramePreview.this.getVisibility() == INVISIBLE || FirstFramePreview.this.getVisibility() == GONE) {
                 FirstFramePreview.this.setVisibility(VISIBLE);
-                Log.d("MediaSystem", "onStop: FirstFramePreview: ");
             }
         }
 
@@ -150,7 +196,6 @@ public class FirstFramePreview extends FrameLayout implements IVideoPreview {
             super.onError(what, extra);
             if (FirstFramePreview.this.getVisibility() == INVISIBLE || FirstFramePreview.this.getVisibility() == GONE) {
                 FirstFramePreview.this.setVisibility(VISIBLE);
-                Log.d("MediaSystem", "onError: FirstFramePreview: ");
             }
         }
 
@@ -159,7 +204,6 @@ public class FirstFramePreview extends FrameLayout implements IVideoPreview {
             super.onCompletion();
             if (FirstFramePreview.this.getVisibility() == INVISIBLE || FirstFramePreview.this.getVisibility() == GONE) {
                 FirstFramePreview.this.setVisibility(VISIBLE);
-                Log.d("MediaSystem", "onCompletion: FirstFramePreview: ");
             }
         }
 
@@ -168,51 +212,6 @@ public class FirstFramePreview extends FrameLayout implements IVideoPreview {
             super.onRelease(currentPosition, duration);
             if (FirstFramePreview.this.getVisibility() == INVISIBLE || FirstFramePreview.this.getVisibility() == GONE) {
                 FirstFramePreview.this.setVisibility(VISIBLE);
-                Log.d("MediaSystem", "onRelease: FirstFramePreview: ");
-            }
-        }
-    }
-
-
-    private class PreviewSurfaceListener implements IVideoSurface.SurfaceListener {
-
-        @Override
-        public void onSurfaceCreate(Surface surface) {
-            mSurfaceDestroyTask.remove();
-        }
-
-        @Override
-        public void onSurfaceSizeChanged(Surface surface, int width, int height) {
-            ViewGroup.LayoutParams layoutParams = mPreviewImage.getLayoutParams();
-            boolean isSizeChanged = false;
-            if (layoutParams.width != width) {
-                layoutParams.width = width;
-                isSizeChanged = true;
-            }
-            if (layoutParams.height != height) {
-                layoutParams.height = height;
-                isSizeChanged = true;
-            }
-            if (isSizeChanged) {
-                mPreviewImage.requestLayout();
-            }
-        }
-
-        @Override
-        public void onSurfaceDestroyed(Surface surface) {
-            /*if (mVideoDelegate != null && (mVideoDelegate.isStartFullscreenSceneJustNow() || mVideoDelegate.isRecoverNormalSceneJustNow())) {
-                return;
-            }
-            if (FirstFramePreview.this.getVisibility() == INVISIBLE || FirstFramePreview.this.getVisibility() == GONE) {
-                FirstFramePreview.this.setVisibility(VISIBLE);
-            }*/
-            if (mVideoDelegate != null && mVideoDelegate.isExecuteStart()) {
-                mSurfaceDestroyTask.post();
-            } else {
-                if (FirstFramePreview.this.getVisibility() == INVISIBLE || FirstFramePreview.this.getVisibility() == GONE) {
-                    FirstFramePreview.this.setVisibility(VISIBLE);
-                    Log.d("MediaSystem", "onSurfaceDestroyed: FirstFramePreview: ");
-                }
             }
         }
     }

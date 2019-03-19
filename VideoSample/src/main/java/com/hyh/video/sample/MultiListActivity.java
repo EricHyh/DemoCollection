@@ -25,6 +25,7 @@ import java.util.List;
 
 public class MultiListActivity extends Activity {
 
+    private static final String TAG = "Video_Test";
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {

@@ -47,6 +47,9 @@ public class VideoActivity extends Activity implements SeekBar.OnSeekBarChangeLi
         mSeekBar.setOnSeekBarChangeListener(this);
 
         mVideoImage = findViewById(R.id.video_image);
+
+
+
     }
 
     public void prepare(View view) {

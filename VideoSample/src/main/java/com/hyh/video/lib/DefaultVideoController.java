@@ -1,8 +1,6 @@
 package com.hyh.video.lib;
 
 import android.content.Context;
-import android.os.Handler;
-import android.os.Looper;
 import android.view.Surface;
 import android.view.View;
 import android.widget.SeekBar;
@@ -36,20 +34,19 @@ public class DefaultVideoController implements IVideoController {
 
     private static boolean sAllowPlayWhenMobileData;
 
-    private final Handler mHandler = new Handler(Looper.getMainLooper());
     private final HideOperateViewTask mHideOperateViewTask = new HideOperateViewTask(this);
     private final SurfaceDestroyTask mSurfaceDestroyTask = new SurfaceDestroyTask(this);
     private final MediaEventListener mControllerMediaEventListener = new ControllerMediaEventListener();
     private final MediaProgressListener mControllerMediaProgressListener = new ControllerMediaProgressListener();
-    private final IVideoSurface.SurfaceListener mControllerSurfaceListener = new ControllerSurfaceListener();
     private final Context mContext;
     private final IControllerView mControllerView;
     private VideoDelegate mVideoDelegate;
 
     private int mCurInterceptCommand = INTERCEPT_NONE;
     private int mCurControlState = CONTROL_STATE_INITIAL;
-
     private boolean mInterceptPrepareAutoStart;
+    private long mSurfaceDestroyedTimeMillis;
+    private boolean mIsPauseBySurfaceDestroyed;
 
 
     public DefaultVideoController(Context context) {
@@ -74,7 +71,6 @@ public class DefaultVideoController implements IVideoController {
 
         mVideoDelegate.addMediaEventListener(mControllerMediaEventListener);
         mVideoDelegate.addMediaProgressListener(mControllerMediaProgressListener);
-        mVideoDelegate.addSurfaceListener(mControllerSurfaceListener);
 
         mControllerView.setup(videoDelegate, title, mediaInfo);
         mControllerView.setControllerViewClickListener(new ControllerClickListener(ControllerClickListener.FLAG_CONTROLLER_VIEW));
@@ -148,6 +144,35 @@ public class DefaultVideoController implements IVideoController {
             return true;
         }
         return false;
+    }
+
+    @Override
+    public void onSurfaceCreate(Surface surface) {
+        mSurfaceDestroyTask.remove();
+        if (mIsPauseBySurfaceDestroyed) {
+            long currentTimeMillis = System.currentTimeMillis();
+            long timeInterval = Math.abs(currentTimeMillis - mSurfaceDestroyedTimeMillis);
+            if (timeInterval < 300) {
+                mVideoDelegate.start();
+            }
+        }
+        mIsPauseBySurfaceDestroyed = false;
+        mSurfaceDestroyedTimeMillis = 0;
+    }
+
+    @Override
+    public void onSurfaceSizeChanged(Surface surface, int width, int height) {
+
+    }
+
+    @Override
+    public void onSurfaceDestroyed(Surface surface) {
+        mSurfaceDestroyTask.post();
+        if (mVideoDelegate.isExecuteStart()) {
+            mIsPauseBySurfaceDestroyed = true;
+        }
+        mVideoDelegate.pause();
+        mSurfaceDestroyedTimeMillis = System.currentTimeMillis();
     }
 
 
@@ -277,26 +302,6 @@ public class DefaultVideoController implements IVideoController {
         public void onMediaProgress(int progress, long currentPosition, long duration) {
             mControllerView.setMediaProgress(progress);
             mControllerView.setCurrentPosition(currentPosition);
-        }
-    }
-
-    private class ControllerSurfaceListener implements IVideoSurface.SurfaceListener {
-
-
-        @Override
-        public void onSurfaceCreate(Surface surface) {
-            //mSurfaceDestroyTask.remove();
-            mVideoDelegate.start();
-        }
-
-        @Override
-        public void onSurfaceSizeChanged(Surface surface, int width, int height) {
-        }
-
-        @Override
-        public void onSurfaceDestroyed(Surface surface) {
-            //mSurfaceDestroyTask.post();
-            mVideoDelegate.pause();
         }
     }
 
@@ -440,12 +445,11 @@ public class DefaultVideoController implements IVideoController {
             }
             mControllerView.hideMobileDataConfirm();
         }
-    }
 
-
-    private void handleFullscreenBackClick() {
-        if (mVideoDelegate.getScene() == VideoDelegate.Scene.FULLSCREEN) {
-            mVideoDelegate.recoverNormalScene();
+        private void handleFullscreenBackClick() {
+            if (mVideoDelegate.getScene() == VideoDelegate.Scene.FULLSCREEN) {
+                mVideoDelegate.recoverNormalScene();
+            }
         }
     }
 
@@ -462,7 +466,6 @@ public class DefaultVideoController implements IVideoController {
             DefaultVideoController defaultVideoController = mDefaultVideoControllerRef.get();
             if (defaultVideoController == null) return;
             defaultVideoController.mHideOperateViewTask.remove();
-            defaultVideoController.mVideoDelegate.pause();
             defaultVideoController.mControllerView.showInitialView();
             defaultVideoController.mCurControlState = CONTROL_STATE_INITIAL;
         }
@@ -470,13 +473,13 @@ public class DefaultVideoController implements IVideoController {
         void post() {
             DefaultVideoController defaultVideoController = mDefaultVideoControllerRef.get();
             if (defaultVideoController == null) return;
-            defaultVideoController.mHandler.postDelayed(this, 300);
+            VideoUtils.postUiThreadDelayed(this, 300);
         }
 
         void remove() {
             DefaultVideoController defaultVideoController = mDefaultVideoControllerRef.get();
             if (defaultVideoController == null) return;
-            defaultVideoController.mHandler.removeCallbacks(this);
+            VideoUtils.removeUiThreadRunnable(this);
         }
     }
 
@@ -498,13 +501,13 @@ public class DefaultVideoController implements IVideoController {
         void post() {
             DefaultVideoController defaultVideoController = mDefaultVideoControllerRef.get();
             if (defaultVideoController == null) return;
-            defaultVideoController.mHandler.postDelayed(this, 3000);
+            VideoUtils.postUiThreadDelayed(this, 3000);
         }
 
         void remove() {
             DefaultVideoController defaultVideoController = mDefaultVideoControllerRef.get();
             if (defaultVideoController == null) return;
-            defaultVideoController.mHandler.removeCallbacks(this);
+            VideoUtils.removeUiThreadRunnable(this);
         }
     }
 }

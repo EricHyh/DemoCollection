@@ -8,7 +8,7 @@ import android.view.View;
  * @data 2019/1/28
  */
 
-public interface IVideoController {
+public interface IVideoController extends IVideoSurface.SurfaceListener {
 
     View getView();
 
