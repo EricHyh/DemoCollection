@@ -20,6 +20,10 @@ public class TextureSurface extends TextureView implements IVideoSurface {
 
     private SurfaceListener mSurfaceListener;
 
+    private int mVideoWidth;
+
+    private int mVideoHeight;
+
     public TextureSurface(Context context) {
         super(context);
         setSurfaceTextureListener(new SurfaceListenerWrapper());
@@ -33,7 +37,7 @@ public class TextureSurface extends TextureView implements IVideoSurface {
         } else {
             int defaultWidth = getDefaultSize(getSuggestedMinimumWidth(), widthMeasureSpec);
             int defaultHeight = getDefaultSize(getSuggestedMinimumHeight(), heightMeasureSpec);
-            int[] size = mSurfaceMeasurer.onMeasure(defaultWidth, defaultHeight);
+            int[] size = mSurfaceMeasurer.onMeasure(defaultWidth, defaultHeight, mVideoWidth, mVideoHeight);
             setMeasuredDimension(size[0], size[1]);
         }
     }
@@ -52,6 +56,22 @@ public class TextureSurface extends TextureView implements IVideoSurface {
     public void setSurfaceMeasurer(ISurfaceMeasurer surfaceMeasurer) {
         this.mSurfaceMeasurer = surfaceMeasurer;
         requestLayout();
+    }
+
+    @Override
+    public void setVideoSize(int videoWidth, int videoHeight) {
+        boolean isSizeChanged = false;
+        if (mVideoWidth != videoWidth) {
+            this.mVideoWidth = videoWidth;
+            isSizeChanged = true;
+        }
+        if (mVideoHeight != videoHeight) {
+            this.mVideoHeight = videoHeight;
+            isSizeChanged = true;
+        }
+        if (isSizeChanged) {
+            requestLayout();
+        }
     }
 
     private class SurfaceListenerWrapper implements SurfaceTextureListener {

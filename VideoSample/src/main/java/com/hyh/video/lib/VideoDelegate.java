@@ -500,9 +500,8 @@ public class VideoDelegate {
 
         @Override
         public void onVideoSizeChanged(int width, int height) {
-            mSurfaceMeasurer.setVideoWidth(width, height);
             if (mVideoSurface != null) {
-                mVideoSurface.getView().requestLayout();
+                mVideoSurface.setVideoSize(width, height);
             }
             if (mVideoPreview != null) {
                 mVideoPreview.getView().requestLayout();

@@ -67,6 +67,8 @@ public interface IControllerView {
 
     void showLoadingView();
 
+    void showLoadingViewDelayed(long delayMillis);
+
     void hideLoadingView();
 
 }

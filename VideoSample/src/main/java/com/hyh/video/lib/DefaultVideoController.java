@@ -1,6 +1,7 @@
 package com.hyh.video.lib;
 
 import android.content.Context;
+import android.util.Log;
 import android.view.Surface;
 import android.view.View;
 import android.widget.SeekBar;
@@ -15,6 +16,7 @@ import java.lang.ref.WeakReference;
  */
 public class DefaultVideoController implements IVideoController {
 
+    private static final String TAG = "DefaultVideoController";
 
     //
     private static final int INTERCEPT_NONE = 0;
@@ -68,7 +70,9 @@ public class DefaultVideoController implements IVideoController {
     @Override
     public void setup(VideoDelegate videoDelegate, CharSequence title, IMediaInfo mediaInfo) {
         this.mVideoDelegate = videoDelegate;
-
+        this.mIsPauseBySurfaceDestroyed = false;
+        this.mSurfaceDestroyedTimeMillis = 0;
+        Log.d(TAG, "setup: ");
         mVideoDelegate.addMediaEventListener(mControllerMediaEventListener);
         mVideoDelegate.addMediaProgressListener(mControllerMediaProgressListener);
 
@@ -148,6 +152,7 @@ public class DefaultVideoController implements IVideoController {
 
     @Override
     public void onSurfaceCreate(Surface surface) {
+        Log.d(TAG, "onSurfaceCreate: ");
         mSurfaceDestroyTask.remove();
         if (mIsPauseBySurfaceDestroyed) {
             long currentTimeMillis = System.currentTimeMillis();
@@ -167,6 +172,7 @@ public class DefaultVideoController implements IVideoController {
 
     @Override
     public void onSurfaceDestroyed(Surface surface) {
+        Log.d(TAG, "onSurfaceDestroyed: ");
         mSurfaceDestroyTask.post();
         if (mVideoDelegate.isExecuteStart()) {
             mIsPauseBySurfaceDestroyed = true;
@@ -197,7 +203,7 @@ public class DefaultVideoController implements IVideoController {
         @Override
         public void onPreparing(boolean autoStart) {
             if (autoStart || mVideoDelegate.isExecuteStart()) {
-                mControllerView.showLoadingView();
+                mControllerView.showLoadingViewDelayed(300);
                 mCurControlState = CONTROL_STATE_OPERATE;
             }
         }
@@ -214,7 +220,7 @@ public class DefaultVideoController implements IVideoController {
             mControllerView.hideErrorView();
             mControllerView.hideMobileDataConfirm();
 
-            mControllerView.showLoadingView();
+            mControllerView.showLoadingViewDelayed(300);
             mControllerView.setPauseStyle();
             mCurControlState = CONTROL_STATE_OPERATE;
         }

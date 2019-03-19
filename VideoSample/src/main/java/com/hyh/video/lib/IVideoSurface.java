@@ -14,6 +14,8 @@ public interface IVideoSurface {
 
     void setSurfaceMeasurer(ISurfaceMeasurer surfaceMeasurer);
 
+    void setVideoSize(int videoWidth, int videoHeight);
+
     void setSurfaceListener(SurfaceListener listener);
 
     interface SurfaceListener {

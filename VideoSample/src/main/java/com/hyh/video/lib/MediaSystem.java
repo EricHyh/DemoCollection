@@ -481,15 +481,12 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
 
     @Override
     public boolean onError(MediaPlayer mediaPlayer, int what, int extra) {
-        long currentPosition = getCurrentPosition();
-        Log.d("MediaSystem", "onError: what = " + what + ", extra = " + extra + ", currentPosition = " + currentPosition);
         postError(what, extra);
         return true;
     }
 
     @Override
     public boolean onInfo(MediaPlayer mediaPlayer, final int what, final int extra) {
-        Log.d("MediaSystem", "onInfo: what = " + what + ", extra = " + extra);
         switch (what) {
             case MediaPlayer.MEDIA_INFO_VIDEO_RENDERING_START: {
                 postPlaying();
@@ -593,13 +590,12 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
     }
 
     private void postProgress() {
-        Log.d(TAG, "postProgress: isPlaying = " + isPlaying());
         long duration = getDuration();
         long currentPosition = getCurrentPosition();
-        //1264434998
-        //Log.d(TAG, "postProgress: duration = " + duration + ", currentPosition = " + currentPosition);
-        //Log.d(TAG, "postProgress: MAX_VALUE = " + Integer.MAX_VALUE );
-        int progress = Math.round(currentPosition * 1.0f / duration * 100);
+        int progress = 0;
+        if (duration != 0 && currentPosition != 0) {
+            progress = Math.round(currentPosition * 1.0f / duration * 100);
+        }
         if (mProgressListener != null) {
             mProgressListener.onMediaProgress(progress, currentPosition, duration);
         }
@@ -631,7 +627,7 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
     }
 
     private void postError(int what, int extra) {
-        if (what == 38 || what == -38 || extra == 38 || extra == -38 || extra == -19) return;
+        //if (what == 38 || what == -38 || extra == 38 || extra == -38 || extra == -19) return;
         long currentPosition = getCurrentPosition();
         if (currentPosition >= Integer.MAX_VALUE) {
             mErrorPosition = Integer.MAX_VALUE;

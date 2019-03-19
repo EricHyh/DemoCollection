@@ -2,6 +2,7 @@ package com.hyh.video.lib;
 
 import android.content.Context;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.widget.FrameLayout;
 
 
@@ -35,6 +36,14 @@ public class HappyVideo extends FrameLayout {
             mVideoDelegate = videoDelegate;
         }
         mVideoDelegate.attachedToContainer(this);
+    }
+
+    @Override
+    protected void onSizeChanged(int w, int h, int oldw, int oldh) {
+        super.onSizeChanged(w, h, oldw, oldh);
+        int measuredWidth = getMeasuredWidth();
+        int measuredHeight = getMeasuredHeight();
+        Log.d("", "onSizeChanged: ");
     }
 
     protected VideoDelegate newVideoDelegate(Context context) {

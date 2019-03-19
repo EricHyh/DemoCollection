@@ -7,8 +7,6 @@ package com.hyh.video.lib;
  */
 public interface ISurfaceMeasurer {
 
-    void setVideoWidth(int width, int height);
-
-    int[] onMeasure(int maxWidth, int maxHeight);
+    int[] onMeasure(int defaultWidth, int defaultHeight, int videoWidth, int videoHeight);
 
 }

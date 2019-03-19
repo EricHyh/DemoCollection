@@ -5,7 +5,6 @@ import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.os.Handler;
 import android.os.Looper;
-import android.util.Log;
 import android.view.Gravity;
 import android.view.Surface;
 import android.view.View;
@@ -33,18 +32,8 @@ public class FirstFramePreview extends FrameLayout implements IVideoPreview {
     private int mVideoWidth;
     private int mVideoHeight;
 
-    public FirstFramePreview(Context context) {
-        super(context);
-        {
-            mPreviewImage = new ImageView(context);
-            FrameLayout.LayoutParams imageParams = new FrameLayout.LayoutParams(0, 0);
-            mPreviewImage.setScaleType(ImageView.ScaleType.FIT_CENTER);
-            imageParams.gravity = Gravity.CENTER;
-            addView(mPreviewImage, imageParams);
-        }
-    }
 
-    public FirstFramePreview(Context context, int backgroundColor) {
+    public FirstFramePreview(Context context) {
         super(context);
         {
             mPreviewImage = new ImageView(context);
@@ -124,11 +113,15 @@ public class FirstFramePreview extends FrameLayout implements IVideoPreview {
             int height = getMeasuredHeight();
             if (width != 0 && height != 0) {
                 ViewGroup.LayoutParams layoutParams = mPreviewImage.getLayoutParams();
-                mSurfaceMeasurer.setVideoWidth(mVideoWidth, mVideoHeight);
-                int[] size = mSurfaceMeasurer.onMeasure(width, height);
+                int[] size = mSurfaceMeasurer.onMeasure(width, height, mVideoWidth, mVideoHeight);
                 layoutParams.width = size[0];
                 layoutParams.height = size[1];
-                mPreviewImage.requestLayout();
+                post(new Runnable() {
+                    @Override
+                    public void run() {
+                        requestLayout();
+                    }
+                });
             }
         }
     }
@@ -136,6 +129,7 @@ public class FirstFramePreview extends FrameLayout implements IVideoPreview {
     @Override
     public void onSurfaceCreate(Surface surface) {
         mSurfaceDestroyTask.remove();
+
     }
 
     @Override
@@ -157,18 +151,11 @@ public class FirstFramePreview extends FrameLayout implements IVideoPreview {
 
     @Override
     public void onSurfaceDestroyed(Surface surface) {
-        /*if (mVideoDelegate != null && (mVideoDelegate.isStartFullscreenSceneJustNow() || mVideoDelegate.isRecoverNormalSceneJustNow())) {
-                return;
-            }
-            if (FirstFramePreview.this.getVisibility() == INVISIBLE || FirstFramePreview.this.getVisibility() == GONE) {
-                FirstFramePreview.this.setVisibility(VISIBLE);
-            }*/
-        if (mVideoDelegate != null && mVideoDelegate.isExecuteStart()) {
+        if (mVideoDelegate != null && mVideoDelegate.isPlaying()) {
             mSurfaceDestroyTask.post();
         } else {
-            if (FirstFramePreview.this.getVisibility() == INVISIBLE || FirstFramePreview.this.getVisibility() == GONE) {
-                FirstFramePreview.this.setVisibility(VISIBLE);
-                Log.d("MediaSystem", "onSurfaceDestroyed: FirstFramePreview: ");
+            if (this.getVisibility() == INVISIBLE || this.getVisibility() == GONE) {
+                this.setVisibility(VISIBLE);
             }
         }
     }

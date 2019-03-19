@@ -10,37 +10,27 @@ public class CenterInsideMeasurer implements ISurfaceMeasurer {
 
     private final int[] mMeasureSize = new int[2];
 
-    private int mVideoWidth;
-
-    private int mVideoHeight;
-
     @Override
-    public void setVideoWidth(int width, int height) {
-        this.mVideoWidth = width;
-        this.mVideoHeight = height;
-    }
-
-    @Override
-    public int[] onMeasure(int maxWidth, int maxHeight) {
-        if (maxWidth == 0 || maxHeight == 0 || mVideoWidth == 0 || mVideoHeight == 0) {
-            mMeasureSize[0] = maxWidth;
-            mMeasureSize[1] = maxHeight;
+    public int[] onMeasure(int defaultWidth, int defaultHeight, int videoWidth, int videoHeight) {
+        if (defaultWidth == 0 || defaultHeight == 0 || videoWidth == 0 || videoHeight == 0) {
+            mMeasureSize[0] = defaultWidth;
+            mMeasureSize[1] = defaultHeight;
             return mMeasureSize;
         }
-        float ratio = maxHeight * 1.0f / maxWidth;
-        float videoRatio = mVideoHeight * 1.0f / mVideoWidth;
+        float ratio = defaultHeight * 1.0f / defaultWidth;
+        float videoRatio = videoHeight * 1.0f / videoWidth;
         if (videoRatio > ratio) {
-            if (mVideoHeight > maxHeight) {
-                mMeasureSize[1] = maxHeight;
+            if (videoHeight > defaultHeight) {
+                mMeasureSize[1] = defaultHeight;
             } else {
-                mMeasureSize[1] = mVideoHeight;
+                mMeasureSize[1] = videoHeight;
             }
             mMeasureSize[0] = Math.round(mMeasureSize[1] / videoRatio);
         } else {
-            if (mVideoWidth > maxWidth) {
-                mMeasureSize[0] = maxWidth;
+            if (videoWidth > defaultWidth) {
+                mMeasureSize[0] = defaultWidth;
             } else {
-                mMeasureSize[0] = mVideoWidth;
+                mMeasureSize[0] = videoWidth;
             }
             mMeasureSize[1] = Math.round(mMeasureSize[0] * videoRatio);
         }

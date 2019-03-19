@@ -16,6 +16,7 @@ import android.widget.TextView;
 
 import com.hyh.video.sample.R;
 
+import java.lang.ref.WeakReference;
 import java.lang.reflect.Field;
 import java.util.Locale;
 
@@ -28,6 +29,7 @@ import java.util.Locale;
 public class DefaultControllerView extends RelativeLayout implements IControllerView, View.OnClickListener {
 
     public final ControllerListenerInfo mListenerInfo = new ControllerListenerInfo();
+    public final ShowLoadingViewTask mShowLoadingViewTask = new ShowLoadingViewTask(this);
     public final LazyView<TopContainer> mTopContainer;
     public final LazyView<BottomContainer> mBottomContainer;
     public final LazyView<InitialInfoContainer> mInitialInfoContainer;
@@ -457,13 +459,21 @@ public class DefaultControllerView extends RelativeLayout implements IController
         setVisibility(mErrorViewContainer, GONE);
     }
 
+
     @Override
     public void showLoadingView() {
+        mShowLoadingViewTask.remove();
         setVisibility(mLoadingProgress, VISIBLE);
     }
 
     @Override
+    public void showLoadingViewDelayed(long delayMillis) {
+        mShowLoadingViewTask.post(delayMillis);
+    }
+
+    @Override
     public void hideLoadingView() {
+        mShowLoadingViewTask.remove();
         setVisibility(mLoadingProgress, GONE);
     }
 
@@ -887,5 +897,38 @@ public class DefaultControllerView extends RelativeLayout implements IController
         public View.OnClickListener mFullscreenBackClickListener;
         public SeekBar.OnSeekBarChangeListener mOnSeekBarChangeListener;
 
+    }
+
+    private static class ShowLoadingViewTask implements Runnable {
+
+        private final WeakReference<DefaultControllerView> mControllerViewRef;
+
+        private volatile boolean mIsRemove;
+
+        public ShowLoadingViewTask(DefaultControllerView controllerView) {
+            mControllerViewRef = new WeakReference<>(controllerView);
+        }
+
+        @Override
+        public void run() {
+            if (mIsRemove) return;
+            DefaultControllerView controllerView = mControllerViewRef.get();
+            if (controllerView == null) return;
+            controllerView.showLoadingView();
+        }
+
+        void post(long delayMillis) {
+            DefaultControllerView controllerView = mControllerViewRef.get();
+            if (controllerView == null) return;
+            mIsRemove = false;
+            VideoUtils.postUiThreadDelayed(this, delayMillis);
+        }
+
+        void remove() {
+            mIsRemove = true;
+            DefaultControllerView controllerView = mControllerViewRef.get();
+            if (controllerView == null) return;
+            VideoUtils.removeUiThreadRunnable(this);
+        }
     }
 }
