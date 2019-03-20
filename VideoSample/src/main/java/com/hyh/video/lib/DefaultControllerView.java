@@ -403,23 +403,22 @@ public class DefaultControllerView extends RelativeLayout implements IController
     }
 
     @Override
-    public void showOperateView() {
-        setBackgroundColor(Color.TRANSPARENT);
-        setVisibility(mTopContainer, VISIBLE);
-        setVisibility(mBottomContainer, VISIBLE);
-        setVisibility(mPlayOrPauseIcon, VISIBLE);
+    public void showOperateView(int mode) {
+        if (mode == OperateMode.IDLE) {
+            setVisibility(mTopContainer, GONE);
+            setVisibility(mBottomContainer, GONE);
+            setVisibility(mPlayOrPauseIcon, GONE);
 
-        setVisibility(mBottomProgress, GONE);
-        setVisibility(mInitialInfoContainer, GONE);
-    }
+            setVisibility(mBottomProgress, VISIBLE);
+        } else {
+            setBackgroundColor(Color.TRANSPARENT);
+            setVisibility(mTopContainer, VISIBLE);
+            setVisibility(mBottomContainer, VISIBLE);
+            setVisibility(mPlayOrPauseIcon, VISIBLE);
 
-    @Override
-    public void hideOperateView() {
-        setVisibility(mTopContainer, GONE);
-        setVisibility(mBottomContainer, GONE);
-        setVisibility(mPlayOrPauseIcon, GONE);
-
-        setVisibility(mBottomProgress, VISIBLE);
+            setVisibility(mBottomProgress, GONE);
+            setVisibility(mInitialInfoContainer, GONE);
+        }
     }
 
     @Override

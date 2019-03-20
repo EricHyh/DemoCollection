@@ -1,5 +1,6 @@
 package com.hyh.video.lib;
 
+import android.app.Activity;
 import android.content.Context;
 import android.graphics.Color;
 import android.util.Log;
@@ -8,6 +9,7 @@ import android.view.Surface;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewParent;
+import android.view.WindowManager;
 import android.widget.FrameLayout;
 
 import java.util.ArrayList;
@@ -214,6 +216,13 @@ public class VideoDelegate {
         mNormalVideoContainer = mVideoContainer;
         detachedFromContainer();
         HappyVideo happyVideo = new HappyVideo(mContext, null, 0, this);
+        /*happyVideo.setSystemUiVisibility(View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                *//*| View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+                | View.SYSTEM_UI_FLAG_FULLSCREEN*//*);*/
+        ((Activity) mContext).getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN); //隐藏状态栏
+        //((Activity)mContext).getWindow().clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN); //显示状态栏
+
+
         rootView.addView(happyVideo, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         return true;
     }
@@ -426,6 +435,9 @@ public class VideoDelegate {
             for (MediaEventListener listener : mMediaEventListeners) {
                 listener.onExecuteStart();
             }
+            if (mVideoContainer != null) {
+                mVideoContainer.setKeepScreenOn(true);
+            }
         }
 
         @Override
@@ -447,12 +459,18 @@ public class VideoDelegate {
             for (MediaEventListener listener : mMediaEventListeners) {
                 listener.onPause(currentPosition, duration);
             }
+            if (mVideoContainer != null) {
+                mVideoContainer.setKeepScreenOn(false);
+            }
         }
 
         @Override
         public void onStop(long currentPosition, long duration) {
             for (MediaEventListener listener : mMediaEventListeners) {
                 listener.onStop(currentPosition, duration);
+            }
+            if (mVideoContainer != null) {
+                mVideoContainer.setKeepScreenOn(false);
             }
         }
 
@@ -496,6 +514,9 @@ public class VideoDelegate {
             for (MediaEventListener listener : mMediaEventListeners) {
                 listener.onError(what, extra);
             }
+            if (mVideoContainer != null) {
+                mVideoContainer.setKeepScreenOn(false);
+            }
         }
 
         @Override
@@ -516,12 +537,18 @@ public class VideoDelegate {
             for (MediaEventListener listener : mMediaEventListeners) {
                 listener.onCompletion();
             }
+            if (mVideoContainer != null) {
+                mVideoContainer.setKeepScreenOn(false);
+            }
         }
 
         @Override
         public void onRelease(long currentPosition, long duration) {
             for (MediaEventListener listener : mMediaEventListeners) {
                 listener.onRelease(currentPosition, duration);
+            }
+            if (mVideoContainer != null) {
+                mVideoContainer.setKeepScreenOn(false);
             }
         }
     }

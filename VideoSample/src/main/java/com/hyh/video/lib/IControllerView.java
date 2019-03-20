@@ -53,9 +53,7 @@ public interface IControllerView {
 
     boolean isShowOperateView();
 
-    void showOperateView();
-
-    void hideOperateView();
+    void showOperateView(int mode);
 
     void showEndView();
 
@@ -71,4 +69,8 @@ public interface IControllerView {
 
     void hideLoadingView();
 
+    interface OperateMode {
+        int IDLE = 1;
+        int ALIVE = 2;
+    }
 }

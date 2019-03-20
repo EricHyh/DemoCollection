@@ -36,7 +36,7 @@ public class DefaultVideoController implements IVideoController {
 
     private static boolean sAllowPlayWhenMobileData;
 
-    private final HideOperateViewTask mHideOperateViewTask = new HideOperateViewTask(this);
+    private final IdleOperateViewTask mIdleOperateViewTask = new IdleOperateViewTask(this);
     private final SurfaceDestroyTask mSurfaceDestroyTask = new SurfaceDestroyTask(this);
     private final MediaEventListener mControllerMediaEventListener = new ControllerMediaEventListener();
     private final MediaProgressListener mControllerMediaProgressListener = new ControllerMediaProgressListener();
@@ -86,7 +86,7 @@ public class DefaultVideoController implements IVideoController {
         mControllerView.setFullscreenBackClickListener(new ControllerClickListener(ControllerClickListener.FLAG_FULLSCREEN_BACK));
         mControllerView.setOnSeekBarChangeListener(new ControllerSeekBarChangeListener());
 
-        mHideOperateViewTask.remove();
+        mIdleOperateViewTask.remove();
         mControllerView.showInitialView();
         mCurControlState = CONTROL_STATE_INITIAL;
     }
@@ -222,6 +222,7 @@ public class DefaultVideoController implements IVideoController {
 
             mControllerView.showLoadingViewDelayed(300);
             mControllerView.setPauseStyle();
+            mControllerView.showOperateView(IControllerView.OperateMode.IDLE);
             mCurControlState = CONTROL_STATE_OPERATE;
         }
 
@@ -238,16 +239,16 @@ public class DefaultVideoController implements IVideoController {
         @Override
         public void onPause(long currentPosition, long duration) {
             mControllerView.setPlayStyle();
-            mHideOperateViewTask.remove();
+            mIdleOperateViewTask.remove();
             mControllerView.hideLoadingView();
-            mControllerView.showOperateView();
+            mControllerView.showOperateView(IControllerView.OperateMode.ALIVE);
         }
 
         @Override
         public void onStop(long currentPosition, long duration) {
             mControllerView.setMediaProgress(0);
             mControllerView.setCurrentPosition(0);
-            mHideOperateViewTask.remove();
+            mIdleOperateViewTask.remove();
             mControllerView.hideLoadingView();
             mControllerView.showInitialView();
             mCurControlState = CONTROL_STATE_INITIAL;
@@ -289,14 +290,14 @@ public class DefaultVideoController implements IVideoController {
 
         @Override
         public void onCompletion() {
-            mHideOperateViewTask.remove();
+            mIdleOperateViewTask.remove();
             mControllerView.showEndView();
             mCurControlState = CONTROL_STATE_END;
         }
 
         @Override
         public void onRelease(long currentPosition, long duration) {
-            mHideOperateViewTask.remove();
+            mIdleOperateViewTask.remove();
             mControllerView.showInitialView();
             mCurControlState = CONTROL_STATE_INITIAL;
         }
@@ -372,13 +373,13 @@ public class DefaultVideoController implements IVideoController {
                     break;
                 }
                 case CONTROL_STATE_OPERATE: {
-                    mHideOperateViewTask.remove();
+                    mIdleOperateViewTask.remove();
                     if (mControllerView.isShowOperateView()) {
-                        mControllerView.hideOperateView();
+                        mControllerView.showOperateView(IControllerView.OperateMode.IDLE);
                     } else {
-                        mControllerView.showOperateView();
+                        mControllerView.showOperateView(IControllerView.OperateMode.ALIVE);
                         if (mVideoDelegate.isExecuteStart()) {
-                            mHideOperateViewTask.post();
+                            mIdleOperateViewTask.post();
                         }
                     }
                     break;
@@ -387,7 +388,7 @@ public class DefaultVideoController implements IVideoController {
         }
 
         private void handleStartIconClick() {
-            mHideOperateViewTask.remove();
+            mIdleOperateViewTask.remove();
             if (mVideoDelegate.isExecuteStart()) {
                 mVideoDelegate.pause();
                 mControllerView.setPlayStyle();
@@ -397,7 +398,7 @@ public class DefaultVideoController implements IVideoController {
                 } else {
                     mVideoDelegate.start();
                     mControllerView.setPauseStyle();
-                    mHideOperateViewTask.post();
+                    mIdleOperateViewTask.post();
                 }
             }
         }
@@ -471,7 +472,7 @@ public class DefaultVideoController implements IVideoController {
         public void run() {
             DefaultVideoController defaultVideoController = mDefaultVideoControllerRef.get();
             if (defaultVideoController == null) return;
-            defaultVideoController.mHideOperateViewTask.remove();
+            defaultVideoController.mIdleOperateViewTask.remove();
             defaultVideoController.mControllerView.showInitialView();
             defaultVideoController.mCurControlState = CONTROL_STATE_INITIAL;
         }
@@ -489,11 +490,11 @@ public class DefaultVideoController implements IVideoController {
         }
     }
 
-    private static class HideOperateViewTask implements Runnable {
+    private static class IdleOperateViewTask implements Runnable {
 
         private WeakReference<DefaultVideoController> mDefaultVideoControllerRef;
 
-        HideOperateViewTask(DefaultVideoController defaultVideoController) {
+        IdleOperateViewTask(DefaultVideoController defaultVideoController) {
             mDefaultVideoControllerRef = new WeakReference<>(defaultVideoController);
         }
 
@@ -501,7 +502,7 @@ public class DefaultVideoController implements IVideoController {
         public void run() {
             DefaultVideoController defaultVideoController = mDefaultVideoControllerRef.get();
             if (defaultVideoController == null) return;
-            defaultVideoController.mControllerView.hideOperateView();
+            defaultVideoController.mControllerView.showOperateView(IControllerView.OperateMode.IDLE);
         }
 
         void post() {
