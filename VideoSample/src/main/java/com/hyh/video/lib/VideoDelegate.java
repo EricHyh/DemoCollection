@@ -414,12 +414,18 @@ public class VideoDelegate {
             for (MediaEventListener listener : mMediaEventListeners) {
                 listener.onInitialized();
             }
+            if (mVideoContainer != null) {
+                mVideoContainer.setKeepScreenOn(false);
+            }
         }
 
         @Override
         public void onPreparing(boolean autoStart) {
             for (MediaEventListener listener : mMediaEventListeners) {
                 listener.onPreparing(autoStart);
+            }
+            if (autoStart && mVideoContainer != null) {
+                mVideoContainer.setKeepScreenOn(true);
             }
         }
 
