@@ -26,7 +26,7 @@ public class SimpleMediaEventListener implements MediaEventListener {
     }
 
     @Override
-    public void onStart(long currentPosition, long duration) {
+    public void onStart(long currentPosition, long duration, int bufferingPercent) {
     }
 
     @Override
@@ -50,7 +50,7 @@ public class SimpleMediaEventListener implements MediaEventListener {
     }
 
     @Override
-    public void onBufferingUpdate(int progress) {
+    public void onBufferingUpdate(int percent) {
     }
 
     @Override

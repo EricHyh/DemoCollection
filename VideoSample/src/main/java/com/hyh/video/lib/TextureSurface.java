@@ -2,6 +2,7 @@ package com.hyh.video.lib;
 
 import android.content.Context;
 import android.graphics.SurfaceTexture;
+import android.os.Build;
 import android.view.Surface;
 import android.view.TextureView;
 import android.view.View;
@@ -82,28 +83,32 @@ public class TextureSurface extends TextureView implements IVideoSurface {
 
         @Override
         public void onSurfaceTextureAvailable(SurfaceTexture surface, int width, int height) {
-            this.mSurfaceTexture = surface;
-            this.mSurface = new Surface(surface);
+            if (mSurfaceTexture == null) {
+                this.mSurfaceTexture = surface;
+                this.mSurface = new Surface(surface);
+            } else {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
+                    setSurfaceTexture(mSurfaceTexture);
+                }
+            }
             mSurfaceListener.onSurfaceCreate(mSurface);
+
+            /*if (mSurfaceTexture != surface) {
+                this.mSurfaceTexture = surface;
+                this.mSurface = new Surface(surface);
+            }
+            mSurfaceListener.onSurfaceCreate(mSurface);*/
         }
 
         @Override
         public void onSurfaceTextureSizeChanged(SurfaceTexture surface, int width, int height) {
-            if (mSurfaceTexture != surface) {
-                this.mSurfaceTexture = surface;
-                this.mSurface = new Surface(surface);
-            }
             mSurfaceListener.onSurfaceSizeChanged(mSurface, width, height);
         }
 
         @Override
         public boolean onSurfaceTextureDestroyed(SurfaceTexture surface) {
-            if (mSurfaceTexture != surface) {
-                this.mSurfaceTexture = surface;
-                this.mSurface = new Surface(surface);
-            }
             mSurfaceListener.onSurfaceDestroyed(mSurface);
-            return true;
+            return false;
         }
 
         @Override

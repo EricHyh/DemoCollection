@@ -16,7 +16,7 @@ public interface MediaEventListener {
 
     void onExecuteStart();
 
-    void onStart(long currentPosition, long duration);
+    void onStart(long currentPosition, long duration, int bufferingPercent);
 
     void onPlaying(long currentPosition, long duration);
 
@@ -28,7 +28,7 @@ public interface MediaEventListener {
 
     void onBufferingEnd();
 
-    void onBufferingUpdate(int progress);
+    void onBufferingUpdate(int percent);
 
     void onSeekStart(long seekMilliSeconds, int seekProgress);
 

@@ -461,9 +461,9 @@ public class VideoDelegate {
         }
 
         @Override
-        public void onStart(long currentPosition, long duration) {
+        public void onStart(long currentPosition, long duration, int bufferingPercent) {
             for (MediaEventListener listener : mMediaEventListeners) {
-                listener.onStart(currentPosition, duration);
+                listener.onStart(currentPosition, duration, bufferingPercent);
             }
         }
 
@@ -509,9 +509,9 @@ public class VideoDelegate {
         }
 
         @Override
-        public void onBufferingUpdate(int progress) {
+        public void onBufferingUpdate(int percent) {
             for (MediaEventListener listener : mMediaEventListeners) {
-                listener.onBufferingUpdate(progress);
+                listener.onBufferingUpdate(percent);
             }
         }
 

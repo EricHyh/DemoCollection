@@ -35,6 +35,8 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
 
     private long mDuration;
 
+    private int mBufferingPercent;
+
     private int mErrorPosition;
 
     private MediaEventListener mMediaEventListener;
@@ -163,6 +165,7 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
         } else if (mCurrentState == State.ERROR) {
             mMediaPlayer.reset();
             if (initMediaPlayer(mDataSource)) {
+                postInitialized();
                 try {
                     long currentTimeMillis = SystemClock.elapsedRealtime();
                     long timeInterval = Math.abs(currentTimeMillis - mInitTimeMillis);
@@ -200,7 +203,6 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
                 || mCurrentState == State.COMPLETED) {
             if (!isPlaying()) {
                 mMediaPlayer.start();
-                mCurrentState = State.STARTED;
                 postStart();
                 if (mProgressListener != null) {
                     startObserveProgress();
@@ -244,6 +246,7 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
         if (mCurrentState == State.ERROR) {
             mMediaPlayer.reset();
             if (initMediaPlayer(mDataSource)) {
+                postInitialized();
                 mMediaPlayer.prepareAsync();
                 postPreparing(true);
                 mPendingCommand = PENDING_COMMAND_START;
@@ -382,8 +385,11 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
             } catch (Exception e) {
                 //
             }
+            Log.d(TAG, "setSurface: diff");
             this.mSurface = surface;
             mMediaPlayer.setSurface(mSurface);
+        } else {
+            Log.d(TAG, "setSurface: same");
         }
     }
 
@@ -471,6 +477,7 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
 
     @Override
     public void onBufferingUpdate(MediaPlayer mediaPlayer, final int percent) {
+        Log.d(TAG, "onBufferingUpdate: percent = " + percent);
         postBufferingUpdate(percent);
     }
 
@@ -487,8 +494,10 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
 
     @Override
     public boolean onInfo(MediaPlayer mediaPlayer, final int what, final int extra) {
+        Log.d(TAG, "onInfo: ");
         switch (what) {
             case MediaPlayer.MEDIA_INFO_VIDEO_RENDERING_START: {
+                Log.d(TAG, "onInfo: postPlaying");
                 postPlaying();
                 break;
             }
@@ -553,7 +562,7 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
     private void postStart() {
         mCurrentState = State.STARTED;
         if (mMediaEventListener != null) {
-            mMediaEventListener.onStart(getCurrentPosition(), getDuration());
+            mMediaEventListener.onStart(getCurrentPosition(), getDuration(), mBufferingPercent);
         }
     }
 
@@ -615,8 +624,11 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
     }
 
     private void postBufferingUpdate(int percent) {
-        if (mMediaEventListener != null) {
-            mMediaEventListener.onBufferingUpdate(percent);
+        if (percent == 0 || mBufferingPercent != percent) {
+            mBufferingPercent = percent;
+            if (mMediaEventListener != null) {
+                mMediaEventListener.onBufferingUpdate(percent);
+            }
         }
     }
 
@@ -627,6 +639,7 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
     }
 
     private void postError(int what, int extra) {
+        mBufferingPercent = 0;
         //if (what == 38 || what == -38 || extra == 38 || extra == -38 || extra == -19) return;
         long currentPosition = getCurrentPosition();
         if (currentPosition >= Integer.MAX_VALUE) {
@@ -645,6 +658,7 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
 
 
     private void postComplete() {
+        mBufferingPercent = 0;
         mCurrentState = State.COMPLETED;
         if (mMediaEventListener != null) {
             mMediaEventListener.onCompletion();
@@ -652,6 +666,7 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
     }
 
     private void postRelease() {
+        mBufferingPercent = 0;
         mCurrentState = State.END;
         if (mMediaEventListener != null) {
             mMediaEventListener.onRelease(getCurrentPosition(), getDuration());

@@ -140,7 +140,7 @@ public class VideoActivity extends Activity implements SeekBar.OnSeekBarChangeLi
     }
 
     @Override
-    public void onStart(long currentPosition, long duration) {
+    public void onStart(long currentPosition, long duration, int bufferingPercent) {
 
     }
 
@@ -175,8 +175,8 @@ public class VideoActivity extends Activity implements SeekBar.OnSeekBarChangeLi
     }
 
     @Override
-    public void onBufferingUpdate(int progress) {
-        mSeekBar.setSecondaryProgress(progress);
+    public void onBufferingUpdate(int percent) {
+        mSeekBar.setSecondaryProgress(percent);
     }
 
     @Override

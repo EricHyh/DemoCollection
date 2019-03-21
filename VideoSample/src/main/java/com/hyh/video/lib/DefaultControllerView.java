@@ -553,7 +553,6 @@ public class DefaultControllerView extends RelativeLayout implements IController
         }
     }
 
-
     public class TopContainer extends LinearLayout {
 
         public final ImageView fullscreenBackIcon;

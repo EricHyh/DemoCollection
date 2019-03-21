@@ -60,7 +60,7 @@ public class VideoData implements MediaProgressListener {
         if (currentPosition != null) {
             mVideo.seekTimeTo(currentPosition);
         }
-        mVideo.prepare(false);
+        //mVideo.prepare(false);
         mVideo.addMediaProgressListener(this);
         mVideo.addMediaEventListener(mMediaEventListener);
         end = System.currentTimeMillis();

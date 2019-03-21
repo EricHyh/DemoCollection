@@ -3,16 +3,12 @@ package com.hyh.video.lib;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Color;
-import android.os.Handler;
-import android.os.Looper;
 import android.view.Gravity;
 import android.view.Surface;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
-
-import java.lang.ref.WeakReference;
 
 /**
  * @author Administrator
@@ -22,12 +18,11 @@ import java.lang.ref.WeakReference;
 
 public class FirstFramePreview extends FrameLayout implements IVideoPreview {
 
-    private final SurfaceDestroyTask mSurfaceDestroyTask = new SurfaceDestroyTask(this);
-    private final MediaEventListener mPreviewMediaEventListener = new PreviewMediaEventListener();
+    private final ImageView mPreviewImage;
+    private final VideoPreviewHelper mVideoPreviewHelper;
 
-    private VideoDelegate mVideoDelegate;
     private ISurfaceMeasurer mSurfaceMeasurer;
-    private ImageView mPreviewImage;
+
     private DataSource mDataSource;
     private int mVideoWidth;
     private int mVideoHeight;
@@ -42,6 +37,21 @@ public class FirstFramePreview extends FrameLayout implements IVideoPreview {
             imageParams.gravity = Gravity.CENTER;
             addView(mPreviewImage, imageParams);
         }
+        mVideoPreviewHelper = new VideoPreviewHelper(new VideoPreviewHelper.PreviewAction() {
+            @Override
+            public void showPreview() {
+                if (FirstFramePreview.this.getVisibility() == INVISIBLE || FirstFramePreview.this.getVisibility() == GONE) {
+                    FirstFramePreview.this.setVisibility(VISIBLE);
+                }
+            }
+
+            @Override
+            public void hidePreview() {
+                if (FirstFramePreview.this.getVisibility() == VISIBLE) {
+                    FirstFramePreview.this.setVisibility(GONE);
+                }
+            }
+        });
     }
 
     @Override
@@ -56,34 +66,14 @@ public class FirstFramePreview extends FrameLayout implements IVideoPreview {
 
     @Override
     public void setUp(VideoDelegate videoDelegate, IMediaInfo mediaInfo) {
-        this.mVideoDelegate = videoDelegate;
-        videoDelegate.addMediaEventListener(mPreviewMediaEventListener);
-
         DataSource dataSource = videoDelegate.getDataSource();
         if (mDataSource != null && !mDataSource.equals(dataSource)) {
             mPreviewImage.setImageBitmap(null);
         }
         mDataSource = dataSource;
-
         this.setBackgroundColor(0xFFE8E8E8);
         requestFirstFrame(mediaInfo);
-        int mediaState = videoDelegate.getMediaState();
-        if (mediaState == IMediaPlayer.State.IDLE
-                || mediaState == IMediaPlayer.State.INITIALIZED
-                || mediaState == IMediaPlayer.State.PREPARING
-                || mediaState == IMediaPlayer.State.PREPARED
-                || mediaState == IMediaPlayer.State.STOPPED
-                || mediaState == IMediaPlayer.State.COMPLETED
-                || mediaState == IMediaPlayer.State.ERROR
-                || mediaState == IMediaPlayer.State.END) {
-            if (this.getVisibility() == INVISIBLE || this.getVisibility() == GONE) {
-                this.setVisibility(VISIBLE);
-            }
-        } else {
-            if (this.getVisibility() == VISIBLE) {
-                this.setVisibility(GONE);
-            }
-        }
+        mVideoPreviewHelper.setUp(videoDelegate);
     }
 
     private void requestFirstFrame(IMediaInfo mediaInfo) {
@@ -128,8 +118,7 @@ public class FirstFramePreview extends FrameLayout implements IVideoPreview {
 
     @Override
     public void onSurfaceCreate(Surface surface) {
-        mSurfaceDestroyTask.remove();
-
+        mVideoPreviewHelper.onSurfaceCreate();
     }
 
     @Override
@@ -151,86 +140,6 @@ public class FirstFramePreview extends FrameLayout implements IVideoPreview {
 
     @Override
     public void onSurfaceDestroyed(Surface surface) {
-        if (mVideoDelegate != null && mVideoDelegate.isPlaying()) {
-            mSurfaceDestroyTask.post();
-        } else {
-            if (this.getVisibility() == INVISIBLE || this.getVisibility() == GONE) {
-                this.setVisibility(VISIBLE);
-            }
-        }
-    }
-
-    private class PreviewMediaEventListener extends SimpleMediaEventListener {
-
-        @Override
-        public void onPlaying(long currentPosition, long duration) {
-            super.onPlaying(currentPosition, duration);
-            if (FirstFramePreview.this.getVisibility() == View.VISIBLE) {
-                FirstFramePreview.this.setVisibility(View.GONE);
-            }
-        }
-
-        @Override
-        public void onStop(long currentPosition, long duration) {
-            super.onStop(currentPosition, duration);
-            if (FirstFramePreview.this.getVisibility() == INVISIBLE || FirstFramePreview.this.getVisibility() == GONE) {
-                FirstFramePreview.this.setVisibility(VISIBLE);
-            }
-        }
-
-        @Override
-        public void onError(int what, int extra) {
-            super.onError(what, extra);
-            if (FirstFramePreview.this.getVisibility() == INVISIBLE || FirstFramePreview.this.getVisibility() == GONE) {
-                FirstFramePreview.this.setVisibility(VISIBLE);
-            }
-        }
-
-        @Override
-        public void onCompletion() {
-            super.onCompletion();
-            if (FirstFramePreview.this.getVisibility() == INVISIBLE || FirstFramePreview.this.getVisibility() == GONE) {
-                FirstFramePreview.this.setVisibility(VISIBLE);
-            }
-        }
-
-        @Override
-        public void onRelease(long currentPosition, long duration) {
-            super.onRelease(currentPosition, duration);
-            if (FirstFramePreview.this.getVisibility() == INVISIBLE || FirstFramePreview.this.getVisibility() == GONE) {
-                FirstFramePreview.this.setVisibility(VISIBLE);
-            }
-        }
-    }
-
-    private static class SurfaceDestroyTask implements Runnable {
-
-        private Handler mHandler = new Handler(Looper.getMainLooper());
-        private WeakReference<FirstFramePreview> mFirstFramePreviewRef;
-
-        SurfaceDestroyTask(FirstFramePreview firstFramePreview) {
-            mFirstFramePreviewRef = new WeakReference<>(firstFramePreview);
-        }
-
-        @Override
-        public void run() {
-            FirstFramePreview firstFramePreview = mFirstFramePreviewRef.get();
-            if (firstFramePreview == null) return;
-            if (firstFramePreview.getVisibility() == INVISIBLE || firstFramePreview.getVisibility() == GONE) {
-                firstFramePreview.setVisibility(VISIBLE);
-            }
-        }
-
-        void post() {
-            FirstFramePreview firstFramePreview = mFirstFramePreviewRef.get();
-            if (firstFramePreview == null) return;
-            mHandler.postDelayed(this, 300);
-        }
-
-        void remove() {
-            FirstFramePreview firstFramePreview = mFirstFramePreviewRef.get();
-            if (firstFramePreview == null) return;
-            mHandler.removeCallbacks(this);
-        }
+        mVideoPreviewHelper.onSurfaceDestroyed();
     }
 }

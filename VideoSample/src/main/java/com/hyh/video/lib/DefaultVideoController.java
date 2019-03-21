@@ -176,8 +176,8 @@ public class DefaultVideoController implements IVideoController {
         mSurfaceDestroyTask.post();
         if (mVideoDelegate.isExecuteStart()) {
             mIsPauseBySurfaceDestroyed = true;
+            mVideoDelegate.pause();
         }
-        mVideoDelegate.pause();
         mSurfaceDestroyedTimeMillis = System.currentTimeMillis();
     }
 
@@ -227,7 +227,12 @@ public class DefaultVideoController implements IVideoController {
         }
 
         @Override
-        public void onStart(long currentPosition, long duration) {
+        public void onStart(long currentPosition, long duration, int bufferingPercent) {
+            mControllerView.hideLoadingView();
+            mCurControlState = CONTROL_STATE_OPERATE;
+
+            Log.d(TAG, "onStart: " + mVideoDelegate.isPlaying());
+
         }
 
         @Override
@@ -267,8 +272,8 @@ public class DefaultVideoController implements IVideoController {
         }
 
         @Override
-        public void onBufferingUpdate(int progress) {
-            mControllerView.setBufferingProgress(progress);
+        public void onBufferingUpdate(int percent) {
+            mControllerView.setBufferingProgress(percent);
         }
 
         @Override
