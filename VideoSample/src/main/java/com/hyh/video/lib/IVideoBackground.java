@@ -1,5 +1,6 @@
 package com.hyh.video.lib;
 
+import android.graphics.drawable.Drawable;
 import android.view.View;
 
 /**
@@ -10,6 +11,8 @@ import android.view.View;
 
 public interface IVideoBackground {
 
-    View getView();
+    Drawable getBackgroundDrawable();
+
+    View getBackgroundView();
 
 }

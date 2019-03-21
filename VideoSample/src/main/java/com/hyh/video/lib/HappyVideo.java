@@ -92,7 +92,6 @@ public class HappyVideo extends FrameLayout {
         return mVideoDelegate.setup(source, title, looping);
     }
 
-
     public boolean startFullscreenScene() {
         return mVideoDelegate.startFullscreenScene();
     }

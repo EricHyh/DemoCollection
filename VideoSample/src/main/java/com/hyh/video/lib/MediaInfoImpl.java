@@ -7,7 +7,6 @@ import android.media.MediaMetadataRetriever;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.text.TextUtils;
-import android.util.Log;
 import android.util.LruCache;
 import android.webkit.URLUtil;
 
@@ -76,46 +75,61 @@ public class MediaInfoImpl implements IMediaInfo {
 
     @Override
     public void getDuration(Result<Long> result) {
+        getDuration(null, result);
+    }
+
+    @Override
+    public void getDuration(BeforeResult<Long> beforeResult, Result<Long> result) {
         if (mDataSource == null) {
             result.onResult(null);
             return;
         }
         Long duration = VIDEO_DURATION_CACHE.get(mDataSource.getPath());
-        if (duration != null) {
+        if (duration != null && beforeResult == null) {
             result.onResult(duration);
             return;
         }
         synchronized (mLock) {
-            DurationTask task = new DurationTask(mContext, mDataSource, mRunningTaskList, result);
+            DurationTask task = new DurationTask(mContext, mDataSource, mRunningTaskList, beforeResult, result);
             task.execute();
         }
     }
 
     @Override
     public void getVideoSize(Result<int[]> result) {
+        getVideoSize(null, result);
+    }
+
+    @Override
+    public void getVideoSize(BeforeResult<int[]> beforeResult, Result<int[]> result) {
         if (mDataSource == null) {
             result.onResult(null);
             return;
         }
         synchronized (mLock) {
-            VideoSizeTask task = new VideoSizeTask(mContext, mDataSource, mRunningTaskList, result);
+            VideoSizeTask task = new VideoSizeTask(mContext, mDataSource, mRunningTaskList, beforeResult, result);
             task.execute();
         }
     }
 
     @Override
     public void getFrameAtTime(long timeUs, Result<Bitmap> result) {
+        getFrameAtTime(timeUs, null, result);
+    }
+
+    @Override
+    public void getFrameAtTime(long timeUs, BeforeResult<Bitmap> beforeResult, Result<Bitmap> result) {
         if (mDataSource == null) {
             result.onResult(null);
             return;
         }
         Bitmap bitmap = FRAME_CACHE.get(mDataSource.getPath() + "-" + timeUs);
-        if (bitmap != null) {
+        if (bitmap != null && beforeResult == null) {
             result.onResult(bitmap);
             return;
         }
         synchronized (mLock) {
-            FrameTask task = new FrameTask(mContext, mDataSource, mRunningTaskList, timeUs, result);
+            FrameTask task = new FrameTask(mContext, mDataSource, mRunningTaskList, timeUs, beforeResult, result);
             task.execute();
         }
     }
@@ -123,8 +137,13 @@ public class MediaInfoImpl implements IMediaInfo {
     private static class DurationTask extends MediaMetadataTask<Long> {
 
 
-        DurationTask(Context context, DataSource dataSource, List<MediaMetadataTask> runningTaskList, Result<Long> result) {
-            super(context, dataSource, runningTaskList, result);
+        DurationTask(Context context, DataSource dataSource, List<MediaMetadataTask> runningTaskList, BeforeResult<Long> beforeResult, Result<Long> result) {
+            super(context, dataSource, runningTaskList, beforeResult, result);
+        }
+
+        @Override
+        Long getCache() {
+            return VIDEO_DURATION_CACHE.get(mDataSource.getPath());
         }
 
         @Override
@@ -150,8 +169,13 @@ public class MediaInfoImpl implements IMediaInfo {
     private static class VideoSizeTask extends MediaMetadataTask<int[]> {
 
 
-        VideoSizeTask(Context context, DataSource dataSource, List<MediaMetadataTask> runningTaskList, Result<int[]> result) {
-            super(context, dataSource, runningTaskList, result);
+        VideoSizeTask(Context context, DataSource dataSource, List<MediaMetadataTask> runningTaskList, BeforeResult<int[]> beforeResult, Result<int[]> result) {
+            super(context, dataSource, runningTaskList, beforeResult, result);
+        }
+
+        @Override
+        int[] getCache() {
+            return null;
         }
 
         @Override
@@ -174,9 +198,14 @@ public class MediaInfoImpl implements IMediaInfo {
 
         private long timeUs;
 
-        public FrameTask(Context context, DataSource dataSource, List<MediaMetadataTask> runningTaskList, long timeUs, Result<Bitmap> result) {
-            super(context, dataSource, runningTaskList, result);
+        public FrameTask(Context context, DataSource dataSource, List<MediaMetadataTask> runningTaskList, long timeUs, BeforeResult<Bitmap> beforeResult, Result<Bitmap> result) {
+            super(context, dataSource, runningTaskList, beforeResult, result);
             this.timeUs = timeUs;
+        }
+
+        @Override
+        Bitmap getCache() {
+            return FRAME_CACHE.get(mDataSource.getPath() + "-" + timeUs);
         }
 
         @Override
@@ -201,55 +230,63 @@ public class MediaInfoImpl implements IMediaInfo {
         final Context mContext;
         final DataSource mDataSource;
         final List<MediaMetadataTask> mRunningTaskList;
+        BeforeResult<R> mBeforeResult;
         Result<R> mResult;
         volatile boolean mIsCancel;
 
-        MediaMetadataTask(Context context, DataSource dataSource, List<MediaMetadataTask> runningTaskList, Result<R> result) {
+        MediaMetadataTask(Context context,
+                          DataSource dataSource,
+                          List<MediaMetadataTask> runningTaskList,
+                          BeforeResult<R> beforeResult,
+                          Result<R> result) {
             this.mContext = context;
             this.mDataSource = dataSource;
             this.mRunningTaskList = runningTaskList;
+            this.mBeforeResult = beforeResult;
             this.mResult = result;
             mRunningTaskList.add(this);
         }
 
         @Override
         protected R doInBackground(Void... voids) {
-            long start = System.currentTimeMillis();
-            MediaMetadataRetriever retriever = new MediaMetadataRetriever();
-            int pathType = mDataSource.getPathType();
-            String path = mDataSource.getPath();
-            boolean setDataSource = true;
-            switch (pathType) {
-                case DataSource.TYPE_NET: {
-                    retriever.setDataSource(path, new HashMap<String, String>());
-                    break;
-                }
-                case DataSource.TYPE_FILE: {
-                    retriever.setDataSource(path);
-                    break;
-                }
-                case DataSource.TYPE_URI: {
-                    retriever.setDataSource(mContext, Uri.parse(path));
-                    break;
-                }
-                default: {
-                    if (URLUtil.isNetworkUrl(path)) {
+            R result = getCache();
+            if (result == null) {
+                MediaMetadataRetriever retriever = new MediaMetadataRetriever();
+                int pathType = mDataSource.getPathType();
+                String path = mDataSource.getPath();
+                boolean setDataSource = true;
+                switch (pathType) {
+                    case DataSource.TYPE_NET: {
                         retriever.setDataSource(path, new HashMap<String, String>());
-                    } else if (new File(path).isFile()) {
+                        break;
+                    }
+                    case DataSource.TYPE_FILE: {
                         retriever.setDataSource(path);
-                    } else if (URLUtil.isValidUrl(path)) {
+                        break;
+                    }
+                    case DataSource.TYPE_URI: {
                         retriever.setDataSource(mContext, Uri.parse(path));
-                    } else {
-                        setDataSource = false;
+                        break;
+                    }
+                    default: {
+                        if (URLUtil.isNetworkUrl(path)) {
+                            retriever.setDataSource(path, new HashMap<String, String>());
+                        } else if (new File(path).isFile()) {
+                            retriever.setDataSource(path);
+                        } else if (URLUtil.isValidUrl(path)) {
+                            retriever.setDataSource(mContext, Uri.parse(path));
+                        } else {
+                            setDataSource = false;
+                        }
                     }
                 }
+                if (setDataSource) {
+                    result = getResult(retriever);
+                }
             }
-            R result = null;
-            if (setDataSource) {
-                result = getResult(retriever);
+            if (mBeforeResult != null) {
+                result = mBeforeResult.onBefore(result);
             }
-            long end = System.currentTimeMillis();
-            Log.d("doInBackground", "doInBackground: " + getClass().getSimpleName() + " use time " + (end - start));
             return result;
         }
 
@@ -264,6 +301,8 @@ public class MediaInfoImpl implements IMediaInfo {
             }
         }
 
+        abstract R getCache();
+
         abstract R getResult(MediaMetadataRetriever retriever);
 
         @Override
@@ -274,5 +313,7 @@ public class MediaInfoImpl implements IMediaInfo {
             mResult.onResult(result);
             mResult = null;
         }
+
+
     }
 }

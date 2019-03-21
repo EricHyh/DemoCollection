@@ -57,12 +57,12 @@ public class VideoDelegate {
 
     public VideoDelegate(Context context) {
         this.mContext = context;
-        //setVolume(0, 0);
         mWindowAttachListenerView = new WindowAttachListenerView(context);
         mMediaPlayer.setMediaEventListener(mMediaEventListener);
         mMediaPlayer.setMediaProgressListener(mMediaProgressListener);
         mMediaInfo = new MediaInfoImpl(context);
 
+        this.mVideoBackground = newVideoBackground(context);
         this.mVideoSurface = newVideoSurface(context);
         this.mVideoPreview = newVideoPreview(context);
         this.mVideoController = newVideoController(context);
@@ -74,7 +74,11 @@ public class VideoDelegate {
 
     public void attachedToContainer(FrameLayout videoContainer) {
         mVideoContainer = videoContainer;
-        mVideoContainer.setBackgroundColor(Color.BLACK);
+        mVideoContainer.setBackgroundDrawable(mVideoBackground.getBackgroundDrawable());
+        if (mVideoBackground.getBackgroundView() != null) {
+            FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
+            mVideoContainer.addView(mVideoBackground.getBackgroundView(), params);
+        }
         FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
         params.gravity = Gravity.CENTER;
         mVideoContainer.addView(mVideoSurface.getView(), params);
@@ -90,6 +94,10 @@ public class VideoDelegate {
             mVideoContainer.removeView(mVideoPreview.getView());
             mVideoContainer.removeView(mVideoController.getView());
         }
+    }
+
+    protected IVideoBackground newVideoBackground(Context context) {
+        return new DefaultVideoBackground();
     }
 
     protected IVideoSurface newVideoSurface(Context context) {
@@ -126,11 +134,17 @@ public class VideoDelegate {
     public void setVideoBackground(IVideoBackground background) {
         if (mVideoBackground == background) return;
         if (mVideoBackground != null) {
-            mVideoContainer.removeView(mVideoBackground.getView());
+            mVideoContainer.setBackgroundDrawable(null);
+            if (mVideoBackground.getBackgroundView() != null) {
+                mVideoContainer.removeView(mVideoBackground.getBackgroundView());
+            }
         }
         this.mVideoBackground = background;
         if (mVideoBackground != null) {
-            mVideoContainer.addView(mVideoBackground.getView(), 0);
+            mVideoContainer.setBackgroundDrawable(mVideoBackground.getBackgroundDrawable());
+            if (mVideoBackground != null) {
+                mVideoContainer.addView(mVideoBackground.getBackgroundView(), 0);
+            }
         }
     }
 
@@ -141,7 +155,7 @@ public class VideoDelegate {
         }
         this.mVideoPreview = videoPreview;
         if (mVideoPreview != null) {
-            if (mVideoBackground != null) {
+            if (mVideoBackground != null && mVideoBackground.getBackgroundView() != null) {
                 mVideoContainer.addView(mVideoPreview.getView(), 2);
             } else {
                 mVideoContainer.addView(mVideoPreview.getView(), 1);
