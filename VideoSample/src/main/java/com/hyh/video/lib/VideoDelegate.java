@@ -18,7 +18,7 @@ import java.util.List;
  * @description
  * @data 2019/3/18
  */
-@SuppressWarnings("all")
+
 public class VideoDelegate {
 
     private static final String TAG = "VideoDelegate";
@@ -75,7 +75,6 @@ public class VideoDelegate {
 
     public void attachedToContainer(FrameLayout videoContainer) {
         mVideoContainer = videoContainer;
-
         if (mVideoBackground != null) {
             mVideoContainer.setBackgroundDrawable(mVideoBackground.getBackgroundDrawable());
             if (mVideoBackground.getBackgroundView() != null) {
@@ -95,6 +94,11 @@ public class VideoDelegate {
         if (mVideoController != null) {
             FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
             mVideoContainer.addView(mVideoController.getView(), params);
+            if (mScene == Scene.FULLSCREEN) {
+                mVideoController.onFullscreenScene(videoContainer);
+            } else {
+                mVideoController.onNormalScene(videoContainer);
+            }
         }
     }
 
@@ -258,11 +262,6 @@ public class VideoDelegate {
         mNormalVideoContainer = mVideoContainer;
         detachedFromContainer();
         HappyVideo happyVideo = new HappyVideo(mContext, null, 0, this);
-        /*happyVideo.setSystemUiVisibility(View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-                *//*| View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
-                | View.SYSTEM_UI_FLAG_FULLSCREEN*//*);*/
-        //((Activity) mContext).getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN); //隐藏状态栏
-        //((Activity)mContext).getWindow().clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN); //显示状态栏
         rootView.addView(happyVideo, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         return true;
     }

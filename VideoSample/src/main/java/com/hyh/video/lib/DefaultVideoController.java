@@ -4,6 +4,7 @@ import android.content.Context;
 import android.util.Log;
 import android.view.Surface;
 import android.view.View;
+import android.widget.FrameLayout;
 import android.widget.SeekBar;
 import android.widget.Toast;
 
@@ -149,10 +150,49 @@ public class DefaultVideoController implements IVideoController {
         return false;
     }
 
+    @Override
+    public void onFullscreenScene(FrameLayout videoContainer) {
+        //mControllerView
+        int flags = View.SYSTEM_UI_FLAG_LOW_PROFILE
+                | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                | View.SYSTEM_UI_FLAG_FULLSCREEN
+                | View.SYSTEM_UI_FLAG_IMMERSIVE
+                | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION;
+        //flags = View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN;
+        mControllerView.getView().setSystemUiVisibility(flags);
+    }
+
+    @Override
+    public void onNormalScene(FrameLayout videoContainer) {
+        mControllerView.getView().setSystemUiVisibility(0);
+    }
+
+    protected void showOperateView(int mode) {
+        mControllerView.showOperateView(mode);
+        if (mVideoDelegate.getScene() == VideoDelegate.Scene.FULLSCREEN) {
+            if (mode == IControllerView.OperateMode.ALIVE) {
+                int flags = View.SYSTEM_UI_FLAG_LOW_PROFILE
+                        | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                        | View.SYSTEM_UI_FLAG_IMMERSIVE
+                        | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                        | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION;
+                mControllerView.getView().setSystemUiVisibility(flags);
+            } else {
+                int flags = View.SYSTEM_UI_FLAG_LOW_PROFILE
+                        | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                        | View.SYSTEM_UI_FLAG_FULLSCREEN
+                        | View.SYSTEM_UI_FLAG_IMMERSIVE
+                        | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                        | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION;
+                mControllerView.getView().setSystemUiVisibility(flags);
+            }
+        }
+    }
+
     protected boolean isAllowPlayWhenMobileData() {
         return sAllowPlayWhenMobileData;
     }
-
 
     @Override
     public void onSurfaceCreate(Surface surface) {
@@ -226,7 +266,7 @@ public class DefaultVideoController implements IVideoController {
 
             mControllerView.showLoadingViewDelayed(300);
             mControllerView.setPauseStyle();
-            mControllerView.showOperateView(IControllerView.OperateMode.IDLE);
+            showOperateView(IControllerView.OperateMode.IDLE);
             mCurControlState = CONTROL_STATE_OPERATE;
         }
 
@@ -250,7 +290,7 @@ public class DefaultVideoController implements IVideoController {
             mControllerView.setPlayStyle();
             mIdleOperateViewTask.remove();
             mControllerView.hideLoadingView();
-            mControllerView.showOperateView(IControllerView.OperateMode.ALIVE);
+            showOperateView(IControllerView.OperateMode.ALIVE);
         }
 
         @Override
@@ -384,9 +424,9 @@ public class DefaultVideoController implements IVideoController {
                 case CONTROL_STATE_OPERATE: {
                     mIdleOperateViewTask.remove();
                     if (mControllerView.isShowOperateView()) {
-                        mControllerView.showOperateView(IControllerView.OperateMode.IDLE);
+                        showOperateView(IControllerView.OperateMode.IDLE);
                     } else {
-                        mControllerView.showOperateView(IControllerView.OperateMode.ALIVE);
+                        showOperateView(IControllerView.OperateMode.ALIVE);
                         if (mVideoDelegate.isExecuteStart()) {
                             mIdleOperateViewTask.post();
                         }
@@ -511,7 +551,7 @@ public class DefaultVideoController implements IVideoController {
         public void run() {
             DefaultVideoController defaultVideoController = mDefaultVideoControllerRef.get();
             if (defaultVideoController == null) return;
-            defaultVideoController.mControllerView.showOperateView(IControllerView.OperateMode.IDLE);
+            defaultVideoController.showOperateView(IControllerView.OperateMode.IDLE);
         }
 
         void post() {

@@ -1,6 +1,7 @@
 package com.hyh.video.lib;
 
 import android.view.View;
+import android.widget.FrameLayout;
 
 /**
  * @author Administrator
@@ -22,4 +23,7 @@ public interface IVideoController extends IVideoSurface.SurfaceListener {
 
     boolean interceptRetry();
 
+    void onFullscreenScene(FrameLayout videoContainer);
+
+    void onNormalScene(FrameLayout videoContainer);
 }
