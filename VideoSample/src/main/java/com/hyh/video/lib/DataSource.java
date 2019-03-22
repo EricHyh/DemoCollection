@@ -30,12 +30,13 @@ public class DataSource {
     }
 
     @Override
-    public boolean equals(Object object) {
-        if (this == object) return true;
-        if (object == null || getClass() != object.getClass()) return false;
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
 
-        DataSource that = (DataSource) object;
+        DataSource that = (DataSource) o;
 
+        if (pathType != that.pathType) return false;
         return path != null ? path.equals(that.path) : that.path == null;
     }
 }

@@ -4,6 +4,7 @@ import android.content.Context;
 import android.graphics.Color;
 import android.os.Build;
 import android.text.TextUtils;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.View;
 import android.widget.FrameLayout;
@@ -27,6 +28,8 @@ import java.util.Locale;
  */
 
 public class DefaultControllerView extends RelativeLayout implements IControllerView, View.OnClickListener {
+
+    private static final String TAG = "DefaultControllerView";
 
     public final ControllerListenerInfo mListenerInfo = new ControllerListenerInfo();
     public final ShowLoadingViewTask mShowLoadingViewTask = new ShowLoadingViewTask(this);
@@ -85,11 +88,13 @@ public class DefaultControllerView extends RelativeLayout implements IController
             mBottomProgress = new LazyView<ProgressBar>() {
                 @Override
                 public ProgressBar create() {
-                    ProgressBar progressBar = new ProgressBar(context);
-                    progressBar.setMax(100);
+                    final ProgressBar progressBar = new ProgressBar(context);
                     progressBar.setProgressDrawable(context.getResources().getDrawable(R.drawable.video_progress_drawable));
                     VideoUtils.setProgressBarOnlyIndeterminate(progressBar, false);
                     progressBar.setIndeterminate(false);
+                    progressBar.setMax(100);
+                    progressBar.setProgress(1);
+                    progressBar.setSecondaryProgress(1);
                     return progressBar;
                 }
             };
@@ -187,8 +192,10 @@ public class DefaultControllerView extends RelativeLayout implements IController
         });
         mBottomProgress.saveLazyAction("setProgress", new LazyView.LazyAction<ProgressBar>() {
             @Override
-            public void doAction(ProgressBar progressBar) {
+            public void doAction(final ProgressBar progressBar) {
+                Log.d(TAG, "doAction: mBottomProgress reset");
                 progressBar.setProgress(0);
+                progressBar.setSecondaryProgress(0);
             }
         }, true);
         mInitialInfoContainer.saveLazyAction("reset", new LazyView.LazyAction<InitialInfoContainer>() {
@@ -218,6 +225,7 @@ public class DefaultControllerView extends RelativeLayout implements IController
 
     @Override
     public void setMediaProgress(final int progress) {
+        Log.d(TAG, "setMediaProgress: progress = " + progress);
         if (mBottomContainer.isCreated()) {
             mBottomContainer.get().seekBar.setProgress(progress);
         } else {
@@ -249,6 +257,16 @@ public class DefaultControllerView extends RelativeLayout implements IController
                 @Override
                 public void doAction(BottomContainer bottomContainer) {
                     bottomContainer.seekBar.setSecondaryProgress(progress);
+                }
+            }, true);
+        }
+        if (mBottomProgress.isCreated()) {
+            mBottomProgress.get().setSecondaryProgress(progress);
+        } else {
+            mBottomProgress.saveLazyAction("setSecondaryProgress", new LazyView.LazyAction<ProgressBar>() {
+                @Override
+                public void doAction(ProgressBar progressBar) {
+                    progressBar.setSecondaryProgress(progress);
                 }
             }, true);
         }
@@ -652,11 +670,14 @@ public class DefaultControllerView extends RelativeLayout implements IController
             {
                 seekBar = new SeekBar(context);
                 seekBar.setMax(100);
+                seekBar.setProgress(0);
+                seekBar.setSecondaryProgress(0);
                 seekBar.setBackgroundColor(Color.TRANSPARENT);
                 seekBar.setProgressDrawable(context.getResources().getDrawable(R.drawable.video_seek_progress));
                 seekBar.setThumb(context.getResources().getDrawable(R.drawable.video_seek_thumb));
                 int _1dp = VideoUtils.dp2px(context, 1);
                 seekBar.setMinimumHeight(_1dp);
+
                 seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
                     @Override
                     public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
@@ -689,7 +710,7 @@ public class DefaultControllerView extends RelativeLayout implements IController
                 }
 
 
-                LayoutParams params = new LayoutParams(0, LayoutParams.MATCH_PARENT);
+                LayoutParams params = new LayoutParams(0, LayoutParams.WRAP_CONTENT);
                 params.gravity = Gravity.CENTER_VERTICAL;
                 params.weight = 1;
                 addView(seekBar, params);
@@ -798,7 +819,7 @@ public class DefaultControllerView extends RelativeLayout implements IController
                 int _24dp = VideoUtils.dp2px(context, 24);
                 LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(_24dp, _24dp);
                 params.gravity = Gravity.CENTER_VERTICAL;
-                replayContainer.addView(replayIcon, layoutParams);
+                replayContainer.addView(replayIcon, params);
             }
             {
                 TextView replayText = new TextView(context);
@@ -808,7 +829,7 @@ public class DefaultControllerView extends RelativeLayout implements IController
 
                 LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT);
                 params.gravity = Gravity.CENTER_VERTICAL;
-                replayContainer.addView(replayText, layoutParams);
+                replayContainer.addView(replayText, params);
             }
         }
     }

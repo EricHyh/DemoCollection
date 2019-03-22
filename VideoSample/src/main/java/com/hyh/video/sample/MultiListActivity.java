@@ -91,7 +91,7 @@ public class MultiListActivity extends Activity {
                     textView.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
                     textView.setText("条目：" + position);
                     textView.setTextSize(20);
-                    textView.setPadding(0, 100, 0, 100);
+                    textView.setPadding(0, 250, 0, 250);
                     textView.setGravity(Gravity.CENTER);
                     textView.setTextColor(Color.BLACK);
                     convertView = textView;

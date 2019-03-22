@@ -30,10 +30,6 @@ public class VideoListActivity extends Activity {
         listView.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         setContentView(listView);
         listView.setAdapter(new VideoListAdapter(this));
-
-
-
-
     }
 
 

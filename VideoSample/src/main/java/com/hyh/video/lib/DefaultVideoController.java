@@ -16,39 +16,39 @@ import java.lang.ref.WeakReference;
  */
 public class DefaultVideoController implements IVideoController {
 
-    private static final String TAG = "DefaultVideoController";
+    protected static final String TAG = "DefaultVideoController";
 
     //
-    private static final int INTERCEPT_NONE = 0;
-    private static final int INTERCEPT_PREPARE = 1;
-    private static final int INTERCEPT_START = 2;
-    private static final int INTERCEPT_RESTART = 3;
-    private static final int INTERCEPT_RETRY = 4;
+    protected static final int INTERCEPT_NONE = 0;
+    protected static final int INTERCEPT_PREPARE = 1;
+    protected static final int INTERCEPT_START = 2;
+    protected static final int INTERCEPT_RESTART = 3;
+    protected static final int INTERCEPT_RETRY = 4;
     //
 
     //
-    private static final int CONTROL_STATE_INITIAL = 0;
-    private static final int CONTROL_STATE_MOBILE_DATA_CONFIRM = 1;
-    private static final int CONTROL_STATE_OPERATE = 2;
-    private static final int CONTROL_STATE_END = 3;
-    private static final int CONTROL_STATE_ERROR = 4;
+    protected static final int CONTROL_STATE_INITIAL = 0;
+    protected static final int CONTROL_STATE_MOBILE_DATA_CONFIRM = 1;
+    protected static final int CONTROL_STATE_OPERATE = 2;
+    protected static final int CONTROL_STATE_END = 3;
+    protected static final int CONTROL_STATE_ERROR = 4;
 
 
-    private static boolean sAllowPlayWhenMobileData;
+    protected static boolean sAllowPlayWhenMobileData;
 
-    private final IdleOperateViewTask mIdleOperateViewTask = new IdleOperateViewTask(this);
-    private final SurfaceDestroyTask mSurfaceDestroyTask = new SurfaceDestroyTask(this);
-    private final MediaEventListener mControllerMediaEventListener = new ControllerMediaEventListener();
-    private final MediaProgressListener mControllerMediaProgressListener = new ControllerMediaProgressListener();
-    private final Context mContext;
-    private final IControllerView mControllerView;
-    private VideoDelegate mVideoDelegate;
+    protected final IdleOperateViewTask mIdleOperateViewTask = new IdleOperateViewTask(this);
+    protected final SurfaceDestroyTask mSurfaceDestroyTask = new SurfaceDestroyTask(this);
+    protected final MediaEventListener mControllerMediaEventListener = new ControllerMediaEventListener();
+    protected final MediaProgressListener mControllerMediaProgressListener = new ControllerMediaProgressListener();
+    protected final Context mContext;
+    protected final IControllerView mControllerView;
+    protected VideoDelegate mVideoDelegate;
 
-    private int mCurInterceptCommand = INTERCEPT_NONE;
-    private int mCurControlState = CONTROL_STATE_INITIAL;
-    private boolean mInterceptPrepareAutoStart;
-    private long mSurfaceDestroyedTimeMillis;
-    private boolean mIsPauseBySurfaceDestroyed;
+    protected int mCurInterceptCommand = INTERCEPT_NONE;
+    protected int mCurControlState = CONTROL_STATE_INITIAL;
+    protected boolean mInterceptPrepareAutoStart;
+    protected long mSurfaceDestroyedTimeMillis;
+    protected boolean mIsPauseBySurfaceDestroyed;
 
 
     public DefaultVideoController(Context context) {
@@ -72,7 +72,7 @@ public class DefaultVideoController implements IVideoController {
         this.mVideoDelegate = videoDelegate;
         this.mIsPauseBySurfaceDestroyed = false;
         this.mSurfaceDestroyedTimeMillis = 0;
-        Log.d(TAG, "setup: ");
+
         mVideoDelegate.addMediaEventListener(mControllerMediaEventListener);
         mVideoDelegate.addMediaProgressListener(mControllerMediaProgressListener);
 
@@ -97,7 +97,7 @@ public class DefaultVideoController implements IVideoController {
             Toast.makeText(mContext, "网络不可用", Toast.LENGTH_SHORT).show();
             return true;
         }
-        if (!sAllowPlayWhenMobileData && !VideoUtils.isWifiEnv(mContext)) {
+        if (!isAllowPlayWhenMobileData() && !VideoUtils.isWifiEnv(mContext)) {
             this.mInterceptPrepareAutoStart = autoStart;
             mCurInterceptCommand = INTERCEPT_PREPARE;
             mControllerView.showMobileDataConfirm();
@@ -106,13 +106,12 @@ public class DefaultVideoController implements IVideoController {
         return false;
     }
 
-    @Override
     public boolean interceptStart() {
         if (!VideoUtils.isNetEnv(mContext)) {
             Toast.makeText(mContext, "网络不可用", Toast.LENGTH_SHORT).show();
             return true;
         }
-        if (!sAllowPlayWhenMobileData && !VideoUtils.isWifiEnv(mContext)) {
+        if (!isAllowPlayWhenMobileData() && !VideoUtils.isWifiEnv(mContext)) {
             mCurInterceptCommand = INTERCEPT_START;
             mControllerView.showMobileDataConfirm();
             mCurControlState = CONTROL_STATE_MOBILE_DATA_CONFIRM;
@@ -127,7 +126,7 @@ public class DefaultVideoController implements IVideoController {
             Toast.makeText(mContext, "网络不可用", Toast.LENGTH_SHORT).show();
             return true;
         }
-        if (!sAllowPlayWhenMobileData && !VideoUtils.isWifiEnv(mContext)) {
+        if (!isAllowPlayWhenMobileData() && !VideoUtils.isWifiEnv(mContext)) {
             mCurInterceptCommand = INTERCEPT_RESTART;
             mControllerView.showMobileDataConfirm();
             mCurControlState = CONTROL_STATE_MOBILE_DATA_CONFIRM;
@@ -142,13 +141,18 @@ public class DefaultVideoController implements IVideoController {
             Toast.makeText(mContext, "网络不可用", Toast.LENGTH_SHORT).show();
             return true;
         }
-        if (!sAllowPlayWhenMobileData && !VideoUtils.isWifiEnv(mContext)) {
+        if (!isAllowPlayWhenMobileData() && !VideoUtils.isWifiEnv(mContext)) {
             mCurInterceptCommand = INTERCEPT_RETRY;
             mControllerView.showMobileDataConfirm();
             return true;
         }
         return false;
     }
+
+    protected boolean isAllowPlayWhenMobileData() {
+        return sAllowPlayWhenMobileData;
+    }
+
 
     @Override
     public void onSurfaceCreate(Surface surface) {

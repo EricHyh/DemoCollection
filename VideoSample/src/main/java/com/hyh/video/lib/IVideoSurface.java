@@ -18,6 +18,8 @@ public interface IVideoSurface {
 
     void setSurfaceListener(SurfaceListener listener);
 
+    void reset();
+
     interface SurfaceListener {
 
         void onSurfaceCreate(Surface surface);

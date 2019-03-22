@@ -8,7 +8,6 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
 import android.os.SystemClock;
-import android.util.Log;
 import android.view.Surface;
 
 import java.lang.ref.WeakReference;
@@ -19,7 +18,6 @@ import java.lang.ref.WeakReference;
  */
 public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener, MediaPlayer.OnBufferingUpdateListener, MediaPlayer.OnSeekCompleteListener, MediaPlayer.OnErrorListener, MediaPlayer.OnInfoListener, MediaPlayer.OnVideoSizeChangedListener, MediaPlayer.OnCompletionListener {
 
-    private static final String TAG = "MediaSystem";
     private static final int PENDING_COMMAND_NONE = 0;
     private static final int PENDING_COMMAND_START = 1;
     private static final int PENDING_COMMAND_PAUSE = 2;
@@ -75,6 +73,8 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
             this.mDataSource = source;
             this.mDuration = 0;
             this.mErrorPosition = 0;
+            this.mPendingSeekMilliSeconds = null;
+            this.mPendingSeekProgress = null;
             postInitialized();
         }
         return init;
@@ -298,7 +298,6 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
         try {
             return mMediaPlayer.isPlaying();
         } catch (Exception e) {
-            Log.d(TAG, "isPlaying: ", e);
             return false;
         }
     }
@@ -385,11 +384,8 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
             } catch (Exception e) {
                 //
             }
-            Log.d(TAG, "setSurface: diff");
             this.mSurface = surface;
             mMediaPlayer.setSurface(mSurface);
-        } else {
-            Log.d(TAG, "setSurface: same");
         }
     }
 
@@ -477,7 +473,6 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
 
     @Override
     public void onBufferingUpdate(MediaPlayer mediaPlayer, final int percent) {
-        Log.d(TAG, "onBufferingUpdate: percent = " + percent);
         postBufferingUpdate(percent);
     }
 
@@ -494,10 +489,8 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
 
     @Override
     public boolean onInfo(MediaPlayer mediaPlayer, final int what, final int extra) {
-        Log.d(TAG, "onInfo: ");
         switch (what) {
             case MediaPlayer.MEDIA_INFO_VIDEO_RENDERING_START: {
-                Log.d(TAG, "onInfo: postPlaying");
                 postPlaying();
                 break;
             }
@@ -666,10 +659,11 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
     }
 
     private void postRelease() {
+        long currentPosition = getCurrentPosition();
         mBufferingPercent = 0;
         mCurrentState = State.END;
         if (mMediaEventListener != null) {
-            mMediaEventListener.onRelease(getCurrentPosition(), getDuration());
+            mMediaEventListener.onRelease(currentPosition, getDuration());
         }
     }
 

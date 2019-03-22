@@ -1,6 +1,5 @@
 package com.hyh.video.lib;
 
-import android.app.Activity;
 import android.content.Context;
 import android.graphics.Color;
 import android.util.Log;
@@ -9,7 +8,6 @@ import android.view.Surface;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewParent;
-import android.view.WindowManager;
 import android.widget.FrameLayout;
 
 import java.util.ArrayList;
@@ -20,40 +18,39 @@ import java.util.List;
  * @description
  * @data 2019/3/18
  */
-
+@SuppressWarnings("all")
 public class VideoDelegate {
-
-    private FrameLayout mNormalVideoContainer;
-    private FrameLayout mVideoContainer;
 
     private static final String TAG = "VideoDelegate";
     private static final VideoManager VIDEO_MANAGER = new VideoManager();
 
+    protected final IMediaPlayer mMediaPlayer = new MediaSystem();
+    protected final Context mContext;
+    protected final IMediaInfo mMediaInfo;
+    protected final IVideoSurface.SurfaceListener mSurfaceListener = new InnerSurfaceListener();
+    protected final MediaEventListener mMediaEventListener = new InnerMediaEventListener();
+    protected final MediaProgressListener mMediaProgressListener = new InnerMediaProgressListener();
 
-    private final IMediaPlayer mMediaPlayer = new MediaSystem();
-    private final Context mContext;
-    private final IMediaInfo mMediaInfo;
-    private final IVideoSurface.SurfaceListener mSurfaceListener = new InnerSurfaceListener();
-    private final MediaEventListener mMediaEventListener = new InnerMediaEventListener();
-    private final MediaProgressListener mMediaProgressListener = new InnerMediaProgressListener();
+    protected final List<MediaEventListener> mMediaEventListeners = new ArrayList<>();
+    protected final List<MediaProgressListener> mMediaProgressListeners = new ArrayList<>();
+    protected final List<IVideoSurface.SurfaceListener> mSurfaceListeners = new ArrayList<>();
 
-    private final List<MediaEventListener> mMediaEventListeners = new ArrayList<>();
-    private final List<MediaProgressListener> mMediaProgressListeners = new ArrayList<>();
-    private final List<IVideoSurface.SurfaceListener> mSurfaceListeners = new ArrayList<>();
+    protected final WindowAttachListenerView mWindowAttachListenerView;
 
-    private final WindowAttachListenerView mWindowAttachListenerView;
+    protected ISurfaceMeasurer mSurfaceMeasurer = new FitCenterMeasurer();
+    protected IVideoBackground mVideoBackground;
+    protected IVideoSurface mVideoSurface;
+    protected IVideoPreview mVideoPreview;
+    protected IVideoController mVideoController;
 
-    private ISurfaceMeasurer mSurfaceMeasurer = new FitCenterMeasurer();
-    private IVideoBackground mVideoBackground;
-    private IVideoSurface mVideoSurface;
-    private IVideoPreview mVideoPreview;
-    private IVideoController mVideoController;
+    protected FrameLayout mNormalVideoContainer;
+    protected FrameLayout mVideoContainer;
 
-    private int mScene = Scene.NORMAL;
-    private long mStartFullscreenSceneTimeMills;
-    private long mRecoverNormalSceneTimeMills;
+    protected int mScene = Scene.NORMAL;
+    protected long mStartFullscreenSceneTimeMills;
+    protected long mRecoverNormalSceneTimeMills;
 
-    private CharSequence mTitle;
+    protected CharSequence mTitle;
 
     public VideoDelegate(Context context) {
         this.mContext = context;
@@ -67,32 +64,54 @@ public class VideoDelegate {
         this.mVideoPreview = newVideoPreview(context);
         this.mVideoController = newVideoController(context);
 
-        mVideoSurface.setSurfaceMeasurer(mSurfaceMeasurer);
-        mVideoSurface.setSurfaceListener(mSurfaceListener);
-        mVideoPreview.setSurfaceMeasurer(mSurfaceMeasurer);
+        if (mVideoSurface != null) {
+            mVideoSurface.setSurfaceMeasurer(mSurfaceMeasurer);
+            mVideoSurface.setSurfaceListener(mSurfaceListener);
+        }
+        if (mVideoPreview != null) {
+            mVideoPreview.setSurfaceMeasurer(mSurfaceMeasurer);
+        }
     }
 
     public void attachedToContainer(FrameLayout videoContainer) {
         mVideoContainer = videoContainer;
-        mVideoContainer.setBackgroundDrawable(mVideoBackground.getBackgroundDrawable());
-        if (mVideoBackground.getBackgroundView() != null) {
-            FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
-            mVideoContainer.addView(mVideoBackground.getBackgroundView(), params);
+
+        if (mVideoBackground != null) {
+            mVideoContainer.setBackgroundDrawable(mVideoBackground.getBackgroundDrawable());
+            if (mVideoBackground.getBackgroundView() != null) {
+                FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
+                mVideoContainer.addView(mVideoBackground.getBackgroundView(), params);
+            }
         }
-        FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
-        params.gravity = Gravity.CENTER;
-        mVideoContainer.addView(mVideoSurface.getView(), params);
-        params = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
-        mVideoContainer.addView(mVideoPreview.getView(), params);
-        params = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
-        mVideoContainer.addView(mVideoController.getView(), params);
+        if (mVideoSurface != null) {
+            FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
+            params.gravity = Gravity.CENTER;
+            mVideoContainer.addView(mVideoSurface.getView(), params);
+        }
+        if (mVideoPreview != null) {
+            FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
+            mVideoContainer.addView(mVideoPreview.getView(), params);
+        }
+        if (mVideoController != null) {
+            FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
+            mVideoContainer.addView(mVideoController.getView(), params);
+        }
     }
 
     public void detachedFromContainer() {
         if (mVideoContainer != null) {
-            mVideoContainer.removeView(mVideoSurface.getView());
-            mVideoContainer.removeView(mVideoPreview.getView());
-            mVideoContainer.removeView(mVideoController.getView());
+            if (mVideoBackground != null && mVideoBackground.getBackgroundView() != null) {
+                mVideoContainer.removeView(mVideoBackground.getBackgroundView());
+            }
+            if (mVideoSurface != null) {
+                mVideoContainer.removeView(mVideoSurface.getView());
+            }
+            if (mVideoPreview != null) {
+                mVideoContainer.removeView(mVideoPreview.getView());
+            }
+            if (mVideoController != null) {
+                mVideoContainer.removeView(mVideoController.getView());
+            }
         }
     }
 
@@ -128,7 +147,9 @@ public class VideoDelegate {
         if (mVideoPreview != null) {
             mVideoPreview.setSurfaceMeasurer(mSurfaceMeasurer);
         }
-        mVideoContainer.requestLayout();
+        if (mVideoContainer != null) {
+            mVideoContainer.requestLayout();
+        }
     }
 
     public void setVideoBackground(IVideoBackground background) {
@@ -155,10 +176,14 @@ public class VideoDelegate {
         }
         this.mVideoPreview = videoPreview;
         if (mVideoPreview != null) {
+            mVideoPreview.setSurfaceMeasurer(mSurfaceMeasurer);
             if (mVideoBackground != null && mVideoBackground.getBackgroundView() != null) {
                 mVideoContainer.addView(mVideoPreview.getView(), 2);
             } else {
                 mVideoContainer.addView(mVideoPreview.getView(), 1);
+            }
+            if (getDataSource() != null) {
+                mVideoPreview.setUp(this, mMediaInfo);
             }
         }
     }
@@ -171,7 +196,9 @@ public class VideoDelegate {
         this.mVideoController = controller;
         if (mVideoController != null) {
             mVideoContainer.addView(mVideoController.getView());
-            mVideoController.setup(this, mTitle, mMediaInfo);
+            if (getDataSource() != null) {
+                mVideoController.setup(this, mTitle, mMediaInfo);
+            }
         }
     }
 
@@ -214,6 +241,7 @@ public class VideoDelegate {
             if (mVideoController != null) {
                 mVideoController.setup(this, title, mMediaInfo);
             }
+            mVideoSurface.reset();
         }
         return set;
     }
@@ -233,10 +261,8 @@ public class VideoDelegate {
         /*happyVideo.setSystemUiVisibility(View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
                 *//*| View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
                 | View.SYSTEM_UI_FLAG_FULLSCREEN*//*);*/
-        ((Activity) mContext).getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN); //隐藏状态栏
+        //((Activity) mContext).getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN); //隐藏状态栏
         //((Activity)mContext).getWindow().clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN); //显示状态栏
-
-
         rootView.addView(happyVideo, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         return true;
     }

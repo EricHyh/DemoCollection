@@ -1,5 +1,6 @@
 package com.hyh.video.lib;
 
+import android.annotation.TargetApi;
 import android.content.Context;
 import android.graphics.SurfaceTexture;
 import android.os.Build;
@@ -17,9 +18,15 @@ import android.view.ViewParent;
 
 public class TextureSurface extends TextureView implements IVideoSurface {
 
+    private final SurfaceTextureListener mTextureListener;
+
     private ISurfaceMeasurer mSurfaceMeasurer;
 
     private SurfaceListener mSurfaceListener;
+
+    private SurfaceTexture mSurfaceTexture;
+
+    private Surface mSurface;
 
     private int mVideoWidth;
 
@@ -27,7 +34,12 @@ public class TextureSurface extends TextureView implements IVideoSurface {
 
     public TextureSurface(Context context) {
         super(context);
-        setSurfaceTextureListener(new SurfaceListenerWrapper());
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
+            mTextureListener = new SurfaceListenerImplV16();
+        } else {
+            mTextureListener = new SurfaceListenerImplBase();
+        }
+        setSurfaceTextureListener(mTextureListener);
     }
 
     @Override
@@ -54,6 +66,19 @@ public class TextureSurface extends TextureView implements IVideoSurface {
     }
 
     @Override
+    public void reset() {
+        if (mSurface != null) {
+            try {
+                mSurface.release();
+            } catch (Throwable e) {
+                //
+            }
+            mSurface = null;
+            mSurfaceTexture = null;
+        }
+    }
+
+    @Override
     public void setSurfaceMeasurer(ISurfaceMeasurer surfaceMeasurer) {
         this.mSurfaceMeasurer = surfaceMeasurer;
         requestLayout();
@@ -75,29 +100,16 @@ public class TextureSurface extends TextureView implements IVideoSurface {
         }
     }
 
-    private class SurfaceListenerWrapper implements SurfaceTextureListener {
 
-        private SurfaceTexture mSurfaceTexture;
-
-        private Surface mSurface;
+    private class SurfaceListenerImplBase implements SurfaceTextureListener {
 
         @Override
         public void onSurfaceTextureAvailable(SurfaceTexture surface, int width, int height) {
-            if (mSurfaceTexture == null) {
-                this.mSurfaceTexture = surface;
-                this.mSurface = new Surface(surface);
-            } else {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
-                    setSurfaceTexture(mSurfaceTexture);
-                }
+            if (mSurfaceTexture != surface) {
+                mSurfaceTexture = surface;
+                mSurface = new Surface(surface);
             }
             mSurfaceListener.onSurfaceCreate(mSurface);
-
-            /*if (mSurfaceTexture != surface) {
-                this.mSurfaceTexture = surface;
-                this.mSurface = new Surface(surface);
-            }
-            mSurfaceListener.onSurfaceCreate(mSurface);*/
         }
 
         @Override
@@ -108,12 +120,42 @@ public class TextureSurface extends TextureView implements IVideoSurface {
         @Override
         public boolean onSurfaceTextureDestroyed(SurfaceTexture surface) {
             mSurfaceListener.onSurfaceDestroyed(mSurface);
-            return false;
+            return true;
         }
 
         @Override
         public void onSurfaceTextureUpdated(SurfaceTexture surface) {
+        }
+    }
 
+
+    @TargetApi(Build.VERSION_CODES.JELLY_BEAN)
+    private class SurfaceListenerImplV16 implements SurfaceTextureListener {
+
+        @Override
+        public void onSurfaceTextureAvailable(SurfaceTexture surface, int width, int height) {
+            if (mSurfaceTexture == null) {
+                mSurfaceTexture = surface;
+                mSurface = new Surface(surface);
+            } else {
+                setSurfaceTexture(mSurfaceTexture);
+            }
+            mSurfaceListener.onSurfaceCreate(mSurface);
+        }
+
+        @Override
+        public void onSurfaceTextureSizeChanged(SurfaceTexture surface, int width, int height) {
+            mSurfaceListener.onSurfaceSizeChanged(mSurface, width, height);
+        }
+
+        @Override
+        public boolean onSurfaceTextureDestroyed(SurfaceTexture surface) {
+            mSurfaceListener.onSurfaceDestroyed(mSurface);
+            return mSurface == null;
+        }
+
+        @Override
+        public void onSurfaceTextureUpdated(SurfaceTexture surface) {
         }
     }
 }
