@@ -10,8 +10,8 @@ import android.view.ViewGroup;
 import android.view.ViewParent;
 import android.widget.FrameLayout;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * @author Administrator
@@ -22,7 +22,6 @@ import java.util.List;
 public class VideoDelegate {
 
     private static final String TAG = "VideoDelegate";
-    private static final VideoManager VIDEO_MANAGER = new VideoManager();
 
     protected final IMediaPlayer mMediaPlayer = new MediaSystem();
     protected final Context mContext;
@@ -31,9 +30,9 @@ public class VideoDelegate {
     protected final MediaEventListener mMediaEventListener = new InnerMediaEventListener();
     protected final MediaProgressListener mMediaProgressListener = new InnerMediaProgressListener();
 
-    protected final List<MediaEventListener> mMediaEventListeners = new ArrayList<>();
-    protected final List<MediaProgressListener> mMediaProgressListeners = new ArrayList<>();
-    protected final List<IVideoSurface.SurfaceListener> mSurfaceListeners = new ArrayList<>();
+    protected final List<MediaEventListener> mMediaEventListeners = new CopyOnWriteArrayList<>();
+    protected final List<MediaProgressListener> mMediaProgressListeners = new CopyOnWriteArrayList<>();
+    protected final List<IVideoSurface.SurfaceListener> mSurfaceListeners = new CopyOnWriteArrayList<>();
 
     protected final WindowAttachListenerView mWindowAttachListenerView;
 
@@ -71,6 +70,7 @@ public class VideoDelegate {
         if (mVideoPreview != null) {
             mVideoPreview.setSurfaceMeasurer(mSurfaceMeasurer);
         }
+        VideoManager.getInstance().addVideo(this);
     }
 
     public void attachedToContainer(FrameLayout videoContainer) {
@@ -322,42 +322,33 @@ public class VideoDelegate {
     public void prepare(boolean autoStart) {
         if (mVideoController != null && mVideoController.interceptPrepare(autoStart)) return;
         mMediaPlayer.prepare(autoStart);
-        if (autoStart) {
-            VIDEO_MANAGER.onStart(this);
-        }
     }
 
     public void start() {
         if (mVideoController != null && mVideoController.interceptStart()) return;
         mMediaPlayer.start();
-        VIDEO_MANAGER.onStart(this);
     }
 
     public void restart() {
         if (mVideoController != null && mVideoController.interceptRestart()) return;
         mMediaPlayer.restart();
-        VIDEO_MANAGER.onStart(this);
     }
 
     public void retry() {
         if (mVideoController != null && mVideoController.interceptRetry()) return;
         mMediaPlayer.retry();
-        VIDEO_MANAGER.onStart(this);
     }
 
     public void pause() {
         mMediaPlayer.pause();
-        VIDEO_MANAGER.onEnd(this);
     }
 
     public void stop() {
         mMediaPlayer.stop();
-        VIDEO_MANAGER.onEnd(this);
     }
 
     public void release() {
         mMediaPlayer.release();
-        VIDEO_MANAGER.onEnd(this);
     }
 
     public boolean isExecuteStart() {

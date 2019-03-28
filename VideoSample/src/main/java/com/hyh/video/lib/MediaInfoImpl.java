@@ -259,34 +259,30 @@ public class MediaInfoImpl implements IMediaInfo {
                 int pathType = mDataSource.getPathType();
                 String path = mDataSource.getPath();
                 boolean setDataSource = true;
-                try {
-                    switch (pathType) {
-                        case DataSource.TYPE_NET: {
+                switch (pathType) {
+                    case DataSource.TYPE_NET: {
+                        retriever.setDataSource(path, new HashMap<String, String>());
+                        break;
+                    }
+                    case DataSource.TYPE_FILE: {
+                        retriever.setDataSource(path);
+                        break;
+                    }
+                    case DataSource.TYPE_URI: {
+                        retriever.setDataSource(mContext, Uri.parse(path));
+                        break;
+                    }
+                    default: {
+                        if (URLUtil.isNetworkUrl(path)) {
                             retriever.setDataSource(path, new HashMap<String, String>());
-                            break;
-                        }
-                        case DataSource.TYPE_FILE: {
+                        } else if (new File(path).isFile()) {
                             retriever.setDataSource(path);
-                            break;
-                        }
-                        case DataSource.TYPE_URI: {
+                        } else if (URLUtil.isValidUrl(path)) {
                             retriever.setDataSource(mContext, Uri.parse(path));
-                            break;
-                        }
-                        default: {
-                            if (URLUtil.isNetworkUrl(path)) {
-                                retriever.setDataSource(path, new HashMap<String, String>());
-                            } else if (new File(path).isFile()) {
-                                retriever.setDataSource(path);
-                            } else if (URLUtil.isValidUrl(path)) {
-                                retriever.setDataSource(mContext, Uri.parse(path));
-                            } else {
-                                setDataSource = false;
-                            }
+                        } else {
+                            setDataSource = false;
                         }
                     }
-                } catch (Throwable throwable) {
-                    //
                 }
                 if (setDataSource) {
                     result = getResult(retriever);
