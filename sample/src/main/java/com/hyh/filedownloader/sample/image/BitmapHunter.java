@@ -215,6 +215,9 @@ class BitmapHunter implements Runnable {
             if (bitmap == null) {
                 InputStream inputStream = result.getInputStream();
                 try {
+
+
+
                     bitmap = decodeStream(inputStream, data);
                 } finally {
                     try {
