@@ -5,6 +5,7 @@ import android.content.SharedPreferences;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
 import java.util.Set;
 
 /**
@@ -15,23 +16,30 @@ import java.util.Set;
 
 public class Preference {
 
+
+
+
+
+    @SuppressWarnings("unchecked")
     public <T> T create(Context context, Class<T> table) {
         if (context == null || table == null) return null;
+        context = context.getApplicationContext();
         Table tableAnnotation = table.getAnnotation(Table.class);
         String tableName = null;
         int mode = Context.MODE_PRIVATE;
         if (tableAnnotation != null) {
             tableName = tableAnnotation.value();
-
+            mode = tableAnnotation.mode();
         }
-        return null;
+        PreferenceHandler handler = new PreferenceHandler(context, tableName, mode);
+        return (T) Proxy.newProxyInstance(table.getClassLoader(), new Class[]{table}, handler);
     }
 
     private static class PreferenceHandler implements InvocationHandler {
 
         private final SharedPreferences mSharedPreferences;
 
-        public PreferenceHandler(Context context, String name, int mode) {
+        PreferenceHandler(Context context, String name, int mode) {
             mSharedPreferences = context.getSharedPreferences(name, mode);
         }
 

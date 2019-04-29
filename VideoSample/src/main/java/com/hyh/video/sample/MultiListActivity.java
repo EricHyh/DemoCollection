@@ -34,6 +34,9 @@ public class MultiListActivity extends Activity {
         listView.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         setContentView(listView);
         listView.setAdapter(new MultiListAdapter(this));
+
+        //getComponentName()
+        //getPackageManager().getActivityInfo();
     }
 
 

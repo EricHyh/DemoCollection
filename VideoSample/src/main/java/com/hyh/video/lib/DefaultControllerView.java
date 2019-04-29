@@ -678,6 +678,10 @@ public class DefaultControllerView extends RelativeLayout implements IController
                 int _1dp = VideoUtils.dp2px(context, 1);
                 seekBar.setMinimumHeight(_1dp);
 
+                int _8dp = VideoUtils.dp2px(context, 8);
+                int _12dp = VideoUtils.dp2px(context, 12);
+                seekBar.setPadding(_12dp, _8dp, _12dp, _8dp);
+
                 seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
                     @Override
                     public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {

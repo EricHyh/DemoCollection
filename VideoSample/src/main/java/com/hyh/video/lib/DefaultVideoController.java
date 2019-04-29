@@ -161,6 +161,13 @@ public class DefaultVideoController implements IVideoController {
                 | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION;
         //flags = View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN;
         mControllerView.getView().setSystemUiVisibility(flags);
+
+        mControllerView.getView().setOnSystemUiVisibilityChangeListener(new View.OnSystemUiVisibilityChangeListener() {
+            @Override
+            public void onSystemUiVisibilityChange(int visibility) {
+                Log.d(TAG, "onSystemUiVisibilityChange: ");
+            }
+        });
     }
 
     @Override
