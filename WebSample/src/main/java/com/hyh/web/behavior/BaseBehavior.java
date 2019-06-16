@@ -4,9 +4,11 @@ import android.content.Context;
 import android.support.annotation.NonNull;
 import android.support.design.widget.CoordinatorLayout;
 import android.support.v4.view.ViewCompat;
+import android.support.v7.widget.RecyclerView;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.view.View;
+import android.webkit.WebView;
 import android.widget.Scroller;
 
 import java.util.List;
@@ -193,14 +195,14 @@ public abstract class BaseBehavior<V extends View> extends CoordinatorLayout.Beh
     public void onNestedPreScroll(@NonNull CoordinatorLayout coordinatorLayout,
                                   @NonNull V child, @NonNull View target, int dx, int dy, @NonNull int[] consumed, int type) {
         super.onNestedPreScroll(coordinatorLayout, child, target, dx, dy, consumed, type);
-        consumed[1] = handleNestedScroll(coordinatorLayout, target, dy);
+        consumed[1] = handleNestedScroll(coordinatorLayout, target, dy, type, true);
     }
 
     @Override
     public void onNestedScroll(@NonNull CoordinatorLayout coordinatorLayout,
                                @NonNull V child, @NonNull View target, int dxConsumed, int dyConsumed, int dxUnconsumed, int dyUnconsumed, int type) {
         super.onNestedScroll(coordinatorLayout, child, target, dxConsumed, dyConsumed, dxUnconsumed, dyUnconsumed, type);
-        handleNestedScroll(coordinatorLayout, target, dyUnconsumed);
+        handleNestedScroll(coordinatorLayout, target, dyUnconsumed, type, false);
     }
 
     @Override
@@ -212,7 +214,7 @@ public abstract class BaseBehavior<V extends View> extends CoordinatorLayout.Beh
     @Override
     public boolean onNestedPreFling(@NonNull CoordinatorLayout coordinatorLayout,
                                     @NonNull V child, @NonNull View target, float velocityX, float velocityY) {
-        if (isFirstBehavior(coordinatorLayout, child)) {
+        /*if (isFirstBehavior(coordinatorLayout, child)) {
             if (velocityY > 0) {//向上滑动
                 boolean canScrollUp = canScrollUp(coordinatorLayout, target);//发起嵌套滑动的View是否能够向上滑动
                 if (!canScrollUp) {
@@ -238,31 +240,35 @@ public abstract class BaseBehavior<V extends View> extends CoordinatorLayout.Beh
 
 
             }
-        }
+        }*/
         return false;
     }
 
     @Override
     public boolean onNestedFling(@NonNull CoordinatorLayout coordinatorLayout,
                                  @NonNull V child, @NonNull View target, float velocityX, float velocityY, boolean consumed) {
-
         return super.onNestedFling(coordinatorLayout, child, target, velocityX, velocityY, consumed);
     }
 
-    private int handleNestedScroll(@NonNull CoordinatorLayout coordinatorLayout, @NonNull View target, int dy) {
+    private int handleNestedScroll(@NonNull CoordinatorLayout coordinatorLayout, @NonNull View target,
+                                   int dy, int type, boolean nestedPreScroll) {
         int consumedDy = dy;
         int scrollY = coordinatorLayout.getScrollY();
 
         if (dy > 0) {//向上滑动
             boolean canScrollUp = canScrollUp(coordinatorLayout, target);//发起嵌套滑动的View是否能够向上滑动
             if (canScrollUp) {
-                //如果target能向上滑动，那么
+                //判断
                 int aboveHeight = getAboveHeight(coordinatorLayout, target);//在target之上的View的高度
-                int aboveVisibleHeight = aboveHeight - scrollY;//在target之上的View的可见高度
-                int bottomInvisibleHeight = getBottomInvisibleHeight(coordinatorLayout);//底部不可见的高度
-                int curMaxScrollDy = Math.min(aboveVisibleHeight, bottomInvisibleHeight);
-                if (consumedDy > curMaxScrollDy) {
-                    consumedDy = curMaxScrollDy;
+                if (scrollY > aboveHeight) {
+                    //如果发起嵌套滑动的View没有展示完全，那么把滑动事件交给target
+                    consumedDy = 0;
+                } else {
+                    int aboveVisibleHeight = aboveHeight - scrollY;//在target之上的View的可见高度
+                    int bottomInvisibleHeight = getBottomInvisibleHeight(coordinatorLayout);//底部不可见的高度
+                    int curMaxScrollDy = Math.min(aboveVisibleHeight, bottomInvisibleHeight);
+
+                    consumedDy = Math.min(consumedDy, curMaxScrollDy);
                 }
             } else {
                 //如果target不能向上滑动，那么
@@ -271,23 +277,118 @@ public abstract class BaseBehavior<V extends View> extends CoordinatorLayout.Beh
                 int aboveVisibleHeightIncludeSelf = aboveHeightIncludeSelf - scrollY;//在target之上并包括target的View的可见高度
                 int bottomInvisibleHeight = getBottomInvisibleHeight(coordinatorLayout);//底部不可见的高度
                 int curMaxScrollDy = Math.min(aboveVisibleHeightIncludeSelf, bottomInvisibleHeight);
-                if (consumedDy > curMaxScrollDy) {
-                    consumedDy = curMaxScrollDy;
-                }
+
+                consumedDy = Math.min(consumedDy, curMaxScrollDy);
+
             }
         } else {//向下滑动
-            boolean canScrollDown = canScrollDown(coordinatorLayout, target);//发起嵌套滑动的View是否能够向下滑动
-            if (canScrollDown) {
-                consumedDy = 0;
-            } else {
-                int curMinScrollDy = -scrollY;
-                if (consumedDy < curMinScrollDy) {
-                    consumedDy = curMinScrollDy;
+            //判断发起嵌套滑动的View是否没有展示完全
+            int aboveHeight = getAboveHeight(coordinatorLayout, target);
+            if (scrollY > aboveHeight) {
+                //发起嵌套滑动的View没有展示完全,先滑动父布局，让发起嵌套滑动的View展示完全
+                int curMinScrollDy = aboveHeight - scrollY;
+                consumedDy = Math.max(consumedDy, curMinScrollDy);
+
+                curMinScrollDy = -scrollY;
+                consumedDy = Math.max(consumedDy, curMinScrollDy);
+            } else {//发起嵌套滑动的View展示完全
+                //发起嵌套滑动的View是否能够向下滑动，如果能向下滑动，那么把滑动事件交给target
+                boolean canScrollDown = canScrollDown(coordinatorLayout, target);
+                if (canScrollDown) {
+                    consumedDy = 0;
+                } else {
+                    if (!nestedPreScroll && type != ViewCompat.TYPE_TOUCH) {
+                        View lastVisibleScrollableView = findLastScrollableView(coordinatorLayout, target);
+                        if (lastVisibleScrollableView != null) {
+                            /*int curMinScrollDy = -getAboveHeight(coordinatorLayout, lastVisibleScrollableView) - scrollY;
+                            consumedDy = Math.max(consumedDy, curMinScrollDy);*/
+                        } else {
+                            int curMinScrollDy = -scrollY;
+                            consumedDy = Math.max(consumedDy, curMinScrollDy);
+                        }
+                    } else {
+                        int curMinScrollDy = -scrollY;
+                        consumedDy = Math.max(consumedDy, curMinScrollDy);
+                    }
                 }
             }
         }
         coordinatorLayout.scrollBy(0, consumedDy);
+        if (!nestedPreScroll && type != ViewCompat.TYPE_TOUCH) {
+            if (consumedDy != dy) {
+                consumedDy += dispatchNestedScrollToNext(coordinatorLayout, target, (dy - consumedDy));
+            }
+        }
         return consumedDy;
+    }
+
+    private View findLastScrollableView(CoordinatorLayout coordinatorLayout, View target) {
+        int targetIndex = coordinatorLayout.indexOfChild(target);
+        if (targetIndex > 0) {
+            for (int index = targetIndex - 1; index >= 0; index--) {
+                View childAt = coordinatorLayout.getChildAt(index);
+                if (childAt.canScrollVertically(-1)) {
+                    return childAt;
+                }
+            }
+        }
+        return null;
+    }
+
+    private int dispatchNestedScrollToNext(CoordinatorLayout coordinatorLayout, View target, int unconsumedDy) {
+        View view = null;
+        int childCount = coordinatorLayout.getChildCount();
+        int targetIndex = coordinatorLayout.indexOfChild(target);
+        if (unconsumedDy > 0) {
+            if (childCount > targetIndex + 1) {
+                for (int index = targetIndex + 1; index < childCount; index++) {
+                    View childAt = coordinatorLayout.getChildAt(index);
+                    if (childAt.canScrollVertically(unconsumedDy)) {
+                        view = childAt;
+                    }
+                }
+            }
+        } else {
+            if (targetIndex > 0) {
+                for (int index = targetIndex - 1; index >= 0; index--) {
+                    View childAt = coordinatorLayout.getChildAt(index);
+                    if (childAt.canScrollVertically(unconsumedDy)) {
+                        view = childAt;
+                    }
+                }
+            }
+        }
+        int viewConsumedDy = 0;
+        if (view != null) {
+            if (unconsumedDy > 0) {//向上滑动
+                int curMaxScrollDy = getCurrentMaxScrollDy(view);
+                viewConsumedDy = Math.min(unconsumedDy, curMaxScrollDy);
+            } else {
+                int curMinScrollDy = -view.getScrollY();
+                viewConsumedDy = Math.max(unconsumedDy, curMinScrollDy);
+            }
+            view.scrollBy(0, viewConsumedDy);
+            if (viewConsumedDy != unconsumedDy) {
+                viewConsumedDy += dispatchNestedScrollToNext(coordinatorLayout, view, (unconsumedDy - viewConsumedDy));
+            }
+        }
+
+        return unconsumedDy - viewConsumedDy;
+    }
+
+    private int getCurrentMaxScrollDy(View view) {
+        if (view instanceof RecyclerView) {
+            RecyclerView recyclerView = (RecyclerView) view;
+            int verticalScrollOffset = recyclerView.computeVerticalScrollOffset();
+            int verticalScrollRange = recyclerView.computeVerticalScrollRange();
+            int verticalScrollExtent = recyclerView.computeVerticalScrollExtent();
+            return verticalScrollRange - verticalScrollExtent - verticalScrollOffset;
+        } else if (view instanceof WebView) {
+            WebView webView = (WebView) view;
+            int contentHeight = Math.round(webView.getContentHeight() * view.getResources().getDisplayMetrics().density);
+            return Math.max(contentHeight - webView.getMeasuredHeight(), 0);
+        }
+        return 0;
     }
 
     private boolean canScrollUp(@NonNull CoordinatorLayout parent, @NonNull View target) {
@@ -317,7 +418,6 @@ public abstract class BaseBehavior<V extends View> extends CoordinatorLayout.Beh
     private int getParentCurrentMinScrollY(@NonNull CoordinatorLayout parent) {
         return -parent.getScrollY();
     }
-
 
     private class FlingRunnable implements Runnable {
 

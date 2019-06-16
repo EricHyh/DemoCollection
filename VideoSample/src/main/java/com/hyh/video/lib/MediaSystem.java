@@ -8,6 +8,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
 import android.os.SystemClock;
+import android.util.Log;
 import android.view.Surface;
 
 import java.lang.ref.WeakReference;
@@ -378,6 +379,7 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
     @Override
     public void setSurface(Surface surface) {
         if (isReleased() || surface == null) return;
+        Log.d("", "setSurface: surface = " + surface + ", mSurface = " + mSurface);
         if (surface != mSurface) {
             try {
                 mSurface.release();
@@ -632,6 +634,12 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
     }
 
     private void postError(int what, int extra) {
+        Log.d("", "postError: what = " + what + ", extra = " + extra);
+        try {
+            mMediaPlayer.pause();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         mBufferingPercent = 0;
         //if (what == 38 || what == -38 || extra == 38 || extra == -38 || extra == -19) return;
         long currentPosition = getCurrentPosition();

@@ -10,7 +10,12 @@ import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.view.VelocityTracker;
 import android.view.ViewConfiguration;
+import android.view.animation.Interpolator;
 import android.webkit.WebView;
+import android.widget.OverScroller;
+
+import static android.support.v4.view.ViewCompat.TYPE_NON_TOUCH;
+import static android.support.v4.view.ViewCompat.TYPE_TOUCH;
 
 /**
  * @author Administrator
@@ -100,10 +105,12 @@ public class NestedScrollWebView extends WebView implements NestedScrollingChild
                 int dy = mLastTouchY - y;
                 mLastTouchX = x;
                 mLastTouchY = y;
+
+                int webScrollY = 0;
                 if (dispatchNestedPreScroll(0, dy, mScrollConsumed, mScrollOffset, ViewCompat.TYPE_TOUCH)) {
                     dx -= mScrollConsumed[0];
                     dy -= mScrollConsumed[1];
-                    int webScrollY = dy;
+                    webScrollY = dy;
                     if (dy > 0) {//向上滑动
                         int curMaxScrollY = onScrollDownMaxScrollY();
                         webScrollY = Math.min(webScrollY, curMaxScrollY);
@@ -113,11 +120,8 @@ public class NestedScrollWebView extends WebView implements NestedScrollingChild
                     }
                     scrollBy(0, webScrollY);
                     dy -= webScrollY;
-                    if (dy != 0) {
-                        dispatchNestedScroll(dx, webScrollY, 0, dy, mScrollOffset, ViewCompat.TYPE_TOUCH);
-                    }
                 } else {
-                    int webScrollY = dy;
+                    webScrollY = dy;
                     if (dy > 0) {//向上滑动
                         int curMaxScrollY = onScrollDownMaxScrollY();
                         webScrollY = Math.min(webScrollY, curMaxScrollY);
@@ -127,23 +131,39 @@ public class NestedScrollWebView extends WebView implements NestedScrollingChild
                     }
                     scrollBy(0, webScrollY);
                 }
+                dispatchNestedScroll(dx, webScrollY, 0, dy - webScrollY, mScrollOffset, ViewCompat.TYPE_TOUCH);
                 if (Math.abs(mInitialTouchY - y) > mTouchSlop) {
                     //屏蔽WebView本身的滑动，滑动事件自己处理
                     event.setAction(MotionEvent.ACTION_CANCEL);
                 }
                 break;
             }
-            case MotionEvent.ACTION_CANCEL:
             case MotionEvent.ACTION_UP: {
                 mVelocityTracker.computeCurrentVelocity(1000, mMaximumFlingVelocity);
-                final float yvel = -mVelocityTracker.getYVelocity();
+                final float velocityY = -mVelocityTracker.getYVelocity();
                 recycleVelocityTracker();
-                flingScroll(0, Math.round(yvel));
+                flingScroll(0, Math.round(velocityY));
+                resetTouch();
+                break;
+            }
+            case MotionEvent.ACTION_CANCEL: {
+                cancelTouch();
                 break;
             }
         }
         super.onTouchEvent(event);
         return true;
+    }
+
+    private void resetTouch() {
+        if (mVelocityTracker != null) {
+            mVelocityTracker.clear();
+        }
+        stopNestedScroll(TYPE_TOUCH);
+    }
+
+    private void cancelTouch() {
+        resetTouch();
     }
 
     private int onScrollUpMinScrollY() {
@@ -155,15 +175,19 @@ public class NestedScrollWebView extends WebView implements NestedScrollingChild
     }
 
     @Override
-    public void flingScroll(int vx, int vy) {
-        if (vy == 0) return;
-        if (dispatchNestedPreFling(vx, vx)) {
+    public void flingScroll(int velocityX, int velocityY) {
+        if (velocityY == 0) return;
+        if (dispatchNestedPreFling(velocityX, velocityY)) {
             return;
         }
-        dispatchNestedFling(vx, vy, canScrollVertically(vy));
+        dispatchNestedFling(velocityX, velocityY, canScrollVertically(velocityY));
 
-        //mScroller.fling(0, getScrollY(), 0, vy, 0, 0, Integer.MIN_VALUE, Integer.MAX_VALUE);
-        invalidate();
+
+        startNestedScroll(ViewCompat.SCROLL_AXIS_VERTICAL, ViewCompat.TYPE_NON_TOUCH);
+
+        velocityX = Math.max(-mMaximumFlingVelocity, Math.min(velocityX, mMaximumFlingVelocity));
+        velocityY = Math.max(-mMaximumFlingVelocity, Math.min(velocityY, mMaximumFlingVelocity));
+        mViewFlingHelper.fling(velocityX, velocityY);
     }
 
     private int getWebContentHeight() {
@@ -261,13 +285,90 @@ public class NestedScrollWebView extends WebView implements NestedScrollingChild
     }
 
 
-    private class ViewFlingHelper {
+    private class ViewFlingHelper implements Runnable {
+
+        private final Interpolator mInterpolator = new Interpolator() {
+            @Override
+            public float getInterpolation(float t) {
+                t -= 1.0f;
+                return t * t * t * t * t + 1.0f;
+            }
+        };
+        private final OverScroller mScroller;
+
+        private int mLastFlingX;
+        private int mLastFlingY;
 
         ViewFlingHelper() {
+            mScroller = new OverScroller(getContext(), mInterpolator);
+        }
+
+        void postOnAnimation() {
+            removeCallbacks(this);
+            ViewCompat.postOnAnimation(NestedScrollWebView.this, this);
+        }
+
+        public void fling(int velocityX, int velocityY) {
+            mLastFlingX = mLastFlingY = 0;
+            mScroller.fling(0, 0, velocityX, velocityY,
+                    Integer.MIN_VALUE, Integer.MAX_VALUE, Integer.MIN_VALUE, Integer.MAX_VALUE);
+            postOnAnimation();
         }
 
         void stop() {
+            mScroller.abortAnimation();
+        }
 
+        @Override
+        public void run() {
+
+            // keep a local reference so that if it is changed during onAnimation method, it won't
+            // cause unexpected behaviors
+            final OverScroller scroller = mScroller;
+            if (scroller.computeScrollOffset()) {
+                final int[] scrollConsumed = mScrollConsumed;
+                final int x = scroller.getCurrX();
+                final int y = scroller.getCurrY();
+                int dx = x - mLastFlingX;
+                int dy = y - mLastFlingY;
+                mLastFlingX = x;
+                mLastFlingY = y;
+
+                int webScrollY = 0;
+                if (dispatchNestedPreScroll(dx, dy, scrollConsumed, null, TYPE_NON_TOUCH)) {
+                    dx -= scrollConsumed[0];
+                    dy -= scrollConsumed[1];
+                    webScrollY = dy;
+                    if (dy > 0) {//向上滑动
+                        int curMaxScrollY = onScrollDownMaxScrollY();
+                        webScrollY = Math.min(webScrollY, curMaxScrollY);
+                    } else {//向下滑动
+                        int curMinScrollY = onScrollUpMinScrollY();
+                        webScrollY = Math.max(webScrollY, curMinScrollY);
+                    }
+                    scrollBy(0, webScrollY);
+                    dy -= webScrollY;
+
+                } else {
+                    webScrollY = dy;
+                    if (dy > 0) {//向上滑动
+                        int curMaxScrollY = onScrollDownMaxScrollY();
+                        webScrollY = Math.min(webScrollY, curMaxScrollY);
+                    } else {//向下滑动
+                        int curMinScrollY = onScrollUpMinScrollY();
+                        webScrollY = Math.max(webScrollY, curMinScrollY);
+                    }
+                    scrollBy(0, webScrollY);
+                }
+                dispatchNestedScroll(dx, webScrollY, 0, dy - webScrollY, mScrollOffset, ViewCompat.TYPE_NON_TOUCH);
+
+                if (scroller.isFinished()) {
+                    // setting state to idle will stop this.
+                    stopNestedScroll(TYPE_NON_TOUCH);
+                } else {
+                    postOnAnimation();
+                }
+            }
         }
     }
 }

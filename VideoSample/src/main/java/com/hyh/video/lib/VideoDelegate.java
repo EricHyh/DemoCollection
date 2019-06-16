@@ -124,7 +124,7 @@ public class VideoDelegate {
     }
 
     protected IVideoSurface newVideoSurface(Context context) {
-        return new TextureSurface(context);
+        return new SurfaceVideoView(context);
     }
 
     protected IVideoPreview newVideoPreview(Context context) {
