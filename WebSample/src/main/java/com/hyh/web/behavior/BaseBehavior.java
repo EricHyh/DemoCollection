@@ -6,6 +6,7 @@ import android.support.design.widget.CoordinatorLayout;
 import android.support.v4.view.ViewCompat;
 import android.support.v7.widget.RecyclerView;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.webkit.WebView;
@@ -19,19 +20,11 @@ import java.util.List;
  * @data 2019/6/13
  */
 
-public abstract class BaseBehavior<V extends View> extends CoordinatorLayout.Behavior<V> {
-
-    public static final int OTHER_BEHAVIOR = 0;
-    public static final int WEB_HEADER_BEHAVIOR = 1;
-    public static final int WEB_VIEW_BEHAVIOR = 2;
-    public static final int WEB_FOOTER_BEHAVIOR = 3;
-    public static final int RECYCLER_VIEW_BEHAVIOR = 4;
+public class BaseBehavior<V extends View> extends CoordinatorLayout.Behavior<V> {
 
     private static final String TAG = "BaseBehavior";
 
     private final Scroller mScroller;
-    Integer mTempHeaderHeight;
-    Integer mTempFooterHeight;
 
     public BaseBehavior(Context context) {
         this(context, null);
@@ -98,52 +91,10 @@ public abstract class BaseBehavior<V extends View> extends CoordinatorLayout.Beh
         return Math.max(parentHeight, childHeight);
     }
 
-    protected int getTopInvisibleHeight(CoordinatorLayout parent) {
-        return parent.getScrollY();
-    }
-
     protected int getBottomInvisibleHeight(CoordinatorLayout parent) {
         int contentHeight = getContentHeight(parent);
         int measuredHeight = parent.getMeasuredHeight();
         return contentHeight - measuredHeight - parent.getScrollY();
-    }
-
-    protected int getHeaderHeight(CoordinatorLayout parent) {
-        if (mTempHeaderHeight != null) {
-            return mTempHeaderHeight;
-        }
-        int childCount = parent.getChildCount();
-        int headerHeight = 0;
-        for (int index = 0; index < childCount; index++) {
-            View childAt = parent.getChildAt(index);
-            CoordinatorLayout.LayoutParams layoutParams = (CoordinatorLayout.LayoutParams) childAt.getLayoutParams();
-            if (!checkIsBaseBehavior(layoutParams)) continue;
-            BaseBehavior behavior = (BaseBehavior) layoutParams.getBehavior();
-            if (behavior != null && getBehaviorType() == WEB_HEADER_BEHAVIOR) {
-                headerHeight += childAt.getMeasuredHeight();
-            }
-        }
-        mTempHeaderHeight = headerHeight;
-        return headerHeight;
-    }
-
-    protected int getFooterHeight(CoordinatorLayout parent) {
-        if (mTempFooterHeight != null) {
-            return mTempFooterHeight;
-        }
-        int childCount = parent.getChildCount();
-        int footerHeight = 0;
-        for (int index = 0; index < childCount; index++) {
-            View childAt = parent.getChildAt(index);
-            CoordinatorLayout.LayoutParams layoutParams = (CoordinatorLayout.LayoutParams) childAt.getLayoutParams();
-            if (!checkIsBaseBehavior(layoutParams)) continue;
-            BaseBehavior behavior = (BaseBehavior) layoutParams.getBehavior();
-            if (behavior != null && getBehaviorType() == WEB_FOOTER_BEHAVIOR) {
-                footerHeight += childAt.getMeasuredHeight();
-            }
-        }
-        mTempFooterHeight = footerHeight;
-        return footerHeight;
     }
 
     private boolean checkIsBaseBehavior(CoordinatorLayout.LayoutParams layoutParams) {
@@ -171,9 +122,6 @@ public abstract class BaseBehavior<V extends View> extends CoordinatorLayout.Beh
         int dependencyIndex = parent.indexOfChild(dependency);
         return childIndex > dependencyIndex;
     }
-
-    protected abstract int getBehaviorType();
-
 
     protected boolean isFirstBehavior(CoordinatorLayout coordinatorLayout, View child) {
         return coordinatorLayout.indexOfChild(child) == 0;
@@ -214,55 +162,17 @@ public abstract class BaseBehavior<V extends View> extends CoordinatorLayout.Beh
     @Override
     public boolean onNestedPreFling(@NonNull CoordinatorLayout coordinatorLayout,
                                     @NonNull V child, @NonNull View target, float velocityX, float velocityY) {
-        /*if (isFirstBehavior(coordinatorLayout, child)) {
-            if (velocityY > 0) {//向上滑动
-                boolean canScrollUp = canScrollUp(coordinatorLayout, target);//发起嵌套滑动的View是否能够向上滑动
-                if (!canScrollUp) {
-                    //如果不能向上滑动了,那就把看父布局能不能向上滑动
-                    if (canScrollUp(coordinatorLayout, coordinatorLayout)) {
-                        //父布局可以滑动,那么先滑动父布局
-                        mScroller.fling(0,
-                                coordinatorLayout.getScrollY(),
-                                0,
-                                Math.round(velocityY),
-                                0,
-                                0,
-                                getParentCurrentMinScrollY(coordinatorLayout),
-                                getParentCurrentMaxScrollY(coordinatorLayout));
-                        if (mScroller.computeScrollOffset()) {
-                            ViewCompat.postOnAnimation(coordinatorLayout, new FlingRunnable(coordinatorLayout));
-                            return true;
-                        }
-                    }
-                }
-            } else {//向下滑动
-                boolean canScrollDown = canScrollDown(coordinatorLayout, target);//发起嵌套滑动的View是否能够向下滑动
-
-
-            }
-        }*/
-        return false;
+       return handleNestedFling(coordinatorLayout, child, target, velocityY);
     }
 
     @Override
     public boolean onNestedFling(@NonNull CoordinatorLayout coordinatorLayout,
                                  @NonNull V child, @NonNull View target, float velocityX, float velocityY, boolean consumed) {
-        return super.onNestedFling(coordinatorLayout, child, target, velocityX, velocityY, consumed);
+        return handleNestedFling(coordinatorLayout, child, target, velocityY);
     }
 
     private int handleNestedScroll(@NonNull CoordinatorLayout coordinatorLayout, @NonNull View target, int dy, int type) {
         if (dy == 0) return 0;
-        int consumedDy = 0;
-        if (dy > 0) {//向上滑动
-            //判断父布局是否已滑动到target的顶部
-            consumedDy = handleScrollUp(coordinatorLayout, target, dy, type);
-        } else {
-            consumedDy = handleScrollDown(coordinatorLayout, target, dy, type);
-        }
-        return consumedDy;
-    }
-
-    private int handleScrollUp(@NonNull CoordinatorLayout coordinatorLayout, @NonNull View target, int dy, int type) {
         int consumedDy = 0;
         int unconsumedDy = dy;
 
@@ -271,120 +181,114 @@ public abstract class BaseBehavior<V extends View> extends CoordinatorLayout.Beh
         //    （1）如果target已经全部显示在parent中了，说明target已经处于合适的位置
         //    （2）如果target的高度 > parent的高度，则将target与parent的底部对齐
         //    （3）如果target的高度 < parent的高度，则将target与parent的顶部对齐
-        int parentScrollDy = scrollParentUntilChildInRightPosition(coordinatorLayout, target, unconsumedDy, type);
+        int parentScrollDy = scrollParentAtMostChildInRightPosition(coordinatorLayout, target, unconsumedDy);
         consumedDy += parentScrollDy;
         unconsumedDy -= parentScrollDy;
-
-        /*boolean isParentScrollToTargetTop = isParentScrollToTargetTop(coordinatorLayout, target);
-        if (isParentScrollToTargetTop) {
-            //判断父布局是否已滑动到target的底部
-            boolean isParentScrollToTargetBottom = isParentScrollToTargetBottom(coordinatorLayout, target);
-            if (isParentScrollToTargetBottom) {
-                boolean canScrollUp = canScrollUp(coordinatorLayout, target);
-                if (canScrollUp) {
-                    consumedDy += 0;
-                    unconsumedDy -= 0;
-                } else {
-                    if (type == ViewCompat.TYPE_TOUCH) {
-                        //如果是触摸事件造成的滑动，那么父布局可滑动的区域为“底部不可见的高度”
-                        int curMaxScrollDy = getBottomInvisibleHeight(coordinatorLayout);
-                        int parentScrollDy = Math.min(unconsumedDy, curMaxScrollDy);
-                        consumedDy += parentScrollDy;
-                        unconsumedDy -= parentScrollDy;
-                        coordinatorLayout.scrollBy(0, parentScrollDy);
-                    } else {
-                        //如果是惯性事件造成的滑动，则父布局先将下一个可滑动的View滑动到顶部
-                        View nextScrollableView = findNextScrollableView(coordinatorLayout, target);
-                        if (nextScrollableView == null) {
-                            //如果下面没有可滑动的View了，那么父布局可滑动的区域为“底部不可见的高度”
-                            int curMaxScrollDy = getBottomInvisibleHeight(coordinatorLayout);
-                            int parentScrollDy = Math.min(unconsumedDy, curMaxScrollDy);
-                            consumedDy += parentScrollDy;
-                            unconsumedDy -= parentScrollDy;
-                            coordinatorLayout.scrollBy(0, parentScrollDy);
-                        } else {
-                            int curMaxScrollDy = getAboveHeight(coordinatorLayout, nextScrollableView) - scrollY;
-                            curMaxScrollDy = Math.min(curMaxScrollDy, getBottomInvisibleHeight(coordinatorLayout));
-                            if (curMaxScrollDy == 0) {
-                                int nextConsumedDy = dispatchNestedScrollToNextScrollView(coordinatorLayout, target, unconsumedDy);
-                                consumedDy += nextConsumedDy;
-                                unconsumedDy -= nextConsumedDy;
-                            } else {
-                                int parentScrollDy = Math.min(curMaxScrollDy, unconsumedDy);
-                                consumedDy += parentScrollDy;
-                                unconsumedDy -= parentScrollDy;
-                                coordinatorLayout.scrollBy(0, parentScrollDy);
-                                if (unconsumedDy > 0) {
-                                    int nextConsumedDy = dispatchNestedScrollToNextScrollView(coordinatorLayout, target, unconsumedDy);
-                                    consumedDy += nextConsumedDy;
-                                    unconsumedDy -= nextConsumedDy;
-                                }
-                            }
-                        }
-                    }
-                }
-            } else {
-                boolean canScrollUp = canScrollUp(coordinatorLayout, target);
-                if (canScrollUp) {
-                    //滑动父布局，将target的底部显示出来，再将滑动事件交给target
-                    int curMaxScrollDy = getAboveHeight(coordinatorLayout, target)
-                            + target.getMeasuredHeight()
-                            - scrollY
-                            - coordinatorLayout.getMeasuredHeight();
-                    int parentScrollDy = Math.min(curMaxScrollDy, unconsumedDy);
+        if (canScrollVertically(target, unconsumedDy)) {
+            return consumedDy;
+        }
+        if (unconsumedDy == 0) {
+            return consumedDy;
+        }
+        if (unconsumedDy > 0) {//向上滑动
+            parentScrollDy = scrollUpParentAtMostChildInvisible(coordinatorLayout, target, unconsumedDy);
+            consumedDy += parentScrollDy;
+            unconsumedDy -= parentScrollDy;
+            if (unconsumedDy == 0) {
+                return consumedDy;
+            }
+            if (type != ViewCompat.TYPE_TOUCH) {
+                View nextScrollableView = findNextScrollableView(coordinatorLayout, target);
+                while (nextScrollableView != null) {
+                    parentScrollDy = scrollParentAtMostChildInRightPosition(coordinatorLayout, nextScrollableView, unconsumedDy);
                     consumedDy += parentScrollDy;
                     unconsumedDy -= parentScrollDy;
-                    coordinatorLayout.scrollBy(0, parentScrollDy);
-                } else {
-                    if (type == ViewCompat.TYPE_TOUCH) {
-                        int curMaxScrollDy = getBottomInvisibleHeight(coordinatorLayout);
-                        int parentScrollDy = Math.min(curMaxScrollDy, unconsumedDy);
-                        consumedDy += parentScrollDy;
-                        unconsumedDy -= parentScrollDy;
-                        coordinatorLayout.scrollBy(0, parentScrollDy);
-                    } else {
-                        //如果是惯性事件造成的滑动，则父布局先将下一个可滑动的View滑动到顶部
-                        View nextScrollableView = findNextScrollableView(coordinatorLayout, target);
-                        if (nextScrollableView == null) {
-                            //如果下面没有可滑动的View了，那么父布局可滑动的区域为“底部不可见的高度”
-                            int curMaxScrollDy = getBottomInvisibleHeight(coordinatorLayout);
-                            int parentScrollDy = Math.min(unconsumedDy, curMaxScrollDy);
-                            consumedDy += parentScrollDy;
-                            unconsumedDy -= parentScrollDy;
-                            coordinatorLayout.scrollBy(0, parentScrollDy);
-                        } else {
-                            int curMaxScrollDy = getAboveHeight(coordinatorLayout, nextScrollableView) - scrollY;
-                            curMaxScrollDy = Math.min(curMaxScrollDy, getBottomInvisibleHeight(coordinatorLayout));
-                            if (curMaxScrollDy == 0) {
-                                int nextConsumedDy = dispatchNestedScrollToNextScrollView(coordinatorLayout, target, unconsumedDy);
-                                consumedDy += nextConsumedDy;
-                                unconsumedDy -= nextConsumedDy;
-                            } else {
-                                int parentScrollDy = Math.min(curMaxScrollDy, unconsumedDy);
-                                consumedDy += parentScrollDy;
-                                unconsumedDy -= parentScrollDy;
-                                coordinatorLayout.scrollBy(0, parentScrollDy);
-                                if (unconsumedDy > 0) {
-                                    int nextConsumedDy = dispatchNestedScrollToNextScrollView(coordinatorLayout, target, unconsumedDy);
-                                    consumedDy += nextConsumedDy;
-                                    unconsumedDy -= nextConsumedDy;
-                                }
-                            }
-                        }
+                    if (unconsumedDy == 0) {
+                        return consumedDy;
                     }
+                    int childScrollDy = scrollView(nextScrollableView, unconsumedDy);
+                    consumedDy += childScrollDy;
+                    unconsumedDy -= childScrollDy;
+                    if (unconsumedDy == 0) {
+                        return consumedDy;
+                    }
+                    parentScrollDy = scrollUpParentAtMostChildInvisible(coordinatorLayout, nextScrollableView, unconsumedDy);
+                    consumedDy += parentScrollDy;
+                    unconsumedDy -= parentScrollDy;
+                    if (unconsumedDy == 0) {
+                        return consumedDy;
+                    }
+                    nextScrollableView = findNextScrollableView(coordinatorLayout, target);
                 }
             }
-        } else {
-
-        }*/
-        return consumedDy;
+            parentScrollDy = scrollUpParentAtMostBottom(coordinatorLayout, unconsumedDy);
+            consumedDy += parentScrollDy;
+            unconsumedDy -= parentScrollDy;
+            return consumedDy;
+        } else {//向下滑动
+            if (type != ViewCompat.TYPE_TOUCH) {
+                View lastScrollableView = findLastScrollableView(coordinatorLayout, target);
+                while (lastScrollableView != null) {
+                    parentScrollDy = scrollDownParentAtMostChildTop(coordinatorLayout, lastScrollableView, unconsumedDy);
+                    consumedDy += parentScrollDy;
+                    unconsumedDy -= parentScrollDy;
+                    if (unconsumedDy == 0) {
+                        return consumedDy;
+                    }
+                    int childScrollDy = scrollView(lastScrollableView, unconsumedDy);
+                    consumedDy += childScrollDy;
+                    unconsumedDy -= childScrollDy;
+                    if (unconsumedDy == 0) {
+                        return consumedDy;
+                    }
+                    lastScrollableView = findLastScrollableView(coordinatorLayout, target);
+                }
+            }
+            parentScrollDy = scrollDownParentAtMostTop(coordinatorLayout, unconsumedDy);
+            consumedDy += parentScrollDy;
+            unconsumedDy -= parentScrollDy;
+            return consumedDy;
+        }
     }
 
-    private int scrollParentUntilChildInRightPosition(CoordinatorLayout parent, View child, int unconsumedDy, int type) {
-        int scrollY = parent.getScrollY();
+    private boolean handleNestedFling(@NonNull CoordinatorLayout coordinatorLayout, @NonNull V child, @NonNull View target, float velocityY) {
+        if (isFirstBehavior(coordinatorLayout, child)) {
+            int yvel = Math.round(velocityY);
+            if (canScrollVertically(target, yvel)) {
+                return false;
+            }
+            mScroller.fling(0, 0, 0, yvel, 0, 0, Integer.MIN_VALUE, Integer.MAX_VALUE);
+            if (mScroller.computeScrollOffset()) {
+                ViewCompat.postOnAnimation(coordinatorLayout, new FlingRunnable(coordinatorLayout, target));
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private int scrollView(View view, int unconsumedDy) {
         if (unconsumedDy > 0) {
-            int parentHeight = parent.getMeasuredHeight();
-            int childHeight = child.getMeasuredHeight();
+            int curMaxScrollDy = computeCurrentMaxScrollUpDy(view);
+            int viewScrollDy = Math.min(curMaxScrollDy, unconsumedDy);
+            view.scrollBy(0, viewScrollDy);
+            return viewScrollDy;
+        } else {
+            int curMinScrollDy = computeCurrentMinScrollDownDy(view);
+            int viewScrollDy = Math.max(curMinScrollDy, unconsumedDy);
+            view.scrollBy(0, viewScrollDy);
+            return viewScrollDy;
+        }
+    }
+
+    private boolean canScrollVertically(View target, int unconsumedDy) {
+        return target.canScrollVertically(unconsumedDy);
+    }
+
+    private int scrollParentAtMostChildInRightPosition(CoordinatorLayout parent, View child, int unconsumedDy) {
+        int scrollY = parent.getScrollY();
+        int parentHeight = parent.getMeasuredHeight();
+        int childHeight = child.getMeasuredHeight();
+        if (unconsumedDy > 0) {//向上滑动
             if (parentHeight > childHeight) {
                 int aboveHeight = getAboveHeight(parent, child);
                 if (scrollY >= aboveHeight) {
@@ -408,30 +312,54 @@ public abstract class BaseBehavior<V extends View> extends CoordinatorLayout.Beh
                     return parentScrollDy;
                 }
             }
-        } else {
-
+        } else {//向下滑动
+            int aboveHeight = getAboveHeight(parent, child);
+            if (scrollY <= aboveHeight) {
+                return 0;
+            } else {
+                int curMinScrollDy = aboveHeight - scrollY;
+                int parentScrollDy = Math.max(curMinScrollDy, unconsumedDy);
+                parent.scrollBy(0, parentScrollDy);
+                return parentScrollDy;
+            }
         }
-        return 0;
     }
 
-
-    private int handleScrollDown(CoordinatorLayout coordinatorLayout, View target, int dy, int type) {
-        return 0;
+    private int scrollUpParentAtMostChildInvisible(CoordinatorLayout parent, View target, int unconsumedDy) {
+        int scrollY = parent.getScrollY();
+        int aboveHeightWithSelf = getAboveHeight(parent, target) + target.getMeasuredHeight();
+        if (scrollY >= aboveHeightWithSelf) {
+            return 0;
+        }
+        int curMaxScrollDy = aboveHeightWithSelf - scrollY;
+        curMaxScrollDy = Math.min(curMaxScrollDy, getBottomInvisibleHeight(parent));
+        int parentScrollDy = Math.min(curMaxScrollDy, unconsumedDy);
+        parent.scrollBy(0, parentScrollDy);
+        return parentScrollDy;
     }
 
-    private int dispatchNestedScrollToNextScrollView(CoordinatorLayout coordinatorLayout, View next, int unconsumedDy) {
-        return 0;
+    private int scrollUpParentAtMostBottom(CoordinatorLayout parent, int unconsumedDy) {
+        int parentScrollDy = Math.min(getBottomInvisibleHeight(parent), unconsumedDy);
+        parent.scrollBy(0, parentScrollDy);
+        return parentScrollDy;
     }
 
-    //判断父布局是否已滑动到target的顶部
-    private boolean isParentScrollToTargetTop(CoordinatorLayout coordinatorLayout, View target) {
-        return coordinatorLayout.getScrollY() >= getAboveHeight(coordinatorLayout, target);
+    private int scrollDownParentAtMostTop(CoordinatorLayout parent, int unconsumedDy) {
+        int parentScrollDy = Math.max(-parent.getScrollY(), unconsumedDy);
+        parent.scrollBy(0, parentScrollDy);
+        return parentScrollDy;
     }
 
-    //判断父布局是否已滑动到target的底部
-    private boolean isParentScrollToTargetBottom(CoordinatorLayout coordinatorLayout, View target) {
-        return coordinatorLayout.getScrollY() + coordinatorLayout.getMeasuredHeight()
-                >= getAboveHeight(coordinatorLayout, target) + target.getMeasuredHeight();
+    private int scrollDownParentAtMostChildTop(CoordinatorLayout parent, View child, int unconsumedDy) {
+        int scrollY = parent.getScrollY();
+        int aboveHeight = getAboveHeight(parent, child);
+        if (scrollY <= aboveHeight) {
+            return 0;
+        }
+        int curMinScrollDy = aboveHeight - scrollY;
+        int parentScrollDy = Math.max(curMinScrollDy, unconsumedDy);
+        parent.scrollBy(0, parentScrollDy);
+        return parentScrollDy;
     }
 
     private View findNextScrollableView(CoordinatorLayout coordinatorLayout, View target) {
@@ -440,7 +368,7 @@ public abstract class BaseBehavior<V extends View> extends CoordinatorLayout.Beh
         if (targetIndex + 1 < childCount) {
             for (int index = targetIndex + 1; index < childCount; index++) {
                 View childAt = coordinatorLayout.getChildAt(index);
-                if (canScrollUp(coordinatorLayout, childAt)) {
+                if (canScrollVertically(childAt, 1)) {
                     return childAt;
                 }
             }
@@ -453,7 +381,7 @@ public abstract class BaseBehavior<V extends View> extends CoordinatorLayout.Beh
         if (targetIndex > 0) {
             for (int index = targetIndex - 1; index >= 0; index--) {
                 View childAt = coordinatorLayout.getChildAt(index);
-                if (canScrollDown(coordinatorLayout, childAt)) {
+                if (canScrollVertically(childAt, -1)) {
                     return childAt;
                 }
             }
@@ -461,50 +389,7 @@ public abstract class BaseBehavior<V extends View> extends CoordinatorLayout.Beh
         return null;
     }
 
-    private int dispatchNestedScrollToNext(CoordinatorLayout coordinatorLayout, View target, int unconsumedDy) {
-        View view = null;
-        int childCount = coordinatorLayout.getChildCount();
-        int targetIndex = coordinatorLayout.indexOfChild(target);
-        if (unconsumedDy > 0) {
-            if (childCount > targetIndex + 1) {
-                for (int index = targetIndex + 1; index < childCount; index++) {
-                    View childAt = coordinatorLayout.getChildAt(index);
-                    if (childAt.canScrollVertically(unconsumedDy)) {
-                        view = childAt;
-                        break;
-                    }
-                }
-            }
-        } else {
-            if (targetIndex > 0) {
-                for (int index = targetIndex - 1; index >= 0; index--) {
-                    View childAt = coordinatorLayout.getChildAt(index);
-                    if (childAt.canScrollVertically(unconsumedDy)) {
-                        view = childAt;
-                        break;
-                    }
-                }
-            }
-        }
-        int viewConsumedDy = 0;
-        if (view != null) {
-            if (unconsumedDy > 0) {//向上滑动
-                int curMaxScrollDy = getCurrentMaxScrollDy(view);
-                viewConsumedDy = Math.min(unconsumedDy, curMaxScrollDy);
-            } else {
-                int curMinScrollDy = -view.getScrollY();
-                viewConsumedDy = Math.max(unconsumedDy, curMinScrollDy);
-            }
-            view.scrollBy(0, viewConsumedDy);
-            if (viewConsumedDy != unconsumedDy) {
-                viewConsumedDy += dispatchNestedScrollToNext(coordinatorLayout, view, (unconsumedDy - viewConsumedDy));
-            }
-        }
-
-        return unconsumedDy - viewConsumedDy;
-    }
-
-    private int getCurrentMaxScrollDy(View view) {
+    private int computeCurrentMaxScrollUpDy(View view) {
         if (view instanceof RecyclerView) {
             RecyclerView recyclerView = (RecyclerView) view;
             int verticalScrollOffset = recyclerView.computeVerticalScrollOffset();
@@ -519,48 +404,32 @@ public abstract class BaseBehavior<V extends View> extends CoordinatorLayout.Beh
         return 0;
     }
 
-    private boolean canScrollUp(@NonNull CoordinatorLayout parent, @NonNull View target) {
-        if (parent == target) {
-            int scrollY = parent.getScrollY();
-            int parentMaxScrollY = getParentMaxScrollY(parent);
-            return scrollY < parentMaxScrollY;
-        }
-        return target.canScrollVertically(1);
-    }
-
-    private boolean canScrollDown(@NonNull CoordinatorLayout parent, @NonNull View target) {
-        if (parent == target) {
-            return parent.getScrollY() > 0;
-        }
-        return target.canScrollVertically(-1);
-    }
-
-    private int getParentMaxScrollY(@NonNull CoordinatorLayout parent) {
-        return getContentHeight(parent) - parent.getMeasuredHeight();
-    }
-
-    private int getParentCurrentMaxScrollY(@NonNull CoordinatorLayout parent) {
-        return getContentHeight(parent) - parent.getMeasuredHeight() - parent.getScrollY();
-    }
-
-    private int getParentCurrentMinScrollY(@NonNull CoordinatorLayout parent) {
-        return -parent.getScrollY();
+    private int computeCurrentMinScrollDownDy(View view) {
+        return -view.getScrollY();
     }
 
     private class FlingRunnable implements Runnable {
 
         private CoordinatorLayout mParent;
+        private View mTarget;
+        private int mLastFlingY;
 
-        FlingRunnable(CoordinatorLayout parent) {
+        FlingRunnable(CoordinatorLayout parent, View target) {
             this.mParent = parent;
+            this.mTarget = target;
         }
 
         @Override
         public void run() {
             if (mScroller.computeScrollOffset()) {
                 int currY = mScroller.getCurrY();
-                mParent.scrollTo(0, currY);
-                ViewCompat.postOnAnimation(mParent, this);
+                int dy = currY - mLastFlingY;
+                Log.d(TAG, "FlingRunnable run: dy = " + dy);
+                mLastFlingY = currY;
+                handleNestedScroll(mParent, mTarget, dy, ViewCompat.TYPE_NON_TOUCH);
+                if (!mScroller.isFinished()) {
+                    ViewCompat.postOnAnimation(mParent, this);
+                }
             }
         }
     }

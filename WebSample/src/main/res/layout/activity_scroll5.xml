@@ -19,20 +19,20 @@
                 android:layout_width="match_parent"
                 android:layout_height="60dp"
                 android:background="#FF0000"/>
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="60dp"
+                android:background="#FF00FF"/>
         </LinearLayout>
 
     </android.support.v4.widget.NestedScrollView>
 
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="60dp"
-        android:background="#FF00FF"
-        app:layout_behavior="com.hyh.web.behavior.WebHeaderBehavior"/>
 
     <com.hyh.web.widget.NestedScrollWebView
         android:id="@+id/web_view"
         android:layout_width="match_parent"
-        android:layout_height="200dp"
+        android:layout_height="match_parent"
         android:scrollbars="none"
         app:layout_behavior="com.hyh.web.behavior.WebViewBehavior"/>
 
@@ -63,7 +63,7 @@
     <android.support.v7.widget.RecyclerView
         android:id="@+id/recycler_view"
         android:layout_width="match_parent"
-        android:layout_height="500dp"
+        android:layout_height="match_parent"
         app:layout_behavior="com.hyh.web.behavior.RecyclerViewBehavior"/>
 
 </android.support.design.widget.CoordinatorLayout>

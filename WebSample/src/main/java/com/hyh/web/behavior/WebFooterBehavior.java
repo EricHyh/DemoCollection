@@ -22,8 +22,4 @@ public class WebFooterBehavior extends BaseBehavior<View> {
         super(context, attrs);
     }
 
-    @Override
-    protected int getBehaviorType() {
-        return WEB_FOOTER_BEHAVIOR;
-    }
 }
