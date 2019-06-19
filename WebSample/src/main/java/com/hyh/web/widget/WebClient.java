@@ -31,7 +31,7 @@ import java.util.List;
 
 public class WebClient implements IWebViewClient, IWebChromeClient {
 
-    private static final String APP_CACAHE_DIRNAME = "webcache";
+    private static final String APP_CACHE_DIRNAME = "webcache";
 
     private Context mContext;
 
@@ -80,7 +80,7 @@ public class WebClient implements IWebViewClient, IWebChromeClient {
         //开启缓存
         settings.setDomStorageEnabled(true);
         settings.setAppCacheMaxSize(1024 * 1024 * 8);
-        String appCachePath = mContext.getCacheDir().getAbsolutePath() + File.separator + APP_CACAHE_DIRNAME;
+        String appCachePath = mContext.getCacheDir().getAbsolutePath() + File.separator + APP_CACHE_DIRNAME;
         settings.setAppCachePath(appCachePath);
         settings.setAllowFileAccess(true);
         settings.setAppCacheEnabled(true);
