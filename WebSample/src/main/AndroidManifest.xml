@@ -73,13 +73,15 @@
 
         <activity android:name=".ViewPagerActivity"/>
 
-        <activity android:name=".WebActivity">
+        <activity android:name=".WebStartActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
 
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
+        <activity android:name=".BannerWebActivity"/>
+        <activity android:name=".SplashWebActivity"/>
     </application>
 
 </manifest>

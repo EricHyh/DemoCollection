@@ -387,8 +387,8 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
                 //
             }
             this.mSurface = surface;
-            mMediaPlayer.setSurface(mSurface);
         }
+        mMediaPlayer.setSurface(mSurface);
     }
 
     @Override

@@ -207,6 +207,9 @@ public class WebClient implements IWebViewClient, IWebChromeClient {
         }
     }
 
+    public void clearCache(boolean includeDiskFiles) {
+        mWebView.clearCache(includeDiskFiles);
+    }
 
     private static class DownloadListenerImpl implements DownloadListener {
 

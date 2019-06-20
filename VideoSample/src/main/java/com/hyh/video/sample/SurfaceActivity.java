@@ -7,9 +7,11 @@ import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.text.TextUtils;
 import android.util.Log;
+import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
+import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.SeekBar;
 import android.widget.Toast;
@@ -32,17 +34,22 @@ public class SurfaceActivity extends Activity implements SeekBar.OnSeekBarChange
     private static final String TAG = "TextureActivity";
 
     private MediaSystem mMediaSystem = new MediaSystem();
+    private FrameLayout mVideoContainer;
     private SurfaceView mSurfaceView;
     private SeekBar mSeekBar;
     private ImageView mVideoImage;
 
+    private boolean isTestFullScreen;
+
     private final String mVideoUrl1 = "http://vod.cntv.lxdns.com/flash/mp4video62/TMS/2019/02/20/a5c722ca046345608b92e8defa84f70d_h264418000nero_aac32-1.mp4";
-    private final String mVideoUrl2 = "http://mvvideo11.meitudata.com/5c63dbdc4f28bmhao7spvv1537_H264_1_25d3df13c76f20.mp4?k=1ead2ea555539969a4d28624b9ea6051&t=5c6d7640";
+    private final String mVideoUrl2 = "http://jzvd.nathen.cn/c494b340ff704015bb6682ffde3cd302/64929c369124497593205a4190d7d128-5287d2089db37e62345123a1be272f8b.mp4";
+
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_surface);
+        mVideoContainer = findViewById(R.id.video_container);
         mSurfaceView = findViewById(R.id.SurfaceView);
 
         mSeekBar = findViewById(R.id.seek_bar);
@@ -52,15 +59,23 @@ public class SurfaceActivity extends Activity implements SeekBar.OnSeekBarChange
 
         mMediaSystem.setDataSource(new DataSource(mVideoUrl1, DataSource.TYPE_NET));
 
+
         mSurfaceView.getHolder().addCallback(new SurfaceHolder.Callback2() {
             @Override
             public void surfaceCreated(SurfaceHolder holder) {
-                mMediaSystem.setSurface(holder.getSurface());
+                Surface surface = holder.getSurface();
+                mMediaSystem.setSurface(surface);
+                Log.d(TAG, "surfaceCreated: ");
+
+                if (isTestFullScreen) {
+                    mMediaSystem.start();
+                    isTestFullScreen = false;
+                }
             }
 
             @Override
             public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
-
+                Log.d(TAG, "surfaceChanged: ");
             }
 
             @Override
@@ -71,7 +86,7 @@ public class SurfaceActivity extends Activity implements SeekBar.OnSeekBarChange
 
             @Override
             public void surfaceRedrawNeeded(SurfaceHolder holder) {
-                
+                Log.d(TAG, "surfaceRedrawNeeded: ");
             }
         });
     }
@@ -128,6 +143,20 @@ public class SurfaceActivity extends Activity implements SeekBar.OnSeekBarChange
     public void getDuration(View view) {
         long duration = mMediaSystem.getDuration();
         Toast.makeText(this, "duration:" + duration, Toast.LENGTH_SHORT).show();
+    }
+
+    public void testFullScreen(View view) {
+        isTestFullScreen = true;
+        mMediaSystem.pause();
+        mVideoContainer.removeAllViews();
+        Log.d(TAG, "testFullScreen: removeAllViews");
+        mVideoContainer.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                mVideoContainer.addView(mSurfaceView);
+                Log.d(TAG, "run: addView");
+            }
+        }, 20000);
     }
 
     @Override
@@ -231,4 +260,5 @@ public class SurfaceActivity extends Activity implements SeekBar.OnSeekBarChange
     public void isStart(View view) {
         Toast.makeText(this, "" + mMediaSystem.isExecuteStart(), Toast.LENGTH_SHORT).show();
     }
+
 }

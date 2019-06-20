@@ -85,14 +85,6 @@ public class SurfaceVideoView extends SurfaceView implements IVideoSurface {
     @Override
     public void reset() {
         Log.d(TAG, "reset: ");
-        /*if (mSurface != null) {
-            try {
-                mSurface.release();
-            } catch (Throwable e) {
-                //
-            }
-            mSurface = null;
-        }*/
     }
 
     private class SurfaceHolderCallback implements SurfaceHolder.Callback2 {
