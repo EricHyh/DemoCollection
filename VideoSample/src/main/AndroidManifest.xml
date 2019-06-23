@@ -54,12 +54,24 @@
         <activity
             android:name=".MultiListActivity"
             android:configChanges="screenSize|keyboard|keyboardHidden|orientation">
+           <!-- <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>-->
+        </activity>
+
+
+        <activity
+            android:name=".OrientationActivity"
+            android:configChanges="screenSize|orientation">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
 
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
+
     </application>
 
 </manifest>

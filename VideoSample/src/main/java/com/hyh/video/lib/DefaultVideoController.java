@@ -1,6 +1,8 @@
 package com.hyh.video.lib;
 
+import android.app.Activity;
 import android.content.Context;
+import android.content.pm.ActivityInfo;
 import android.util.Log;
 import android.view.Surface;
 import android.view.View;
@@ -151,7 +153,15 @@ public class DefaultVideoController implements IVideoController {
     }
 
     @Override
-    public void onFullscreenScene(FrameLayout videoContainer) {
+    public void onVideoSceneChanged(FrameLayout videoContainer, int scene) {
+        if (scene == VideoDelegate.Scene.FULLSCREEN) {
+            onFullscreenScene(videoContainer);
+        } else if (scene == VideoDelegate.Scene.NORMAL) {
+            onNormalScene(videoContainer);
+        }
+    }
+
+    private void onFullscreenScene(FrameLayout videoContainer) {
         //mControllerView
         int flags = View.SYSTEM_UI_FLAG_LOW_PROFILE
                 | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
@@ -160,6 +170,15 @@ public class DefaultVideoController implements IVideoController {
                 | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
                 | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION;
         //flags = View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN;
+
+        /*float rotation = videoContainer.getRotation();
+        if (rotation == 0) {
+            mVideoDelegate.mVideoContainer.setRotation(90);
+        }*/
+
+        ((Activity) mContext).setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
+
+
         mControllerView.getView().setSystemUiVisibility(flags);
 
         mControllerView.getView().setOnSystemUiVisibilityChangeListener(new View.OnSystemUiVisibilityChangeListener() {
@@ -170,15 +189,14 @@ public class DefaultVideoController implements IVideoController {
         });
     }
 
-    @Override
-    public void onNormalScene(FrameLayout videoContainer) {
+    private void onNormalScene(FrameLayout videoContainer) {
         mControllerView.getView().setSystemUiVisibility(0);
     }
 
     protected void showOperateView(int mode) {
         mControllerView.showOperateView(mode);
         if (mVideoDelegate.getScene() == VideoDelegate.Scene.FULLSCREEN) {
-            if (mode == IControllerView.OperateMode.ALIVE) {
+            /*if (mode == IControllerView.OperateMode.ALIVE) {
                 int flags = View.SYSTEM_UI_FLAG_LOW_PROFILE
                         | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
                         | View.SYSTEM_UI_FLAG_IMMERSIVE
@@ -193,7 +211,7 @@ public class DefaultVideoController implements IVideoController {
                         | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
                         | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION;
                 mControllerView.getView().setSystemUiVisibility(flags);
-            }
+            }*/
         }
     }
 

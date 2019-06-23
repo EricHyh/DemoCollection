@@ -1,12 +1,20 @@
 package com.hyh.video.lib;
 
 import android.annotation.SuppressLint;
+import android.app.Activity;
+import android.content.ComponentName;
 import android.content.Context;
+import android.content.pm.ActivityInfo;
+import android.content.res.Resources;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.DisplayMetrics;
 import android.util.Log;
+import android.view.Display;
+import android.view.Surface;
+import android.view.WindowManager;
 import android.widget.ProgressBar;
 
 import java.lang.reflect.Field;
@@ -79,5 +87,57 @@ public class VideoUtils {
 
     public static void removeUiThreadRunnable(Runnable runnable) {
         sUiHandler.removeCallbacks(runnable);
+    }
+
+    public static int[] getScreenSize(Context context) {
+        int[] size = new int[2];
+        Resources resources = context.getResources();
+        DisplayMetrics dm = resources.getDisplayMetrics();
+        size[0] = dm.widthPixels;
+        size[1] = dm.heightPixels;
+        return size;
+    }
+
+
+    public static int getScreenOrientation(Context context) {
+        WindowManager windowManager = (WindowManager) context.getSystemService(Context.WINDOW_SERVICE);
+        if (windowManager != null) {
+            Display display = windowManager.getDefaultDisplay();
+            if (display != null) {
+                int rotation = display.getRotation();
+                switch (rotation) {
+                    case Surface.ROTATION_0: {
+                        return ActivityInfo.SCREEN_ORIENTATION_PORTRAIT;
+                    }
+                    case Surface.ROTATION_90: {
+                        return ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE;
+                    }
+                    case Surface.ROTATION_180: {
+                        return ActivityInfo.SCREEN_ORIENTATION_REVERSE_PORTRAIT;
+                    }
+                    case Surface.ROTATION_270: {
+                        return ActivityInfo.SCREEN_ORIENTATION_REVERSE_LANDSCAPE;
+                    }
+                }
+            }
+        }
+        return context.getResources().getConfiguration().orientation;
+    }
+
+    public static boolean isActivitySupportChangeOrientation(Activity activity) {
+        try {
+            ComponentName componentName = activity.getComponentName();
+            if (componentName == null) {
+                componentName = new ComponentName(activity, activity.getClass());
+            }
+            ActivityInfo activityInfo = activity.getPackageManager().getActivityInfo(componentName, 0);
+            int configChanges = activityInfo.configChanges;
+            boolean hasOrientationConfig = (configChanges & ActivityInfo.CONFIG_ORIENTATION) != 0;
+            boolean hasScreenSizeConfig = (configChanges & ActivityInfo.CONFIG_SCREEN_SIZE) != 0;
+            return hasOrientationConfig && hasScreenSizeConfig;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return false;
     }
 }

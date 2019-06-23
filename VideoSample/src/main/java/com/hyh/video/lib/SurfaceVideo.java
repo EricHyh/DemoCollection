@@ -8,12 +8,13 @@ import android.view.SurfaceView;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewParent;
+import android.widget.FrameLayout;
 
 /**
  * Created by Eric_He on 2019/5/19.
  */
 
-public class SurfaceVideoView extends SurfaceView implements IVideoSurface {
+public class SurfaceVideo extends SurfaceView implements IVideoSurface {
 
     private static final String TAG = "SurfaceVideoView";
 
@@ -30,7 +31,7 @@ public class SurfaceVideoView extends SurfaceView implements IVideoSurface {
     private int mVideoHeight;
 
 
-    public SurfaceVideoView(Context context) {
+    public SurfaceVideo(Context context) {
         super(context);
         mSurfaceHolderCallback = new SurfaceHolderCallback();
         getHolder().addCallback(mSurfaceHolderCallback);
@@ -84,7 +85,15 @@ public class SurfaceVideoView extends SurfaceView implements IVideoSurface {
 
     @Override
     public void reset() {
-        Log.d(TAG, "reset: ");
+    }
+
+    @Override
+    public boolean isSupportRotate() {
+        return false;
+    }
+
+    @Override
+    public void onVideoSceneChanged(FrameLayout videoContainer, int scene) {
     }
 
     private class SurfaceHolderCallback implements SurfaceHolder.Callback2 {

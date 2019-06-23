@@ -23,7 +23,6 @@ public interface IVideoController extends IVideoSurface.SurfaceListener {
 
     boolean interceptRetry();
 
-    void onFullscreenScene(FrameLayout videoContainer);
+    void onVideoSceneChanged(FrameLayout videoContainer, int scene);
 
-    void onNormalScene(FrameLayout videoContainer);
 }

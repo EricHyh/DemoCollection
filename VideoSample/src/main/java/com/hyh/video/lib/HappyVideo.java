@@ -1,5 +1,6 @@
 package com.hyh.video.lib;
 
+import android.app.Activity;
 import android.content.Context;
 import android.util.AttributeSet;
 import android.widget.FrameLayout;
@@ -90,6 +91,18 @@ public class HappyVideo extends FrameLayout {
 
     public boolean setup(DataSource source, CharSequence title, boolean looping) {
         return mVideoDelegate.setup(source, title, looping);
+    }
+
+    public void setFullscreenActivity(Activity activity) {
+        mVideoDelegate.setFullscreenActivity(activity);
+    }
+
+    public void setFullscreenAllowLandscape(boolean allowLandscape) {
+        mVideoDelegate.setFullscreenAllowLandscape(allowLandscape);
+    }
+
+    public void setFullscreenAllowRotate(boolean allowRotate) {
+        mVideoDelegate.setFullscreenAllowRotate(allowRotate);
     }
 
     public int getScene() {

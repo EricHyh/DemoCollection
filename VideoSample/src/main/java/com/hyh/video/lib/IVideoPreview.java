@@ -6,7 +6,7 @@ import android.view.View;
  * Created by Eric_He on 2019/2/24.
  */
 
-public interface IVideoPreview extends TextureSurface.SurfaceListener {
+public interface IVideoPreview extends TextureVideo.SurfaceListener {
 
     View getView();
 

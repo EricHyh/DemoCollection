@@ -9,6 +9,7 @@ import android.view.TextureView;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewParent;
+import android.widget.FrameLayout;
 
 /**
  * @author Administrator
@@ -16,7 +17,7 @@ import android.view.ViewParent;
  * @data 2019/2/23
  */
 
-public class TextureSurface extends TextureView implements IVideoSurface {
+public class TextureVideo extends TextureView implements IVideoSurface {
 
     private final SurfaceTextureListener mTextureListener;
 
@@ -32,7 +33,7 @@ public class TextureSurface extends TextureView implements IVideoSurface {
 
     private int mVideoHeight;
 
-    public TextureSurface(Context context) {
+    public TextureVideo(Context context) {
         super(context);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
             mTextureListener = new SurfaceListenerImplV16();
@@ -76,6 +77,15 @@ public class TextureSurface extends TextureView implements IVideoSurface {
             mSurface = null;
             mSurfaceTexture = null;
         }
+    }
+
+    @Override
+    public boolean isSupportRotate() {
+        return true;
+    }
+
+    @Override
+    public void onVideoSceneChanged(FrameLayout videoContainer, int scene) {
     }
 
     @Override

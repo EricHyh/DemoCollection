@@ -1,8 +1,8 @@
 package com.hyh.video.lib;
 
+import android.app.Activity;
 import android.content.Context;
 import android.graphics.Color;
-import android.util.Log;
 import android.view.Gravity;
 import android.view.Surface;
 import android.view.View;
@@ -51,6 +51,10 @@ public class VideoDelegate {
 
     protected CharSequence mTitle;
 
+    protected Activity mFullscreenActivity;
+    protected boolean mFullscreenAllowLandscape;
+    protected boolean mFullscreenAllowRotate;
+
     public VideoDelegate(Context context) {
         this.mContext = context;
         mWindowAttachListenerView = new WindowAttachListenerView(context);
@@ -86,6 +90,7 @@ public class VideoDelegate {
             FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
             params.gravity = Gravity.CENTER;
             mVideoContainer.addView(mVideoSurface.getView(), params);
+            mVideoSurface.onVideoSceneChanged(videoContainer, mScene);
         }
         if (mVideoPreview != null) {
             FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
@@ -94,11 +99,7 @@ public class VideoDelegate {
         if (mVideoController != null) {
             FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
             mVideoContainer.addView(mVideoController.getView(), params);
-            if (mScene == Scene.FULLSCREEN) {
-                mVideoController.onFullscreenScene(videoContainer);
-            } else {
-                mVideoController.onNormalScene(videoContainer);
-            }
+            mVideoSurface.onVideoSceneChanged(videoContainer, mScene);
         }
     }
 
@@ -124,7 +125,7 @@ public class VideoDelegate {
     }
 
     protected IVideoSurface newVideoSurface(Context context) {
-        return new SurfaceVideoView(context);
+        return new TextureVideo(context);
     }
 
     protected IVideoPreview newVideoPreview(Context context) {
@@ -250,36 +251,46 @@ public class VideoDelegate {
         return set;
     }
 
+    public void setFullscreenActivity(Activity fullscreenActivity) {
+        mFullscreenActivity = fullscreenActivity;
+    }
+
+    public void setFullscreenAllowLandscape(boolean fullscreenAllowLandscape) {
+        mFullscreenAllowLandscape = fullscreenAllowLandscape;
+    }
+
+    public void setFullscreenAllowRotate(boolean fullscreenAllowRotate) {
+        mFullscreenAllowRotate = fullscreenAllowRotate;
+    }
+
     public int getScene() {
         return mScene;
     }
 
     public boolean startFullscreenScene() {
-        if (mVideoContainer.getWindowToken() == null) return false;
+        if (mScene == Scene.FULLSCREEN) return false;
         mScene = Scene.FULLSCREEN;
         mStartFullscreenSceneTimeMills = System.currentTimeMillis();
         ViewGroup rootView = (ViewGroup) mVideoContainer.getRootView();
         mNormalVideoContainer = mVideoContainer;
         detachedFromContainer();
         HappyVideo happyVideo = new HappyVideo(mContext, null, 0, this);
+
+
+
+
+
+        int[] size = VideoUtils.getScreenSize(mContext);
+
         rootView.addView(happyVideo, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        /*FrameLayout.LayoutParams layoutParams = new FrameLayout.LayoutParams(size[1], size[0]);
+        layoutParams.gravity = Gravity.CENTER;
+        rootView.addView(happyVideo, layoutParams);*/
         return true;
     }
 
-    public boolean isStartFullscreenSceneJustNow() {
-        if (mScene == Scene.FULLSCREEN) {
-            long currentTimeMillis = System.currentTimeMillis();
-            Log.d("TTT", "startFullscreenScene: isStartFullscreenSceneJustNow currentTimeMillis = " + currentTimeMillis);
-            long timeInterval = Math.abs(currentTimeMillis - mStartFullscreenSceneTimeMills);
-            if (timeInterval < 300) {
-                return true;
-            }
-        }
-        return false;
-    }
-
     public boolean recoverNormalScene() {
-        if (mScene != Scene.FULLSCREEN) return false;
+        if (mScene == Scene.NORMAL) return false;
         mScene = Scene.NORMAL;
         mRecoverNormalSceneTimeMills = System.currentTimeMillis();
         ViewGroup parent = (ViewGroup) mVideoContainer.getParent();
@@ -290,17 +301,6 @@ public class VideoDelegate {
         attachedToContainer(mNormalVideoContainer);
         mNormalVideoContainer = null;
         return true;
-    }
-
-    public boolean isRecoverNormalSceneJustNow() {
-        if (mScene == Scene.NORMAL) {
-            long currentTimeMillis = System.currentTimeMillis();
-            long timeInterval = Math.abs(currentTimeMillis - mRecoverNormalSceneTimeMills);
-            if (timeInterval < 300) {
-                return true;
-            }
-        }
-        return false;
     }
 
     public int getMediaState() {
@@ -623,6 +623,6 @@ public class VideoDelegate {
     public interface Scene {
         int NORMAL = 0;
         int FULLSCREEN = 1;
-        //int TINY = 2;
+        int TINY = 2;
     }
 }

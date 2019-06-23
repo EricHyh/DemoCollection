@@ -2,6 +2,7 @@ package com.hyh.video.lib;
 
 import android.view.Surface;
 import android.view.View;
+import android.widget.FrameLayout;
 
 /**
  * @author Administrator
@@ -19,6 +20,10 @@ public interface IVideoSurface {
     void setSurfaceListener(SurfaceListener listener);
 
     void reset();
+
+    boolean isSupportRotate();
+
+    void onVideoSceneChanged(FrameLayout videoContainer, int scene);
 
     interface SurfaceListener {
 
