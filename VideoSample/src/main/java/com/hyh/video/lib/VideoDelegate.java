@@ -2,6 +2,7 @@ package com.hyh.video.lib;
 
 import android.app.Activity;
 import android.content.Context;
+import android.content.pm.ActivityInfo;
 import android.graphics.Color;
 import android.view.Gravity;
 import android.view.Surface;
@@ -46,14 +47,13 @@ public class VideoDelegate {
     protected FrameLayout mVideoContainer;
 
     protected int mScene = Scene.NORMAL;
-    protected long mStartFullscreenSceneTimeMills;
-    protected long mRecoverNormalSceneTimeMills;
+
 
     protected CharSequence mTitle;
 
     protected Activity mFullscreenActivity;
-    protected boolean mFullscreenAllowLandscape;
-    protected boolean mFullscreenAllowRotate;
+    protected boolean mFullscreenAllowLandscape = true;
+    protected boolean mFullscreenAllowRotate = true;
 
     public VideoDelegate(Context context) {
         this.mContext = context;
@@ -270,29 +270,49 @@ public class VideoDelegate {
     public boolean startFullscreenScene() {
         if (mScene == Scene.FULLSCREEN) return false;
         mScene = Scene.FULLSCREEN;
-        mStartFullscreenSceneTimeMills = System.currentTimeMillis();
         ViewGroup rootView = (ViewGroup) mVideoContainer.getRootView();
         mNormalVideoContainer = mVideoContainer;
         detachedFromContainer();
         HappyVideo happyVideo = new HappyVideo(mContext, null, 0, this);
-
-
-
-
-
-        int[] size = VideoUtils.getScreenSize(mContext);
-
-        rootView.addView(happyVideo, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
-        /*FrameLayout.LayoutParams layoutParams = new FrameLayout.LayoutParams(size[1], size[0]);
-        layoutParams.gravity = Gravity.CENTER;
-        rootView.addView(happyVideo, layoutParams);*/
+        if (mFullscreenAllowLandscape) {
+            if (VideoUtils.isActivitySupportChangeOrientation(mFullscreenActivity)) {
+                rootView.addView(happyVideo, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+                int currentOrientation = OrientationManager.getInstance(mContext).getCurrentOrientation();
+                if (currentOrientation == OrientationManager.ORIENTATION_REVERSE_LANDSCAPE) {
+                    mFullscreenActivity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_REVERSE_LANDSCAPE);
+                } else {
+                    mFullscreenActivity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
+                }
+            } else {
+                if (mFullscreenAllowRotate) {
+                    int orientation = VideoUtils.getScreenOrientation(mContext);
+                    if (orientation == ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+                            || orientation == ActivityInfo.SCREEN_ORIENTATION_REVERSE_PORTRAIT) {
+                        FrameLayout.LayoutParams layoutParams = new FrameLayout.LayoutParams(rootView.getMeasuredHeight(), rootView.getMeasuredWidth());
+                        layoutParams.gravity = Gravity.CENTER;
+                        int currentOrientation = OrientationManager.getInstance(mContext).getCurrentOrientation();
+                        if (currentOrientation == OrientationManager.ORIENTATION_REVERSE_LANDSCAPE) {
+                            happyVideo.setRotation(270);
+                        } else {
+                            happyVideo.setRotation(90);
+                        }
+                        rootView.addView(happyVideo, layoutParams);
+                    } else {
+                        rootView.addView(happyVideo, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+                    }
+                } else {
+                    rootView.addView(happyVideo, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+                }
+            }
+        } else {
+            rootView.addView(happyVideo, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        }
         return true;
     }
 
     public boolean recoverNormalScene() {
         if (mScene == Scene.NORMAL) return false;
         mScene = Scene.NORMAL;
-        mRecoverNormalSceneTimeMills = System.currentTimeMillis();
         ViewGroup parent = (ViewGroup) mVideoContainer.getParent();
         if (parent != null) {
             parent.removeView(mVideoContainer);
@@ -300,6 +320,8 @@ public class VideoDelegate {
         detachedFromContainer();
         attachedToContainer(mNormalVideoContainer);
         mNormalVideoContainer = null;
+
+
         return true;
     }
 
@@ -624,5 +646,13 @@ public class VideoDelegate {
         int NORMAL = 0;
         int FULLSCREEN = 1;
         int TINY = 2;
+    }
+
+    static class OrientationInfo {
+
+        int screenOrientation;
+
+        int videoRotation;
+
     }
 }

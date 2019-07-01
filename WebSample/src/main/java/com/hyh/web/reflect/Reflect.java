@@ -1,5 +1,7 @@
 package com.hyh.web.reflect;
 
+import android.text.TextUtils;
+
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
@@ -95,6 +97,20 @@ public class Reflect {
             return child == Void.class;
         }
         return false;
+    }
+
+    public static boolean isChildClassLoader(ClassLoader child, ClassLoader targetParent) {
+        ClassLoader parent = child.getParent();
+        if (parent == null) {
+            return false;
+        }
+        boolean result;
+        do {
+            result = parent == targetParent;
+            if (result) break;
+            parent = parent.getParent();
+        } while (parent != null);
+        return result;
     }
 
     public static Throwable getRealThrowable(Throwable throwable) {
@@ -393,5 +409,18 @@ public class Reflect {
 
     public static RefClass from(ClassLoader classLoader, String className) {
         return new RefClass(classLoader, className);
+    }
+
+    public static boolean copyField(Object src, Object dest, String fieldName) {
+        if (src == null || dest == null || TextUtils.isEmpty(fieldName)) return false;
+        RefResult<Object> result = new RefResult<>();
+        Reflect.from(src.getClass()).filed(fieldName).saveResult(result).get(src);
+        if (!result.isSuccess()) return false;
+        try {
+            Reflect.from(dest.getClass()).filed(fieldName).setWithException(dest, result.getResult());
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
     }
 }

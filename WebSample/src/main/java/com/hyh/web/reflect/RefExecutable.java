@@ -43,7 +43,7 @@ public abstract class RefExecutable<E, T extends RefExecutable<E, T>> extends Re
                     parameterList.add(Reflect.classForNameWithException(typeClassLoader, typePath));
                 } catch (Throwable e) {
                     e = Reflect.getRealThrowable(e);
-                    this.throwable = new ReflectException("Param Class[" + typePath + "] not found in ClassLoader[" + typeClassLoader + "]", e);
+                    this.throwable = new RefException("Param Class[" + typePath + "] not found in ClassLoader[" + typeClassLoader + "]", e);
                     break;
                 }
             }
@@ -70,7 +70,7 @@ public abstract class RefExecutable<E, T extends RefExecutable<E, T>> extends Re
             type = Reflect.classForNameWithException(typeClassLoader, typePath);
         } catch (Throwable e) {
             e = Reflect.getRealThrowable(e);
-            this.throwable = new ReflectException("Class[" + typePath + "] not found in ClassLoader[" + typeClassLoader + "]", e);
+            this.throwable = new RefException("Class[" + typePath + "] not found in ClassLoader[" + typeClassLoader + "]", e);
         }
         if (type != null) {
             parameterTypeList.add(type);

@@ -6,7 +6,7 @@ package com.hyh.web.reflect;
  * @data 2018/11/15
  */
 
-public class ReflectResult<E> {
+public class RefResult<E> {
 
     private E result;
 

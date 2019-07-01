@@ -6,13 +6,13 @@ package com.hyh.web.reflect;
  * @data 2018/11/16
  */
 
-class ReflectException extends RuntimeException {
+class RefException extends RuntimeException {
 
-    ReflectException(String message) {
+    RefException(String message) {
         super(message);
     }
 
-    ReflectException(String message, Throwable cause) {
+    RefException(String message, Throwable cause) {
         super(message, cause);
     }
 }
