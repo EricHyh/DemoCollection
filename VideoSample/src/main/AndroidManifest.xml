@@ -27,11 +27,11 @@
             android:configChanges="screenSize|keyboard|keyboardHidden|orientation"
             android:screenOrientation="portrait">
 
-            <intent-filter>
+            <!--<intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
 
                 <category android:name="android.intent.category.LAUNCHER"/>
-            </intent-filter>
+            </intent-filter>-->
 
         </activity>
 
@@ -67,11 +67,11 @@
         <activity
             android:name=".MultiListActivity"
             android:configChanges="screenSize|keyboard|keyboardHidden|orientation">
-            <!-- <intent-filter>
+             <intent-filter>
                  <action android:name="android.intent.action.MAIN"/>
 
                  <category android:name="android.intent.category.LAUNCHER"/>
-             </intent-filter>-->
+             </intent-filter>
         </activity>
 
 

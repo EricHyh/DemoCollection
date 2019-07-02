@@ -10,6 +10,7 @@ import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.Handler;
 import android.os.Looper;
+import android.provider.Settings;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.Display;
@@ -135,6 +136,16 @@ public class VideoUtils {
             boolean hasOrientationConfig = (configChanges & ActivityInfo.CONFIG_ORIENTATION) != 0;
             boolean hasScreenSizeConfig = (configChanges & ActivityInfo.CONFIG_SCREEN_SIZE) != 0;
             return hasOrientationConfig && hasScreenSizeConfig;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    public static boolean isAccelerometerRotationOpened(Context context) {
+        try {
+            int status = Settings.System.getInt(context.getContentResolver(), Settings.System.ACCELEROMETER_ROTATION);
+            return status == 1;
         } catch (Exception e) {
             e.printStackTrace();
         }

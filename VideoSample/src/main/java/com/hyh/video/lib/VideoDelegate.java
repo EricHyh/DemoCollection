@@ -24,18 +24,18 @@ public class VideoDelegate {
 
     private static final String TAG = "VideoDelegate";
 
+    private final IVideoSurface.SurfaceListener mSurfaceListener = new InnerSurfaceListener();
+    private final MediaEventListener mMediaEventListener = new InnerMediaEventListener();
+    private final MediaProgressListener mMediaProgressListener = new InnerMediaProgressListener();
+    private final List<MediaEventListener> mMediaEventListeners = new CopyOnWriteArrayList<>();
+    private final List<MediaProgressListener> mMediaProgressListeners = new CopyOnWriteArrayList<>();
+    private final List<IVideoSurface.SurfaceListener> mSurfaceListeners = new CopyOnWriteArrayList<>();
+    private final SceneChangeHelper mSceneChangeHelper;
+    private final WindowAttachListenerView mWindowAttachListenerView;
+
     protected final IMediaPlayer mMediaPlayer = new MediaSystem();
     protected final Context mContext;
     protected final IMediaInfo mMediaInfo;
-    protected final IVideoSurface.SurfaceListener mSurfaceListener = new InnerSurfaceListener();
-    protected final MediaEventListener mMediaEventListener = new InnerMediaEventListener();
-    protected final MediaProgressListener mMediaProgressListener = new InnerMediaProgressListener();
-
-    protected final List<MediaEventListener> mMediaEventListeners = new CopyOnWriteArrayList<>();
-    protected final List<MediaProgressListener> mMediaProgressListeners = new CopyOnWriteArrayList<>();
-    protected final List<IVideoSurface.SurfaceListener> mSurfaceListeners = new CopyOnWriteArrayList<>();
-
-    protected final WindowAttachListenerView mWindowAttachListenerView;
 
     protected ISurfaceMeasurer mSurfaceMeasurer = new FitCenterMeasurer();
     protected IVideoBackground mVideoBackground;
@@ -46,18 +46,13 @@ public class VideoDelegate {
     protected FrameLayout mNormalVideoContainer;
     protected FrameLayout mVideoContainer;
 
-    protected int mScene = Scene.NORMAL;
-
-
     protected CharSequence mTitle;
-
-    protected Activity mFullscreenActivity;
-    protected boolean mFullscreenAllowLandscape = true;
-    protected boolean mFullscreenAllowRotate = true;
 
     public VideoDelegate(Context context) {
         this.mContext = context;
-        mWindowAttachListenerView = new WindowAttachListenerView(context);
+        this.mSceneChangeHelper = new SceneChangeHelper(context);
+        this.mWindowAttachListenerView = new WindowAttachListenerView(context);
+
         mMediaPlayer.setMediaEventListener(mMediaEventListener);
         mMediaPlayer.setMediaProgressListener(mMediaProgressListener);
         mMediaInfo = new MediaInfoImpl(context);
@@ -90,7 +85,7 @@ public class VideoDelegate {
             FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
             params.gravity = Gravity.CENTER;
             mVideoContainer.addView(mVideoSurface.getView(), params);
-            mVideoSurface.onVideoSceneChanged(videoContainer, mScene);
+            mVideoSurface.onVideoSceneChanged(videoContainer, mSceneChangeHelper.mScene);
         }
         if (mVideoPreview != null) {
             FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
@@ -99,7 +94,7 @@ public class VideoDelegate {
         if (mVideoController != null) {
             FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
             mVideoContainer.addView(mVideoController.getView(), params);
-            mVideoSurface.onVideoSceneChanged(videoContainer, mScene);
+            mVideoSurface.onVideoSceneChanged(videoContainer, mSceneChangeHelper.mScene);
         }
     }
 
@@ -252,77 +247,28 @@ public class VideoDelegate {
     }
 
     public void setFullscreenActivity(Activity fullscreenActivity) {
-        mFullscreenActivity = fullscreenActivity;
+        mSceneChangeHelper.mFullscreenActivity = fullscreenActivity;
     }
 
     public void setFullscreenAllowLandscape(boolean fullscreenAllowLandscape) {
-        mFullscreenAllowLandscape = fullscreenAllowLandscape;
+        mSceneChangeHelper.mFullscreenAllowLandscape =
+                fullscreenAllowLandscape;
     }
 
     public void setFullscreenAllowRotate(boolean fullscreenAllowRotate) {
-        mFullscreenAllowRotate = fullscreenAllowRotate;
+        mSceneChangeHelper.mFullscreenAllowRotate = fullscreenAllowRotate;
     }
 
     public int getScene() {
-        return mScene;
+        return mSceneChangeHelper.mScene;
     }
 
     public boolean startFullscreenScene() {
-        if (mScene == Scene.FULLSCREEN) return false;
-        mScene = Scene.FULLSCREEN;
-        ViewGroup rootView = (ViewGroup) mVideoContainer.getRootView();
-        mNormalVideoContainer = mVideoContainer;
-        detachedFromContainer();
-        HappyVideo happyVideo = new HappyVideo(mContext, null, 0, this);
-        if (mFullscreenAllowLandscape) {
-            if (VideoUtils.isActivitySupportChangeOrientation(mFullscreenActivity)) {
-                rootView.addView(happyVideo, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
-                int currentOrientation = OrientationManager.getInstance(mContext).getCurrentOrientation();
-                if (currentOrientation == OrientationManager.ORIENTATION_REVERSE_LANDSCAPE) {
-                    mFullscreenActivity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_REVERSE_LANDSCAPE);
-                } else {
-                    mFullscreenActivity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
-                }
-            } else {
-                if (mFullscreenAllowRotate) {
-                    int orientation = VideoUtils.getScreenOrientation(mContext);
-                    if (orientation == ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
-                            || orientation == ActivityInfo.SCREEN_ORIENTATION_REVERSE_PORTRAIT) {
-                        FrameLayout.LayoutParams layoutParams = new FrameLayout.LayoutParams(rootView.getMeasuredHeight(), rootView.getMeasuredWidth());
-                        layoutParams.gravity = Gravity.CENTER;
-                        int currentOrientation = OrientationManager.getInstance(mContext).getCurrentOrientation();
-                        if (currentOrientation == OrientationManager.ORIENTATION_REVERSE_LANDSCAPE) {
-                            happyVideo.setRotation(270);
-                        } else {
-                            happyVideo.setRotation(90);
-                        }
-                        rootView.addView(happyVideo, layoutParams);
-                    } else {
-                        rootView.addView(happyVideo, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
-                    }
-                } else {
-                    rootView.addView(happyVideo, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
-                }
-            }
-        } else {
-            rootView.addView(happyVideo, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
-        }
-        return true;
+        return mSceneChangeHelper.startFullscreenScene();
     }
 
     public boolean recoverNormalScene() {
-        if (mScene == Scene.NORMAL) return false;
-        mScene = Scene.NORMAL;
-        ViewGroup parent = (ViewGroup) mVideoContainer.getParent();
-        if (parent != null) {
-            parent.removeView(mVideoContainer);
-        }
-        detachedFromContainer();
-        attachedToContainer(mNormalVideoContainer);
-        mNormalVideoContainer = null;
-
-
-        return true;
+        return mSceneChangeHelper.recoverNormalScene();
     }
 
     public int getMediaState() {
@@ -608,6 +554,7 @@ public class VideoDelegate {
             if (mVideoContainer != null) {
                 mVideoContainer.setKeepScreenOn(false);
             }
+            mSceneChangeHelper.onVideoRelease();
         }
     }
 
@@ -648,11 +595,193 @@ public class VideoDelegate {
         int TINY = 2;
     }
 
-    static class OrientationInfo {
+    class SceneChangeHelper implements OrientationManager.OrientationChangedListener {
 
-        int screenOrientation;
+        private static final int FULLSCREEN_KEEP_ORIENTATION = 1;
+        private static final int FULLSCREEN_ACTIVITY_LANDSCAPE = 2;
+        private static final int FULLSCREEN_ACTIVITY_REVERSE_LANDSCAPE = 3;
+        private static final int FULLSCREEN_VIEW_LANDSCAPE = 4;
+        private static final int FULLSCREEN_VIEW_REVERSE_LANDSCAPE = 5;
 
-        int videoRotation;
+        final Context context;
 
+        int mScene = Scene.NORMAL;
+        Activity mFullscreenActivity;
+        boolean mFullscreenAllowLandscape = true;
+        boolean mFullscreenAllowRotate = true;
+
+        int mFullscreenMode;
+        int mNormalSceneScreenOrientation;
+
+        SceneChangeHelper(Context context) {
+            this.context = context;
+            OrientationManager.getInstance(context).addOrientationChangedListener(this);
+        }
+
+        boolean startFullscreenScene() {
+            if (mScene == Scene.FULLSCREEN) return false;
+            mScene = Scene.FULLSCREEN;
+            ViewGroup rootView = (ViewGroup) mVideoContainer.getRootView();
+            mNormalVideoContainer = mVideoContainer;
+            detachedFromContainer();
+            HappyVideo happyVideo = new HappyVideo(mContext, null, 0, VideoDelegate.this);
+
+            Activity activity = getActivity();
+            mNormalSceneScreenOrientation = VideoUtils.getScreenOrientation(mContext);
+            mFullscreenMode = getFullscreenMode(activity);
+
+            switch (mFullscreenMode) {
+                case FULLSCREEN_KEEP_ORIENTATION: {
+                    rootView.addView(happyVideo, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+                    break;
+                }
+                case FULLSCREEN_ACTIVITY_LANDSCAPE: {
+                    activity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
+                    rootView.addView(happyVideo, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+                    break;
+                }
+                case FULLSCREEN_ACTIVITY_REVERSE_LANDSCAPE: {
+                    activity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_REVERSE_LANDSCAPE);
+                    rootView.addView(happyVideo, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+                    break;
+                }
+                case FULLSCREEN_VIEW_LANDSCAPE: {
+                    happyVideo.setRotation(90);
+                    FrameLayout.LayoutParams layoutParams = new FrameLayout.LayoutParams(rootView.getMeasuredHeight(), rootView.getMeasuredWidth());
+                    layoutParams.gravity = Gravity.CENTER;
+                    rootView.addView(happyVideo, layoutParams);
+                    break;
+                }
+                case FULLSCREEN_VIEW_REVERSE_LANDSCAPE: {
+                    happyVideo.setRotation(270);
+                    FrameLayout.LayoutParams layoutParams = new FrameLayout.LayoutParams(rootView.getMeasuredHeight(), rootView.getMeasuredWidth());
+                    layoutParams.gravity = Gravity.CENTER;
+                    rootView.addView(happyVideo, layoutParams);
+                    break;
+                }
+            }
+            return true;
+        }
+
+        boolean recoverNormalScene() {
+            if (mScene == Scene.NORMAL) return false;
+            mScene = Scene.NORMAL;
+            ViewGroup parent = (ViewGroup) mVideoContainer.getParent();
+            if (parent != null) {
+                parent.removeView(mVideoContainer);
+            }
+
+            detachedFromContainer();
+            attachedToContainer(mNormalVideoContainer);
+            mNormalVideoContainer = null;
+
+            Activity activity = getActivity();
+
+            switch (mFullscreenMode) {
+                case FULLSCREEN_KEEP_ORIENTATION: {
+                    break;
+                }
+                case FULLSCREEN_ACTIVITY_LANDSCAPE: {
+                    activity.setRequestedOrientation(mNormalSceneScreenOrientation);
+                    break;
+                }
+                case FULLSCREEN_ACTIVITY_REVERSE_LANDSCAPE: {
+                    activity.setRequestedOrientation(mNormalSceneScreenOrientation);
+                    break;
+                }
+                case FULLSCREEN_VIEW_LANDSCAPE: {
+                    mVideoContainer.setRotation(0);
+                    break;
+                }
+                case FULLSCREEN_VIEW_REVERSE_LANDSCAPE: {
+                    mVideoContainer.setRotation(0);
+                    break;
+                }
+            }
+            return true;
+        }
+
+        int getFullscreenMode(Activity activity) {
+            if (mFullscreenAllowLandscape) {
+                if (VideoUtils.isActivitySupportChangeOrientation(activity)) {
+                    int currentOrientation = OrientationManager.getInstance(mContext).getCurrentOrientation();
+                    if (currentOrientation == OrientationManager.ORIENTATION_REVERSE_LANDSCAPE) {
+                        return FULLSCREEN_ACTIVITY_REVERSE_LANDSCAPE;
+                    } else {
+                        return FULLSCREEN_ACTIVITY_LANDSCAPE;
+                    }
+                } else {
+                    if (mFullscreenAllowRotate && mVideoSurface.isSupportRotate()) {
+                        int screenOrientation = VideoUtils.getScreenOrientation(mContext);
+                        if (screenOrientation == ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+                                || screenOrientation == ActivityInfo.SCREEN_ORIENTATION_REVERSE_PORTRAIT) {
+                            int currentOrientation = OrientationManager.getInstance(mContext).getCurrentOrientation();
+                            if (currentOrientation == OrientationManager.ORIENTATION_REVERSE_LANDSCAPE) {
+                                return FULLSCREEN_VIEW_REVERSE_LANDSCAPE;
+                            } else {
+                                return FULLSCREEN_VIEW_LANDSCAPE;
+                            }
+                        } else {
+                            return FULLSCREEN_KEEP_ORIENTATION;
+                        }
+                    } else {
+                        return FULLSCREEN_KEEP_ORIENTATION;
+                    }
+                }
+            } else {
+                return FULLSCREEN_KEEP_ORIENTATION;
+            }
+        }
+
+        public Activity getActivity() {
+            if (mFullscreenActivity != null) return mFullscreenActivity;
+            if (mContext instanceof Activity) return ((Activity) mContext);
+            return null;
+        }
+
+        @Override
+        public void onChanged(int oldOrientation, int newOrientation) {
+            if (mScene == Scene.FULLSCREEN) {
+                if (mFullscreenMode == FULLSCREEN_ACTIVITY_LANDSCAPE
+                        || mFullscreenMode == FULLSCREEN_ACTIVITY_REVERSE_LANDSCAPE) {
+                    if (newOrientation == OrientationManager.ORIENTATION_LANDSCAPE
+                            || newOrientation == OrientationManager.ORIENTATION_REVERSE_LANDSCAPE) {
+                        Activity activity = getActivity();
+                        activity.setRequestedOrientation(newOrientation);
+                    } else if (newOrientation == OrientationManager.ORIENTATION_PORTRAIT) {
+                        if (VideoUtils.isAccelerometerRotationOpened(mContext)) {
+                            recoverNormalScene();
+                        }
+                    }
+                } else if (mFullscreenMode == FULLSCREEN_VIEW_LANDSCAPE
+                        || mFullscreenMode == FULLSCREEN_VIEW_REVERSE_LANDSCAPE) {
+                    if (newOrientation == OrientationManager.ORIENTATION_LANDSCAPE) {
+                        mVideoContainer.setRotation(90);
+                    } else if (newOrientation == OrientationManager.ORIENTATION_REVERSE_LANDSCAPE) {
+                        mVideoContainer.setRotation(270);
+                    } else if (newOrientation == OrientationManager.ORIENTATION_PORTRAIT) {
+                        if (VideoUtils.isAccelerometerRotationOpened(mContext)) {
+                            recoverNormalScene();
+                        }
+                    }
+                }
+            } else if (mScene == Scene.NORMAL) {
+                if (mFullscreenAllowLandscape &&
+                        mMediaPlayer.isExecuteStart() &&
+                        (VideoUtils.isAccelerometerRotationOpened(mContext))) {
+                    if (newOrientation == OrientationManager.ORIENTATION_LANDSCAPE
+                            || newOrientation == OrientationManager.ORIENTATION_REVERSE_LANDSCAPE) {
+                        Activity activity = getActivity();
+                        if (VideoUtils.isActivitySupportChangeOrientation(activity) || mFullscreenAllowRotate) {
+                            startFullscreenScene();
+                        }
+                    }
+                }
+            }
+        }
+
+        void onVideoRelease() {
+            OrientationManager.getInstance(context).removeOrientationChangedListener(this);
+        }
     }
 }
