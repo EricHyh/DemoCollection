@@ -3,6 +3,7 @@ package com.hyh.video.lib;
 import android.app.Activity;
 import android.content.Context;
 import android.util.AttributeSet;
+import android.view.KeyEvent;
 import android.widget.FrameLayout;
 
 
@@ -46,6 +47,27 @@ public class HappyVideo extends FrameLayout {
     protected void onAttachedToWindow() {
         super.onAttachedToWindow();
         mVideoDelegate.onAttachedToWindow(this);
+    }
+
+
+    @Override
+    public boolean dispatchKeyEvent(KeyEvent event) {
+        if (event.getKeyCode() == KeyEvent.KEYCODE_BACK
+                && event.getAction() == KeyEvent.ACTION_UP
+                && getScene() == VideoDelegate.Scene.FULLSCREEN) {
+            recoverNormalScene();
+            return true;
+        }
+        return super.dispatchKeyEvent(event);
+    }
+
+    @Override
+    public boolean onKeyUp(int keyCode, KeyEvent event) {
+        if (keyCode == KeyEvent.KEYCODE_BACK && getScene() == VideoDelegate.Scene.FULLSCREEN) {
+            recoverNormalScene();
+            return true;
+        }
+        return super.onKeyUp(keyCode, event);
     }
 
     public void setSurfaceMeasurer(ISurfaceMeasurer surfaceMeasurer) {

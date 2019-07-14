@@ -49,7 +49,34 @@ public class VideoActivity extends Activity implements SeekBar.OnSeekBarChangeLi
         mVideoImage = findViewById(R.id.video_image);
 
 
+        Log.d(TAG, "onCreate: ");
 
+    }
+
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        Log.d(TAG, "onStart: ");
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        Log.d(TAG, "onResume: ");
+    }
+
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        Log.d(TAG, "onPause: ");
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        Log.d(TAG, "onStop: ");
     }
 
     public void prepare(View view) {

@@ -568,7 +568,6 @@ public class VideoDelegate {
         }
     }
 
-
     private class WindowAttachListenerView extends View {
 
         public WindowAttachListenerView(Context context) {
@@ -646,20 +645,21 @@ public class VideoDelegate {
                     break;
                 }
                 case FULLSCREEN_VIEW_LANDSCAPE: {
-                    happyVideo.setRotation(90);
                     FrameLayout.LayoutParams layoutParams = new FrameLayout.LayoutParams(rootView.getMeasuredHeight(), rootView.getMeasuredWidth());
                     layoutParams.gravity = Gravity.CENTER;
                     rootView.addView(happyVideo, layoutParams);
+                    happyVideo.setRotation(90);
                     break;
                 }
                 case FULLSCREEN_VIEW_REVERSE_LANDSCAPE: {
-                    happyVideo.setRotation(270);
                     FrameLayout.LayoutParams layoutParams = new FrameLayout.LayoutParams(rootView.getMeasuredHeight(), rootView.getMeasuredWidth());
                     layoutParams.gravity = Gravity.CENTER;
                     rootView.addView(happyVideo, layoutParams);
+                    happyVideo.setRotation(270);
                     break;
                 }
             }
+            rootView.requestChildFocus(happyVideo, rootView.getFocusedChild());
             return true;
         }
 

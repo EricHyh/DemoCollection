@@ -126,6 +126,7 @@ public class VideoUtils {
     }
 
     public static boolean isActivitySupportChangeOrientation(Activity activity) {
+        if (activity == null) return false;
         try {
             ComponentName componentName = activity.getComponentName();
             if (componentName == null) {

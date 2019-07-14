@@ -35,6 +35,8 @@ public class OrientationManager implements SensorEventListener {
         return sInstance;
     }
 
+    private final int DETECT_ORIENTATION_CHANGE_INTERVAL = 500;
+
     private final List<OrientationChangedListener> mListeners = new CopyOnWriteArrayList<>();
 
     private SensorEvent mCurrentSensorEvent;
@@ -42,6 +44,8 @@ public class OrientationManager implements SensorEventListener {
     private int mLastOrientation = ORIENTATION_UNSPECIFIED;
 
     private boolean mIsRegistered;
+
+    private long mLastDetectTimeMillis;
 
     private OrientationManager(Context context) {
         registerOrientationListener(context);
@@ -77,6 +81,7 @@ public class OrientationManager implements SensorEventListener {
         if (orientation == ORIENTATION_UNSPECIFIED || orientation == mLastOrientation) {
             return;
         }
+
         onOrientationChanged(orientation);
     }
 
@@ -85,6 +90,12 @@ public class OrientationManager implements SensorEventListener {
     }
 
     private void onOrientationChanged(int curOrientation) {
+        long currentTimeMillis = System.currentTimeMillis();
+        if (Math.abs(currentTimeMillis - mLastDetectTimeMillis) < DETECT_ORIENTATION_CHANGE_INTERVAL) {
+            return;
+        }
+        mLastDetectTimeMillis = currentTimeMillis;
+
         final int oldOrientation = mLastOrientation;
         mLastOrientation = curOrientation;
         if (!mListeners.isEmpty()) {
