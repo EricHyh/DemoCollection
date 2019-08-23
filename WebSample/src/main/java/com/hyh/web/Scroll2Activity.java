@@ -39,6 +39,7 @@ public class Scroll2Activity extends Activity implements IWebViewClient {
         WebClient webClient = new WebClient(getApplicationContext(), webView);
         webClient.setOutWebViewClient(this);
         webClient.loadUrl("https://jumpluna.58.com/i/LZYBeQ6a1luDubj");
+
     }
 
     @Override

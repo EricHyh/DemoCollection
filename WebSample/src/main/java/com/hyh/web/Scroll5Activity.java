@@ -7,8 +7,11 @@ import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 import android.view.Gravity;
+import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewTreeObserver;
 import android.webkit.WebView;
 import android.widget.TextView;
 
@@ -16,7 +19,6 @@ import com.hyh.web.multi.ItemHolder;
 import com.hyh.web.multi.MultiAdapter;
 import com.hyh.web.multi.MultiModule;
 import com.hyh.web.widget.IWebViewClient;
-import com.hyh.web.widget.WebClient;
 
 import java.util.ArrayList;
 
@@ -32,10 +34,10 @@ public class Scroll5Activity extends Activity implements IWebViewClient {
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_scroll5);
-        final WebView webView = findViewById(R.id.web_view);
+        /*final WebView webView = findViewById(R.id.web_view);
         WebClient webClient = new WebClient(getApplicationContext(), webView);
         webClient.setOutWebViewClient(this);
-        webClient.loadUrl("https://jumpluna.58.com/i/LZYBeQ6a1luDubj");
+        webClient.loadUrl("https://jumpluna.58.com/i/LZYBeQ6a1luDubj");*/
 
 
         RecyclerView recyclerView = findViewById(R.id.recycler_view);
@@ -96,11 +98,40 @@ public class Scroll5Activity extends Activity implements IWebViewClient {
 
         @Override
         protected ItemHolder<String> onCreateViewHolder(ViewGroup parent, int viewType) {
-            TextView textView = new TextView(parent.getContext());
+            final TextView textView = new TextView(parent.getContext());
             textView.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
             textView.setTextSize(30);
             textView.setTextColor(Color.BLACK);
             textView.setGravity(Gravity.CENTER);
+
+
+
+            textView.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
+                @Override
+                public void onGlobalLayout() {
+
+                }
+            });
+
+            final ViewTreeObserver.OnScrollChangedListener scrollChangedListener = new ViewTreeObserver.OnScrollChangedListener() {
+                @Override
+                public void onScrollChanged() {
+                    Log.d("TextView", "onScrollChanged: " + textView.getText());
+                }
+            };
+
+            textView.addOnAttachStateChangeListener(new View.OnAttachStateChangeListener() {
+                @Override
+                public void onViewAttachedToWindow(final View v) {
+                    v.getViewTreeObserver().addOnScrollChangedListener(scrollChangedListener);
+                }
+
+                @Override
+                public void onViewDetachedFromWindow(View v) {
+                    v.getViewTreeObserver().removeOnScrollChangedListener(scrollChangedListener);
+                }
+            });
+
             return new ItemHolder<String>(textView) {
                 @Override
                 protected void bindDataAndEvent() {

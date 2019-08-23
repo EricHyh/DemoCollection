@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no,viewport-fit=cover" />
+    <script>
+        (function (win, doc) {
+            try {
+                win.optimizeWebDataListener.onPreLoadData();
+            }catch (e) {}
+            var old;
+            var docEl = doc.documentElement;
+            function setRemUnit () {
+                var docWidth = docEl.offsetWidth;
+                if(old == docWidth){
+                    return false;
+                }else{
+                    old = docWidth;
+                }
+                var rem = docWidth / 10;
+                // 按照iphone X的高度定制最大宽度
+                if (docWidth >= 812) {
+                    rem = 81.2;
+                }
+                docEl.style.fontSize = rem + 'px';
+            }
+            var resetRemUnit = null;
+            win.addEventListener('resize', function () {
+                clearTimeout(resetRemUnit);
+                resetRemUnit = setTimeout(setRemUnit, 200)
+            }, false);
+            win.addEventListener('pageshow', function (e) {
+                if (e.persisted) {
+                    clearTimeout(resetRemUnit);
+                    resetRemUnit = setTimeout(setRemUnit, 200)
+                }
+            }, false);
+            setRemUnit();
+        })(window, document);
+    </script>
+    <style>
+        *{
+            margin: 0;
+            padding: 0;
+            list-style: none;
+            border: 0;
+            box-sizing: border-box;
+        }
+        a{
+            text-decoration: none;
+            tap-highlight-color: rgba(0, 0, 0, 0);
+            -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            outline: none;
+        }
+        html{
+            width: 100%;
+        }
+        body{
+            display: none;
+            width:100%;
+            font-size: 12px;
+            font-family: Helvetica;
+            background-color: #fff;
+            -webkit-text-size-adjust: 100%;
+            -moz-text-size-adjust: 100%;
+            -ms-text-size-adjust: 100%;
+            text-size-adjust: 100%;
+        }
+        .news{
+            padding: .533333rem .32rem;
+        }
+        .news-title{
+            font-weight: bold;
+            font-size: .64rem;
+            text-align: justify;
+            color: #1a1a1a;
+            line-height: .88rem;
+        }
+        .news-info{
+            padding-top: .453333rem;
+        }
+        .news-info>a{
+            display: flex;
+        }
+        .news-info-logo{
+            width: .8rem;
+            height: .8rem;
+            text-align: center;
+            line-height: .8rem;
+            border-radius: 50%;
+            margin-right: .213333rem;
+            font-size: .373333rem;
+            color: #fff;
+            background: #f2afaf;
+        }
+        .news-info-source{
+            -webkit-box-flex: 1;
+            -webkit-flex: 1;
+            -ms-flex: 1;
+            flex: 1;
+        }
+        .news-info-source>span{
+            font-size: .373333rem;
+            padding-top: .053333rem;
+            display: inline-block;
+            line-height: .453333rem;
+            color: #1a1a1a;
+            position: relative;
+            font-weight: bold;
+        }
+        .news-info-source>time{
+            font-size: .32rem;
+            color: #999;
+            display: block;
+            line-height: .346667rem;
+        }
+        .news-detail{
+            padding-top: .346667rem;
+        }
+        .news-detail>p,.news-detail>small{
+            color: #000;
+            text-align: justify !important;
+            line-height: .746667rem;
+            margin: .266667rem 0;
+            font-family: Microsoft YaHei;
+            font-size: .48rem;
+        }
+        .news-detail img{
+            display: block;
+            margin: 0 auto;
+            width: 100%;
+            max-width: 100%;
+            height: auto;
+            border: 0;
+            vertical-align: bottom;
+        }
+        .news-full{
+            display: none;
+            margin-top: -.5rem;
+            padding-top: 1rem;
+            width: 100%;
+            background: linear-gradient(rgba(255,255,255,.2) 0,rgba(255,255,255,1) .5rem);
+            -webkit-transform: translate3d(0,0,0);
+            -moz-transform: translate3d(0,0,0);
+            -ms-transform: translate3d(0,0,0);
+            -o-transform: translate3d(0,0,0);
+            transform: translate3d(0,0,0);
+        }
+        .news-full>a{
+            display: block;
+            margin: 0 auto;
+            width: 3.68rem;
+            height: 1.1rem;
+            font-size: .44rem;
+            text-align: center;
+            line-height: 1.1rem;
+            color: #3269eb;
+            letter-spacing: 2px
+        }
+        .news-full>div{
+            -webkit-animation: top .8s ease-out 0s infinite alternate;
+            animation: top .8s ease-out 0s infinite alternate;
+            -webkit-transform: translate3d(0,0,0);
+            -moz-transform: translate3d(0,0,0);
+            -ms-transform: translate3d(0,0,0);
+            -o-transform: translate3d(0,0,0);
+            transform: translate3d(0,0,0);
+        }
+        .news-full>div>i{
+            margin: 0 auto;
+            display: block;
+            width: .4rem;
+            height: .22rem;
+            background: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAB4AAAAQCAMAAAA25D/gAAAAxlBMVEUAAAAxaew6b+1Jeu9Vg/Fgi/JslPRzmfU7cO1Bde5XhPFeivJsk/Rxl/Q/dO5rk/Nbh/JVg/E/cu05b+01a+wyaexymPVJeu9PfvB1mvVmj/N1mvVqkvRvlvRmj/Ngi/Jbh/FSgPBMfPBGee9BdO5Pf/BQf+9Jeu9Keu9Edu5Edu51mvV1mvUvZ+svZ+tVgvFlj/NulfVgi/Jmj/NymPVrkvRah/FVg/FPfvBJeu9Ddu45b+01bOw+c+0+cu1lj/MyauwyaevqggDFAAAAMXRSTlMAMzwPCgYDAdTNu7OimRT+/Pv08e/s6sbCrKp8c21rZl9WT0lE+fn59/b18/Lj31oFUx5KGwAAAMJJREFUGNN1yeUWgkAQhuGxCBXspMNOWBpBvf+bco/oAVx8f803DyyOAg2V0cJhAVPH4ehK5RxnCpJlWRxFKtXFIAGIPdftUqS6bk8EnIwQWl7L2lqiO5KzW7Ftu9MqaQe/lO9S+55X9Gbb8/pqvi8D3283c/X9gQaFtHUQzD/emAfBSodS+iYMZ423zsJwa8BPxi6KWOw8G0V7E4jMYZKyPM8k6bAOFdVHccwwcTzKlPTxDTeuwZ9qk+djkivp51NZXzWlFKA8M5CVAAAAAElFTkSuQmCC") center center no-repeat;
+            background-size: 100% auto;
+        }
+        @keyframes top {
+            0%{}
+            100%{
+                -webkit-transform: translateY(10px);
+                -moz-transform: translateY(10px);
+                -ms-transform: translateY(10px);
+                -o-transform: translateY(10px);
+                transform: translateY(10px);
+            }
+        }
+        @-webkit-keyframes top {
+            0%{}
+            100%{
+                -webkit-transform: translateY(10px);
+                -moz-transform: translateY(10px);
+                -ms-transform: translateY(10px);
+                -o-transform: translateY(10px);
+                transform: translateY(10px);
+            }
+        }
+        @-ms-keyframes top {
+            0%{}
+            100%{
+                -webkit-transform: translateY(10px);
+                -moz-transform: translateY(10px);
+                -ms-transform: translateY(10px);
+                -o-transform: translateY(10px);
+                transform: translateY(10px);
+            }
+        }
+        @-moz-keyframes top {
+            0%{}
+            100%{
+                -webkit-transform: translateY(10px);
+                -moz-transform: translateY(10px);
+                -ms-transform: translateY(10px);
+                -o-transform: translateY(10px);
+                transform: translateY(10px);
+            }
+        }
+        @-o-keyframes top {
+            0%{}
+            100%{
+                -webkit-transform: translateY(10px);
+                -moz-transform: translateY(10px);
+                -ms-transform: translateY(10px);
+                -o-transform: translateY(10px);
+                transform: translateY(10px);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="news">
+        <div id="newsInfo"></div>
+        <div class="news-full">
+            <a href="javascript:;">点击查看全文</a>
+            <div>
+                <i></i>
+                <i></i>
+            </div>
+        </div>
+    </div>
+    <script>
+        var _win=window,
+            loadState=0,
+            loadNumber=0,
+            loadTime=2000,
+            setTimeObj,
+            url='http://api.3g.ifeng.com/ipadtestdoc?aid=cmpp_08BFI0007596818&channelId=LOCAL&category=&imId=&channelKey=Y21wcF8xNzAwN183MTlfMjAwNjQ=';
+        function jsonp() {
+            if(loadNumber<3){
+                setTimeObj=setTimeout(function () {
+                    document.body.removeChild(document.getElementById('jsonp'+loadNumber));
+                    if(!loadState){
+                        loadNumber++;
+                        jsonp();
+                    }
+                },loadTime);
+            }else{
+                try {
+                    _win.optimizeWebDataListener.onWebDataLoaded(loadState);
+                }catch (e) {}
+                return false;
+            }
+            var script=document.createElement('script');
+            script.type='text/javascript';
+            script.src=url+'&callback=onback';
+            script.id='jsonp'+loadNumber;
+            document.body.appendChild(script);
+            _win.onback=function(data) {
+                window.clearTimeout(setTimeObj);
+                loadState=!0;
+                var body=data.body;
+                document.getElementById('newsInfo').innerHTML=
+                    '<h2 class="news-title">'+body.title+'</h2>' +
+                    '<div class="news-info">' +
+                    '<a href="javascript:;">' +
+                    '<span class="news-info-logo">'+body.source[0]+'</span>' +
+                    '<div class="news-info-source">' +
+                    '<span class="">'+body.source+'</span>' +
+                    '<time class="">'+body.editTime+'</time>' +
+                    '</div>' +
+                    '</a>' +
+                    '</div>' +
+                    '<div class="news-detail">'+body.text+'</div>';
+                document.body.style.display='block';
+                var windowHeight=_win.screen.height/3*2,
+                    _newsDetail=document.querySelector('.news-detail'),
+                    newsDetailHeight=_newsDetail.offsetHeight,
+                    _newsFull=document.querySelector('.news-full');
+                if(newsDetailHeight>windowHeight){
+                    _newsDetail.style.height=windowHeight+'px';
+                    _newsDetail.style.overflow='hidden';
+                    _newsFull.style.display='block';
+                    _newsFull.children[0].onclick=function(){
+                        _newsFull.style.display='none';
+                        _newsDetail.style.height='auto';
+                    }
+                }
+                try {
+                    _win.optimizeWebDataListener.onWebDataLoaded(loadState);
+                }catch (e) {}
+            }
+        }
+        jsonp();
+    </script>
+</body>
+</html>

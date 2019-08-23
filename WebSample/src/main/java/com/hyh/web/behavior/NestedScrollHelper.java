@@ -24,6 +24,8 @@ class NestedScrollHelper {
 
     private View mCurrentFlingTarget;
 
+    private int mNestedScrollDirection;
+
     NestedScrollHelper(Context context) {
         Interpolator interpolator = new Interpolator() {
             @Override
@@ -38,11 +40,11 @@ class NestedScrollHelper {
     int handleNestedScroll(@NonNull CoordinatorLayout coordinatorLayout, @NonNull View target, int dy, int type) {
         if (type != ViewCompat.TYPE_TOUCH) {
             mCurrentFlingTarget = target;
-            Log.d(TAG, "handleNestedScroll: TYPE_NON_TOUCH 1 dy = " + dy);
         }
-
-
         if (dy == 0) return 0;
+
+        mNestedScrollDirection = dy < 0 ? -1 : 1;
+
         int consumedDy = 0;
         int unconsumedDy = dy;
 
@@ -57,9 +59,6 @@ class NestedScrollHelper {
             return consumedDy;
         }
 
-        if (type != ViewCompat.TYPE_TOUCH) {
-            Log.d(TAG, "handleNestedScroll: TYPE_NON_TOUCH 2 unconsumedDy = " + unconsumedDy);
-        }
 
         if (unconsumedDy == 0) {
             return consumedDy;
@@ -71,52 +70,48 @@ class NestedScrollHelper {
             if (unconsumedDy == 0) {
                 return consumedDy;
             }
-            if (type != ViewCompat.TYPE_TOUCH) {
-                View nextScrollableView = findNextScrollableView(coordinatorLayout, target);
-                while (nextScrollableView != null) {
-                    parentScrollDy = scrollParentAtMostChildInRightPosition(coordinatorLayout, nextScrollableView, unconsumedDy);
-                    consumedDy += parentScrollDy;
-                    unconsumedDy -= parentScrollDy;
-                    if (unconsumedDy == 0) {
-                        return consumedDy;
-                    }
-                    int childScrollDy = scrollView(nextScrollableView, unconsumedDy);
-                    consumedDy += childScrollDy;
-                    unconsumedDy -= childScrollDy;
-                    if (unconsumedDy == 0) {
-                        return consumedDy;
-                    }
-                    parentScrollDy = scrollUpParentAtMostChildInvisible(coordinatorLayout, nextScrollableView, unconsumedDy);
-                    consumedDy += parentScrollDy;
-                    unconsumedDy -= parentScrollDy;
-                    if (unconsumedDy == 0) {
-                        return consumedDy;
-                    }
-                    nextScrollableView = findNextScrollableView(coordinatorLayout, target);
+            View nextScrollableView = findNextScrollableView(coordinatorLayout, target);
+            while (nextScrollableView != null) {
+                parentScrollDy = scrollParentAtMostChildInRightPosition(coordinatorLayout, nextScrollableView, unconsumedDy);
+                consumedDy += parentScrollDy;
+                unconsumedDy -= parentScrollDy;
+                if (unconsumedDy == 0) {
+                    return consumedDy;
                 }
+                int childScrollDy = scrollView(nextScrollableView, unconsumedDy);
+                consumedDy += childScrollDy;
+                unconsumedDy -= childScrollDy;
+                if (unconsumedDy == 0) {
+                    return consumedDy;
+                }
+                parentScrollDy = scrollUpParentAtMostChildInvisible(coordinatorLayout, nextScrollableView, unconsumedDy);
+                consumedDy += parentScrollDy;
+                unconsumedDy -= parentScrollDy;
+                if (unconsumedDy == 0) {
+                    return consumedDy;
+                }
+                nextScrollableView = findNextScrollableView(coordinatorLayout, nextScrollableView);
             }
             parentScrollDy = scrollUpParentAtMostBottom(coordinatorLayout, unconsumedDy);
             consumedDy += parentScrollDy;
             unconsumedDy -= parentScrollDy;
             return consumedDy;
         } else {//向下滑动
-            if (type != ViewCompat.TYPE_TOUCH) {
-                View lastScrollableView = findLastScrollableView(coordinatorLayout, target);
-                while (lastScrollableView != null) {
-                    parentScrollDy = scrollDownParentAtMostChildTop(coordinatorLayout, lastScrollableView, unconsumedDy);
-                    consumedDy += parentScrollDy;
-                    unconsumedDy -= parentScrollDy;
-                    if (unconsumedDy == 0) {
-                        return consumedDy;
-                    }
-                    int childScrollDy = scrollView(lastScrollableView, unconsumedDy);
-                    consumedDy += childScrollDy;
-                    unconsumedDy -= childScrollDy;
-                    if (unconsumedDy == 0) {
-                        return consumedDy;
-                    }
-                    lastScrollableView = findLastScrollableView(coordinatorLayout, target);
+            View lastScrollableView = findLastScrollableView(coordinatorLayout, target);
+            while (lastScrollableView != null) {
+                parentScrollDy = scrollDownParentAtMostChildTop(coordinatorLayout, lastScrollableView, unconsumedDy);
+                consumedDy += parentScrollDy;
+                unconsumedDy -= parentScrollDy;
+                if (unconsumedDy == 0) {
+                    return consumedDy;
                 }
+                int childScrollDy = scrollView(lastScrollableView, unconsumedDy);
+                consumedDy += childScrollDy;
+                unconsumedDy -= childScrollDy;
+                if (unconsumedDy == 0) {
+                    return consumedDy;
+                }
+                lastScrollableView = findLastScrollableView(coordinatorLayout, lastScrollableView);
             }
             parentScrollDy = scrollDownParentAtMostTop(coordinatorLayout, unconsumedDy);
             consumedDy += parentScrollDy;
@@ -132,7 +127,13 @@ class NestedScrollHelper {
                 return false;
             }
 
+            Log.d(TAG, "handleNestedFling: mNestedScrollDirection = " + mNestedScrollDirection);
             Log.d(TAG, "handleNestedFling: velocityY = " + velocityY);
+
+            if (yvel * mNestedScrollDirection < 0) {
+                yvel = -yvel;
+            }
+
             mScroller.fling(0, 0, 0, yvel, 0, 0, Integer.MIN_VALUE, Integer.MAX_VALUE);
             if (mScroller.computeScrollOffset()) {
                 ViewCompat.postOnAnimation(coordinatorLayout, new FlingRunnable(coordinatorLayout, target));

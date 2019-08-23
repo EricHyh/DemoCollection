@@ -2,6 +2,7 @@
 <android.support.design.widget.CoordinatorLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
@@ -29,13 +30,32 @@
     </android.support.v4.widget.NestedScrollView>
 
 
-    <com.hyh.web.widget.OldNestedScrollWebView
+    <!--<com.hyh.web.widget.OldNestedScrollWebView
         android:id="@+id/web_view"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:overScrollMode="never"
         android:scrollbars="none"
-        app:layout_behavior="com.hyh.web.behavior.WebViewBehavior"/>
+        app:layout_behavior="com.hyh.web.behavior.WebViewBehavior"/>-->
+
+
+    <android.support.v4.widget.NestedScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:layout_behavior="com.hyh.web.behavior.NestedScrollViewBehavior">
+
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1000dp"
+                android:background="#00ffFF"/>
+        </FrameLayout>
+
+
+    </android.support.v4.widget.NestedScrollView>
+
 
     <android.support.v4.widget.NestedScrollView
         android:layout_width="wrap_content"
