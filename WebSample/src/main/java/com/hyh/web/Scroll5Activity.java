@@ -19,6 +19,7 @@ import com.hyh.web.multi.ItemHolder;
 import com.hyh.web.multi.MultiAdapter;
 import com.hyh.web.multi.MultiModule;
 import com.hyh.web.widget.IWebViewClient;
+import com.hyh.web.widget.WebClient;
 
 import java.util.ArrayList;
 
@@ -34,10 +35,10 @@ public class Scroll5Activity extends Activity implements IWebViewClient {
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_scroll5);
-        /*final WebView webView = findViewById(R.id.web_view);
+        final WebView webView = findViewById(R.id.web_view);
         WebClient webClient = new WebClient(getApplicationContext(), webView);
         webClient.setOutWebViewClient(this);
-        webClient.loadUrl("https://jumpluna.58.com/i/LZYBeQ6a1luDubj");*/
+        webClient.loadUrl("https://jumpluna.58.com/i/LZYBeQ6a1luDubj");
 
 
         RecyclerView recyclerView = findViewById(R.id.recycler_view);

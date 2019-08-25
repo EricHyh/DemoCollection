@@ -4,6 +4,7 @@ import android.content.Context;
 import android.support.annotation.NonNull;
 import android.support.design.widget.CoordinatorLayout;
 import android.support.v4.view.ViewCompat;
+import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
@@ -24,8 +25,6 @@ class NestedScrollHelper {
 
     private View mCurrentFlingTarget;
 
-    private int mNestedScrollDirection;
-
     NestedScrollHelper(Context context) {
         Interpolator interpolator = new Interpolator() {
             @Override
@@ -42,8 +41,6 @@ class NestedScrollHelper {
             mCurrentFlingTarget = target;
         }
         if (dy == 0) return 0;
-
-        mNestedScrollDirection = dy < 0 ? -1 : 1;
 
         int consumedDy = 0;
         int unconsumedDy = dy;
@@ -124,14 +121,52 @@ class NestedScrollHelper {
         if (NestedScrollHelper.isFirstBehavior(coordinatorLayout, child)) {
             int yvel = Math.round(velocityY);
             if (canScrollVertically(target, yvel)) {
+
+                /**
+                 * final int offset = computeVerticalScrollOffset();
+                 final int range = computeVerticalScrollRange() - computeVerticalScrollExtent();
+                 if (range == 0) return false;
+                 if (direction < 0) {
+                 return offset > 0;
+                 } else {
+                 return offset < range - 1;
+                 }
+                 */
+
+                if (yvel < 0 && target instanceof RecyclerView) {
+                    RecyclerView recyclerView = (RecyclerView) target;
+                    int scrollOffset = recyclerView.computeVerticalScrollOffset();
+                    int verticalScrollRange = recyclerView.computeVerticalScrollRange();
+                    int verticalScrollExtent = recyclerView.computeVerticalScrollExtent();
+
+                    int scrollY = recyclerView.getScrollY();
+
+                    int range = verticalScrollRange - verticalScrollExtent;
+
+                    Log.d(TAG, "handleNestedFling: recyclerView scrollY = " + scrollY);
+                    Log.d(TAG, "handleNestedFling: recyclerView scrollOffset = " + scrollOffset);
+                    Log.d(TAG, "handleNestedFling: recyclerView verticalScrollRange = " + verticalScrollRange);
+                    Log.d(TAG, "handleNestedFling: recyclerView verticalScrollExtent = " + verticalScrollExtent);
+                    Log.d(TAG, "handleNestedFling: recyclerView range = " + range);
+                }
                 return false;
-            }
+            } else {
+                if (yvel < 0 && target instanceof RecyclerView) {
+                    RecyclerView recyclerView = (RecyclerView) target;
+                    int scrollOffset = recyclerView.computeVerticalScrollOffset();
+                    int verticalScrollRange = recyclerView.computeVerticalScrollRange();
+                    int verticalScrollExtent = recyclerView.computeVerticalScrollExtent();
 
-            Log.d(TAG, "handleNestedFling: mNestedScrollDirection = " + mNestedScrollDirection);
-            Log.d(TAG, "handleNestedFling: velocityY = " + velocityY);
+                    int scrollY = recyclerView.getScrollY();
 
-            if (yvel * mNestedScrollDirection < 0) {
-                yvel = -yvel;
+                    int range = verticalScrollRange - verticalScrollExtent;
+
+                    Log.d(TAG, "handleNestedFling: recyclerView scrollY = " + scrollY);
+                    Log.d(TAG, "handleNestedFling: recyclerView scrollOffset = " + scrollOffset);
+                    Log.d(TAG, "handleNestedFling: recyclerView verticalScrollRange = " + verticalScrollRange);
+                    Log.d(TAG, "handleNestedFling: recyclerView verticalScrollExtent = " + verticalScrollExtent);
+                    Log.d(TAG, "handleNestedFling: recyclerView range = " + range);
+                }
             }
 
             mScroller.fling(0, 0, 0, yvel, 0, 0, Integer.MIN_VALUE, Integer.MAX_VALUE);
@@ -165,6 +200,7 @@ class NestedScrollHelper {
     }
 
     private boolean canScrollVertically(View target, int unconsumedDy) {
+        //惯性滑动时，这里个判断有时会判断错，以后再优化
         return target.canScrollVertically(unconsumedDy);
     }
 

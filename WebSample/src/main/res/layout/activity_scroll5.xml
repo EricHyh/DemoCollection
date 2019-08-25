@@ -30,31 +30,13 @@
     </android.support.v4.widget.NestedScrollView>
 
 
-    <!--<com.hyh.web.widget.OldNestedScrollWebView
+    <com.hyh.web.widget.ViewMoreWebView
         android:id="@+id/web_view"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:overScrollMode="never"
         android:scrollbars="none"
-        app:layout_behavior="com.hyh.web.behavior.WebViewBehavior"/>-->
-
-
-    <android.support.v4.widget.NestedScrollView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        app:layout_behavior="com.hyh.web.behavior.NestedScrollViewBehavior">
-
-        <FrameLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content">
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="1000dp"
-                android:background="#00ffFF"/>
-        </FrameLayout>
-
-
-    </android.support.v4.widget.NestedScrollView>
+        app:layout_behavior="com.hyh.web.behavior.WebViewBehavior"/>
 
 
     <android.support.v4.widget.NestedScrollView

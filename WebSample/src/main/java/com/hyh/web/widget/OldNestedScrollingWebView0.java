@@ -21,7 +21,7 @@ import android.widget.Scroller;
  * @data 2019/6/10
  */
 
-public class NestedScrollingWebView extends WebView implements NestedScrollingChild2 {
+public class OldNestedScrollingWebView0 extends WebView implements NestedScrollingChild2 {
 
     private static final String TAG = "NestedScrollWebView";
 
@@ -44,15 +44,15 @@ public class NestedScrollingWebView extends WebView implements NestedScrollingCh
     private VelocityTracker mVelocityTracker;
 
 
-    public NestedScrollingWebView(Context context) {
+    public OldNestedScrollingWebView0(Context context) {
         this(context, null);
     }
 
-    public NestedScrollingWebView(Context context, AttributeSet attrs) {
+    public OldNestedScrollingWebView0(Context context, AttributeSet attrs) {
         this(context, attrs,0);
     }
 
-    public NestedScrollingWebView(Context context, AttributeSet attrs, int defStyleAttr) {
+    public OldNestedScrollingWebView0(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
         mChildHelper = new NestedScrollingChildHelper(this);
         setNestedScrollingEnabled(true);

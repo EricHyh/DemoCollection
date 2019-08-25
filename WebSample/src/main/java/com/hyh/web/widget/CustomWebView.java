@@ -4,6 +4,7 @@ import android.annotation.TargetApi;
 import android.content.Context;
 import android.os.Build;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.MotionEvent;
 import android.webkit.WebView;
 
@@ -15,6 +16,8 @@ import com.hyh.web.utils.DisplayUtil;
  */
 
 public class CustomWebView extends WebView {
+
+    private static final String TAG = "CustomWebView";
 
     private boolean needHandlerTouchEvent = false;
     private float FLING_DISTANCE;
@@ -115,5 +118,12 @@ public class CustomWebView extends WebView {
                 break;
         }
         return super.onTouchEvent(event);
+    }
+
+    @Override
+    protected void onSizeChanged(int w, int h, int ow, int oh) {
+        super.onSizeChanged(w, h, ow, oh);
+        Log.d(TAG, "onSizeChanged: " + getMeasuredHeight());
+        requestLayout();
     }
 }
