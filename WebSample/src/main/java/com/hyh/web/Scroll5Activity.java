@@ -19,6 +19,7 @@ import com.hyh.web.multi.ItemHolder;
 import com.hyh.web.multi.MultiAdapter;
 import com.hyh.web.multi.MultiModule;
 import com.hyh.web.widget.IWebViewClient;
+import com.hyh.web.widget.ViewMoreWebView;
 import com.hyh.web.widget.WebClient;
 
 import java.util.ArrayList;
@@ -35,10 +36,13 @@ public class Scroll5Activity extends Activity implements IWebViewClient {
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_scroll5);
-        final WebView webView = findViewById(R.id.web_view);
+        final ViewMoreWebView webView = findViewById(R.id.web_view);
+        webView.setFoldMode(ViewMoreWebView.FoldMode.NATIVE);
         WebClient webClient = new WebClient(getApplicationContext(), webView);
         webClient.setOutWebViewClient(this);
         webClient.loadUrl("https://jumpluna.58.com/i/LZYBeQ6a1luDubj");
+        //webClient.loadUrl("http://xsh5f.ylyweb.com/");
+        /*webClient.loadUrl("http://image.baidu.com/search/index?tn=baiduimage&ct=201326592&lm=-1&cl=2&ie=gb18030&word=%BA%DA%C9%AB%D6%F7%CC%E2&fr=ala&ala=1&alatpl=adress&pos=0&hs=2&xthttps=000000");*/
 
 
         RecyclerView recyclerView = findViewById(R.id.recycler_view);

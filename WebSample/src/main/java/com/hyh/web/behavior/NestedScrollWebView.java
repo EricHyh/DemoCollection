@@ -241,7 +241,7 @@ public class NestedScrollWebView extends WebView implements NestedScrollingChild
         mViewFlingHelper.stop();
     }
 
-    private int getWebContentHeight() {
+    protected int getWebContentHeight() {
         return Math.round(getContentHeight() * mDensity);
     }
 

@@ -2,9 +2,9 @@ package com.hyh.web.widget;
 
 import android.content.Context;
 import android.graphics.Canvas;
-import android.graphics.Color;
-import android.graphics.Paint;
-import android.graphics.RectF;
+import android.graphics.Rect;
+import android.graphics.drawable.Drawable;
+import android.support.annotation.NonNull;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.view.ViewConfiguration;
@@ -21,27 +21,26 @@ public class ViewMoreWebView extends NestedScrollWebView {
 
     private static final String TAG = "ViewMoreWebView";
 
-    private RectF mViewMoreRectF = new RectF();
-    private Paint mPaint;
-
     private int mInitialTouchX;
     private int mInitialTouchY;
 
-    private boolean mIsViewMoreAreaEnabled = true;
-    private boolean mIsHideViewMoreArea;
-    private boolean mIsDrawViewMoreArea;
-
-
-    private int mViewMoreAreaHeight;
+    private int mFoldMode = FoldMode.NONE;
 
     private int mTouchSlop;
     private float mDensity;
-    private boolean mShouldHideViewMoreAreaOnActionUp;
+
+    private int mViewMoreAreaHeight;
+    private ViewMoreDrawable mViewMoreDrawable;
+    private Rect mViewMoreTouchRect = new Rect();
+    private Rect mViewMoreClickRect = new Rect();
+    private boolean mIsTouchViewMoreArea;
+    private boolean mShouldHideViewMoreAreaOnTouchUp;
+
+    private boolean mIsHandledUnfold;
 
     public ViewMoreWebView(Context context) {
         super(context);
         init();
-
     }
 
     public ViewMoreWebView(Context context, AttributeSet attrs) {
@@ -51,27 +50,51 @@ public class ViewMoreWebView extends NestedScrollWebView {
 
     private void init() {
         setOverScrollMode(OVER_SCROLL_NEVER);
-        mPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        mPaint.setColor(Color.RED);
         final ViewConfiguration configuration = ViewConfiguration.get(getContext());
         mTouchSlop = configuration.getScaledTouchSlop();
         mDensity = getContext().getResources().getDisplayMetrics().density;
     }
 
+    public void setFoldMode(int foldMode) {
+        this.mFoldMode = foldMode;
+    }
+
     @Override
     protected void dispatchDraw(Canvas canvas) {
         super.dispatchDraw(canvas);
-        if (mIsViewMoreAreaEnabled && !mIsHideViewMoreArea) {
-            int height = getMeasuredHeight();
-            int contentHeight = Math.round(getContentHeight() * mDensity);
-            if (contentHeight >= 1.8f * height) {
-                canvas.drawRect(mViewMoreRectF, mPaint);
-                mIsDrawViewMoreArea = true;
-            } else {
-                mIsDrawViewMoreArea = false;
+        if (mFoldMode == FoldMode.HTML) {
+            handleHtmlFoldMode();
+        } else if (mFoldMode == FoldMode.NATIVE) {
+            if (mIsHandledUnfold) {
+                return;
             }
-        } else {
-            mIsDrawViewMoreArea = false;
+            if (mViewMoreDrawable != null && isAllowDrawViewMoreArea()) {
+                mViewMoreDrawable.draw(canvas);
+            }
+        }
+    }
+
+    private void handleHtmlFoldMode() {
+        if (mIsHandledUnfold) {
+            return;
+        }
+        int contentHeight = Math.round(getContentHeight() * mDensity);
+        if (contentHeight > Math.round(1.5f * DisplayUtil.getScreenHeight(getContext()))) {
+            mIsHandledUnfold = true;
+            ViewGroup parent = (ViewGroup) getParent();
+            int parentScrollY = parent.getScrollY();
+            if (parentScrollY > 0) {
+                int[] location = new int[2];
+                getLocationInWindow(location);
+                int[] parentLocation = new int[2];
+                parent.getLocationInWindow(parentLocation);
+                int offsetRelativeToParent = location[1] - parentLocation[1];
+
+                int currentMaxScrollUpDy = computeCurrentMaxScrollUpDy();
+                currentMaxScrollUpDy = Math.min(currentMaxScrollUpDy, -offsetRelativeToParent);
+                scrollBy(0, currentMaxScrollUpDy);
+                parent.scrollBy(0, -currentMaxScrollUpDy);
+            }
         }
     }
 
@@ -80,26 +103,44 @@ public class ViewMoreWebView extends NestedScrollWebView {
         super.onSizeChanged(w, h, ow, oh);
         int width = getMeasuredWidth();
         int height = getMeasuredHeight();
-        mViewMoreAreaHeight = DisplayUtil.dip2px(getContext(), 60);
-        mViewMoreRectF.set(0, height, width, height + mViewMoreAreaHeight);
+
+        if (mFoldMode == FoldMode.NATIVE) {
+            mViewMoreAreaHeight = DisplayUtil.dip2px(getContext(), 150);
+            Rect rect = new Rect(0, height, width, height + mViewMoreAreaHeight);
+            mViewMoreDrawable = new ViewMoreDrawable(getContext(), rect);
+            mViewMoreDrawable.setCallback(this);
+            mViewMoreTouchRect.set(mViewMoreDrawable.getBounds());
+            mViewMoreClickRect.set(mViewMoreDrawable.getContentBounds());
+        }
+    }
+
+    private boolean isAllowDrawViewMoreArea() {
+        return getWebContentHeight() >= 1.8f * getMeasuredHeight();
     }
 
     @Override
     public boolean dispatchTouchEvent(MotionEvent event) {
-        if (mIsHideViewMoreArea) {
+        if (mFoldMode != FoldMode.NATIVE) {
+            return super.dispatchTouchEvent(event);
+        }
+        if (mIsHandledUnfold) {
             return super.dispatchTouchEvent(event);
         }
         int action = event.getActionMasked();
-        if (action != MotionEvent.ACTION_DOWN && !mShouldHideViewMoreAreaOnActionUp) {
+        if (action != MotionEvent.ACTION_DOWN && !mIsTouchViewMoreArea) {
             return super.dispatchTouchEvent(event);
         }
         switch (action) {
             case MotionEvent.ACTION_DOWN: {
-                mShouldHideViewMoreAreaOnActionUp = false;
+                mIsTouchViewMoreArea = false;
+                mShouldHideViewMoreAreaOnTouchUp = false;
                 mInitialTouchX = Math.round(event.getX());
                 mInitialTouchY = Math.round(event.getY());
-                if (mViewMoreRectF.contains(mInitialTouchX, mInitialTouchY + getScrollY())) {
-                    mShouldHideViewMoreAreaOnActionUp = true;
+                if (mViewMoreTouchRect.contains(mInitialTouchX, mInitialTouchY + getScrollY())) {
+                    mIsTouchViewMoreArea = true;
+                    if (mViewMoreClickRect.contains(mInitialTouchX, mInitialTouchY + getScrollY())) {
+                        mShouldHideViewMoreAreaOnTouchUp = true;
+                    }
                 }
                 break;
             }
@@ -109,26 +150,30 @@ public class ViewMoreWebView extends NestedScrollWebView {
                 int tx = mInitialTouchX - x;
                 int ty = mInitialTouchY - y;
                 if (Math.abs(tx) > mTouchSlop || Math.abs(ty) > mTouchSlop) {
-                    mShouldHideViewMoreAreaOnActionUp = false;
+                    mShouldHideViewMoreAreaOnTouchUp = false;
                 }
                 break;
             }
             case MotionEvent.ACTION_UP: {
-                hideViewMoreArea();
+                if (mShouldHideViewMoreAreaOnTouchUp) {
+                    handleNativeFoldMode();
+                }
                 event.setAction(MotionEvent.ACTION_CANCEL);
-                mShouldHideViewMoreAreaOnActionUp = false;
+                mShouldHideViewMoreAreaOnTouchUp = false;
+                mIsTouchViewMoreArea = false;
                 break;
             }
             case MotionEvent.ACTION_CANCEL: {
-                mShouldHideViewMoreAreaOnActionUp = false;
+                mShouldHideViewMoreAreaOnTouchUp = false;
+                mIsTouchViewMoreArea = false;
                 break;
             }
         }
         return super.dispatchTouchEvent(event);
     }
 
-    private void hideViewMoreArea() {
-        mIsHideViewMoreArea = true;
+    private void handleNativeFoldMode() {
+        mIsHandledUnfold = true;
         postInvalidate();
         ViewGroup parent = (ViewGroup) getParent();
         int parentScrollY = parent.getScrollY();
@@ -139,9 +184,10 @@ public class ViewMoreWebView extends NestedScrollWebView {
             parent.getLocationInWindow(parentLocation);
             int offsetRelativeToParent = location[1] - parentLocation[1];
 
-            parent.scrollBy(0, offsetRelativeToParent);
             int currentMaxScrollUpDy = computeCurrentMaxScrollUpDy();
-            scrollBy(0, Math.min(currentMaxScrollUpDy, -offsetRelativeToParent));
+            currentMaxScrollUpDy = Math.min(currentMaxScrollUpDy, -offsetRelativeToParent);
+            scrollBy(0, currentMaxScrollUpDy);
+            parent.scrollBy(0, -currentMaxScrollUpDy);
         }
     }
 
@@ -152,7 +198,9 @@ public class ViewMoreWebView extends NestedScrollWebView {
 
     @Override
     public boolean canScrollVertically(int direction) {
-        if (direction > 0 && !mIsHideViewMoreArea && mIsDrawViewMoreArea && super.canScrollVertically(direction)) {
+        if (direction > 0
+                && !mIsHandledUnfold && mViewMoreDrawable != null && isAllowDrawViewMoreArea()
+                && super.canScrollVertically(direction)) {
             final int offset = computeVerticalScrollOffset();
             final int range = mViewMoreAreaHeight;
             if (range == 0) return false;
@@ -168,12 +216,25 @@ public class ViewMoreWebView extends NestedScrollWebView {
     @Override
     protected void onScrollChanged(int l, int t, int oldl, int oldt) {
         super.onScrollChanged(l, t, oldl, oldt);
-        if (mIsViewMoreAreaEnabled && mIsDrawViewMoreArea && !mIsHideViewMoreArea) {
+        if (!mIsHandledUnfold && mViewMoreDrawable != null && isAllowDrawViewMoreArea()) {
             int scrollY = getScrollY();
             if (scrollY > mViewMoreAreaHeight) {
                 scrollY = mViewMoreAreaHeight;
                 scrollTo(0, scrollY);
             }
         }
+    }
+
+    @Override
+    protected boolean verifyDrawable(@NonNull Drawable who) {
+        return who == mViewMoreDrawable || super.verifyDrawable(who);
+    }
+
+    public static class FoldMode {
+
+        public static final int NONE = 0;
+        public static final int HTML = 1;
+        public static final int NATIVE = 2;
+
     }
 }
