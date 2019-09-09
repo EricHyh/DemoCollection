@@ -3,12 +3,10 @@ package com.hyh.video.lib;
 import android.app.Activity;
 import android.content.Context;
 import android.content.pm.ActivityInfo;
-import android.graphics.Color;
 import android.view.Gravity;
 import android.view.Surface;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.ViewParent;
 import android.widget.FrameLayout;
 
 import java.util.List;
@@ -31,7 +29,8 @@ public class VideoDelegate {
     private final List<MediaProgressListener> mMediaProgressListeners = new CopyOnWriteArrayList<>();
     private final List<IVideoSurface.SurfaceListener> mSurfaceListeners = new CopyOnWriteArrayList<>();
     private final SceneChangeHelper mSceneChangeHelper;
-    private final WindowAttachListenerView mWindowAttachListenerView;
+    private final ViewAttachStateListener mRootViewAttachListener = new ViewAttachStateListener();
+    private final ViewAttachStateListener mWithViewAttachListener = new ViewAttachStateListener();
 
     protected final IMediaPlayer mMediaPlayer = new MediaSystem();
     protected final Context mContext;
@@ -51,7 +50,6 @@ public class VideoDelegate {
     public VideoDelegate(Context context) {
         this.mContext = context;
         this.mSceneChangeHelper = new SceneChangeHelper(context);
-        this.mWindowAttachListenerView = new WindowAttachListenerView(context);
 
         mMediaPlayer.setMediaEventListener(mMediaEventListener);
         mMediaPlayer.setMediaProgressListener(mMediaProgressListener);
@@ -131,11 +129,31 @@ public class VideoDelegate {
         return new DefaultVideoController(context);
     }
 
-    protected void onAttachedToWindow(View view) {
-        ViewParent parent = mWindowAttachListenerView.getParent();
-        if (parent == null) {
-            ((ViewGroup) view.getRootView()).addView(mWindowAttachListenerView);
+    public void onAttachedToWindow(View view) {
+        mRootViewAttachListener.listenerViewAttachState(view.getRootView());
+    }
+
+    public void onDetachedFromWindow(View view) {
+        mRootViewAttachListener.unListenerViewAttachState(view.getRootView());
+    }
+
+    public void onWindowFocusChanged(View view, boolean hasWindowFocus) {
+        if (!hasWindowFocus) {
+            view.post(new Runnable() {
+                @Override
+                public void run() {
+                    pause();
+                }
+            });
         }
+    }
+
+    public void listenerViewAttachState(View view) {
+        mWithViewAttachListener.listenerViewAttachState(view);
+    }
+
+    public void unListenerViewAttachState(View view) {
+        mWithViewAttachListener.unListenerViewAttachState(view);
     }
 
     public void setSurfaceMeasurer(ISurfaceMeasurer surfaceMeasurer) {
@@ -568,22 +586,33 @@ public class VideoDelegate {
         }
     }
 
-    private class WindowAttachListenerView extends View {
+    private class ViewAttachStateListener implements View.OnAttachStateChangeListener {
 
-        public WindowAttachListenerView(Context context) {
-            super(context);
-            setBackgroundColor(Color.TRANSPARENT);
-            setLayoutParams(new ViewGroup.LayoutParams(1, 1));
+        private View mView;
+
+        void listenerViewAttachState(View view) {
+            if (mView != view) {
+                if (mView != null) {
+                    mView.removeOnAttachStateChangeListener(this);
+                }
+                view.addOnAttachStateChangeListener(this);
+                mView = view;
+            }
+        }
+
+        void unListenerViewAttachState(View view) {
+            if (mView == view) {
+                mView.removeOnAttachStateChangeListener(this);
+                mView = null;
+            }
         }
 
         @Override
-        protected void onAttachedToWindow() {
-            super.onAttachedToWindow();
+        public void onViewAttachedToWindow(View v) {
         }
 
         @Override
-        protected void onDetachedFromWindow() {
-            super.onDetachedFromWindow();
+        public void onViewDetachedFromWindow(View v) {
             release();
         }
     }

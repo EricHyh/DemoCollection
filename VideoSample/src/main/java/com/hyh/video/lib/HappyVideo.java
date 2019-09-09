@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.content.Context;
 import android.util.AttributeSet;
 import android.view.KeyEvent;
+import android.view.View;
 import android.widget.FrameLayout;
 
 
@@ -49,6 +50,17 @@ public class HappyVideo extends FrameLayout {
         mVideoDelegate.onAttachedToWindow(this);
     }
 
+    @Override
+    protected void onDetachedFromWindow() {
+        super.onDetachedFromWindow();
+        mVideoDelegate.onDetachedFromWindow(this);
+    }
+
+    @Override
+    public void onWindowFocusChanged(boolean hasWindowFocus) {
+        super.onWindowFocusChanged(hasWindowFocus);
+        mVideoDelegate.onWindowFocusChanged(this, hasWindowFocus);
+    }
 
     @Override
     public boolean dispatchKeyEvent(KeyEvent event) {
@@ -68,6 +80,14 @@ public class HappyVideo extends FrameLayout {
             return true;
         }
         return super.onKeyUp(keyCode, event);
+    }
+
+    public void listenerViewAttachState(View view) {
+        mVideoDelegate.listenerViewAttachState(view);
+    }
+
+    public void unListenerViewAttachState(View view) {
+        mVideoDelegate.unListenerViewAttachState(view);
     }
 
     public void setSurfaceMeasurer(ISurfaceMeasurer surfaceMeasurer) {
