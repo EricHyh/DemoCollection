@@ -6,8 +6,11 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.pm.ActivityInfo;
 import android.content.res.Resources;
+import android.graphics.Point;
+import android.graphics.Rect;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
+import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
 import android.provider.Settings;
@@ -15,6 +18,8 @@ import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.Display;
 import android.view.Surface;
+import android.view.View;
+import android.view.ViewParent;
 import android.view.WindowManager;
 import android.widget.ProgressBar;
 
@@ -92,10 +97,25 @@ public class VideoUtils {
 
     public static int[] getScreenSize(Context context) {
         int[] size = new int[2];
-        Resources resources = context.getResources();
-        DisplayMetrics dm = resources.getDisplayMetrics();
-        size[0] = dm.widthPixels;
-        size[1] = dm.heightPixels;
+        WindowManager windowManager = (WindowManager) context.getSystemService(Context.WINDOW_SERVICE);
+        if (windowManager != null) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
+                Point outSize = new Point();
+                windowManager.getDefaultDisplay().getRealSize(outSize);
+                size[0] = outSize.x;
+                size[1] = outSize.y;
+            } else {
+                DisplayMetrics outMetrics = new DisplayMetrics();
+                windowManager.getDefaultDisplay().getMetrics(outMetrics);
+                size[0] = outMetrics.widthPixels;
+                size[1] = outMetrics.heightPixels;
+            }
+        } else {
+            Resources resources = context.getResources();
+            DisplayMetrics dm = resources.getDisplayMetrics();
+            size[0] = dm.widthPixels;
+            size[1] = dm.heightPixels;
+        }
         return size;
     }
 
@@ -151,5 +171,58 @@ public class VideoUtils {
             e.printStackTrace();
         }
         return false;
+    }
+
+    public static boolean isViewInScreen(View view) {
+        if (view == null
+                || view.getVisibility() != View.VISIBLE
+                || view.getWindowToken() == null) {
+            return false;
+        }
+        if (!view.getLocalVisibleRect(new Rect())) {
+            return false;
+        }
+        ViewParent parent = view.getParent();
+        if (parent == null) {
+            return view == view.getRootView();
+        } else {
+            return isParentAlive(parent);
+        }
+    }
+
+    public static boolean isParentAlive(ViewParent parent) {
+        if (parent instanceof View) {
+            View parentView = (View) parent;
+            if (parentView.getWindowToken() == null
+                    || parentView.getVisibility() != View.VISIBLE) {
+                return false;
+            } else {
+                ViewParent grandParent = parentView.getParent();
+                if (grandParent == null) {
+                    return parentView == parentView.getRootView();
+                } else {
+                    return isParentAlive(grandParent);
+                }
+            }
+        } else {
+            return true;
+        }
+    }
+
+    public static int getStatusBarHeight(Context context) {
+        Class<?> c;
+        Object obj;
+        Field field;
+        int x = 0, statusBarHeight = 0;
+        try {
+            c = Class.forName("com.android.internal.R$dimen");
+            obj = c.newInstance();
+            field = c.getField("status_bar_height");
+            x = Integer.parseInt(field.get(obj).toString());
+            statusBarHeight = context.getResources().getDimensionPixelSize(x);
+        } catch (Exception e1) {
+            e1.printStackTrace();
+        }
+        return statusBarHeight;
     }
 }

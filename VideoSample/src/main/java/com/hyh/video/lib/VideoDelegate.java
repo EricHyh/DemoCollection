@@ -674,14 +674,16 @@ public class VideoDelegate {
                     break;
                 }
                 case FULLSCREEN_VIEW_LANDSCAPE: {
-                    FrameLayout.LayoutParams layoutParams = new FrameLayout.LayoutParams(rootView.getMeasuredHeight(), rootView.getMeasuredWidth());
+                    int height = VideoUtils.getScreenSize(mContext)[1];
+                    FrameLayout.LayoutParams layoutParams = new FrameLayout.LayoutParams(height, rootView.getMeasuredWidth());
                     layoutParams.gravity = Gravity.CENTER;
                     rootView.addView(happyVideo, layoutParams);
                     happyVideo.setRotation(90);
                     break;
                 }
                 case FULLSCREEN_VIEW_REVERSE_LANDSCAPE: {
-                    FrameLayout.LayoutParams layoutParams = new FrameLayout.LayoutParams(rootView.getMeasuredHeight(), rootView.getMeasuredWidth());
+                    int height = VideoUtils.getScreenSize(mContext)[1];
+                    FrameLayout.LayoutParams layoutParams = new FrameLayout.LayoutParams(height, rootView.getMeasuredWidth());
                     layoutParams.gravity = Gravity.CENTER;
                     rootView.addView(happyVideo, layoutParams);
                     happyVideo.setRotation(270);
@@ -689,6 +691,7 @@ public class VideoDelegate {
                 }
             }
             rootView.requestChildFocus(happyVideo, rootView.getFocusedChild());
+            mVideoController.onVideoSceneChanged(mVideoContainer, mScene);
             return true;
         }
 
@@ -727,6 +730,7 @@ public class VideoDelegate {
                     break;
                 }
             }
+            mVideoController.onVideoSceneChanged(mVideoContainer, mScene);
             return true;
         }
 
@@ -797,7 +801,8 @@ public class VideoDelegate {
             } else if (mScene == Scene.NORMAL) {
                 if (mFullscreenAllowLandscape &&
                         mMediaPlayer.isExecuteStart() &&
-                        (VideoUtils.isAccelerometerRotationOpened(mContext))) {
+                        (VideoUtils.isAccelerometerRotationOpened(mContext)) &&
+                        VideoUtils.isViewInScreen(mVideoContainer)) {
                     if (newOrientation == OrientationManager.ORIENTATION_LANDSCAPE
                             || newOrientation == OrientationManager.ORIENTATION_REVERSE_LANDSCAPE) {
                         Activity activity = getActivity();

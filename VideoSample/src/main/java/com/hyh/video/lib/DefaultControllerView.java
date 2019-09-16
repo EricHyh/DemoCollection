@@ -1,12 +1,16 @@
 package com.hyh.video.lib;
 
 import android.content.Context;
+import android.content.pm.ActivityInfo;
 import android.graphics.Color;
 import android.os.Build;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.Gravity;
+import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewGroup;
+import android.view.ViewParent;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -331,6 +335,11 @@ public class DefaultControllerView extends RelativeLayout implements IController
     }
 
     @Override
+    public void setControllerViewTouchListener(View.OnTouchListener listener) {
+        mListenerInfo.mControllerViewTouchListener = listener;
+    }
+
+    @Override
     public void setControllerViewClickListener(View.OnClickListener listener) {
         mListenerInfo.mControllerViewClickListener = listener;
     }
@@ -494,6 +503,16 @@ public class DefaultControllerView extends RelativeLayout implements IController
         setVisibility(mLoadingProgress, GONE);
     }
 
+    @Override
+    public void onVideoSceneChanged(final FrameLayout videoContainer, final int scene) {
+        mBottomContainer.saveLazyAction("onVideoSceneChanged", new LazyView.LazyAction<BottomContainer>() {
+            @Override
+            public void doAction(BottomContainer bottomContainer) {
+                bottomContainer.onVideoSceneChanged(videoContainer, scene);
+            }
+        });
+    }
+
     public void setVisibility(LazyView lazyView, int visibility) {
         lazyView.setVisibility(visibility);
     }
@@ -536,6 +555,14 @@ public class DefaultControllerView extends RelativeLayout implements IController
             num_split[1] = "0";
         }
         return num_split;
+    }
+
+    @Override
+    public boolean dispatchTouchEvent(MotionEvent ev) {
+        if (mListenerInfo.mControllerViewTouchListener != null) {
+            mListenerInfo.mControllerViewTouchListener.onTouch(this, ev);
+        }
+        return super.dispatchTouchEvent(ev);
     }
 
     @Override
@@ -664,7 +691,6 @@ public class DefaultControllerView extends RelativeLayout implements IController
 
                 LayoutParams params = new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT);
                 params.gravity = Gravity.CENTER_VERTICAL;
-                params.leftMargin = VideoUtils.dp2px(context, 14);
                 addView(currentPosition, params);
             }
             {
@@ -749,16 +775,47 @@ public class DefaultControllerView extends RelativeLayout implements IController
                 fullscreenToggle = new ImageView(context);
                 fullscreenToggle.setImageResource(R.drawable.video_enlarge);
                 fullscreenToggle.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
-                //fullscreenToggle.setVisibility(GONE);
                 int _16dp = VideoUtils.dp2px(context, 16);
-                int _14dp = VideoUtils.dp2px(context, 14);
-                fullscreenToggle.setPadding(0, _16dp, _14dp, _16dp);
+                fullscreenToggle.setPadding(0, _16dp, 0, _16dp);
                 fullscreenToggle.setOnClickListener(DefaultControllerView.this);
 
-                int _30dp = VideoUtils.dp2px(context, 30);
-                LayoutParams params = new LayoutParams(_30dp, LayoutParams.MATCH_PARENT);
+                LayoutParams params = new LayoutParams(_16dp, LayoutParams.MATCH_PARENT);
                 params.gravity = Gravity.CENTER_VERTICAL;
                 addView(fullscreenToggle, params);
+            }
+            refreshUi();
+        }
+
+        private boolean isVideoLandingSpace() {
+            int screenOrientation = VideoUtils.getScreenOrientation(getContext());
+            if (screenOrientation == ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+                    || screenOrientation == ActivityInfo.SCREEN_ORIENTATION_REVERSE_LANDSCAPE) {
+                return true;
+            } else {
+                ViewParent parent = DefaultControllerView.this.getParent();
+                if (parent != null && parent instanceof ViewGroup) {
+                    float rotation = ((ViewGroup) parent).getRotation();
+                    if (rotation == 90 || rotation == 270) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        public void onVideoSceneChanged(FrameLayout videoContainer, int scene) {
+            refreshUi();
+        }
+
+        private void refreshUi() {
+            if (isVideoLandingSpace()) {
+                int _30dp = VideoUtils.dp2px(getContext(), 30);
+                setPadding(_30dp, 0, _30dp, 0);
+                fullscreenToggle.setImageResource(R.drawable.video_shrink);
+            } else {
+                int _14dp = VideoUtils.dp2px(getContext(), 14);
+                setPadding(_14dp, 0, _14dp, 0);
+                fullscreenToggle.setImageResource(R.drawable.video_enlarge);
             }
         }
     }
@@ -911,6 +968,7 @@ public class DefaultControllerView extends RelativeLayout implements IController
 
     public static class ControllerListenerInfo {
 
+        public View.OnTouchListener mControllerViewTouchListener;
         public View.OnClickListener mControllerViewClickListener;
         public View.OnClickListener mPlayOrPauseClickListener;
         public View.OnClickListener mReplayClickListener;

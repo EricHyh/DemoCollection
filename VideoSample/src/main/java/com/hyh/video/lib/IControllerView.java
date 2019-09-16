@@ -1,6 +1,7 @@
 package com.hyh.video.lib;
 
 import android.view.View;
+import android.widget.FrameLayout;
 import android.widget.SeekBar;
 
 /**
@@ -26,6 +27,8 @@ public interface IControllerView {
     void setPlayStyle();
 
     void setPauseStyle();
+
+    void setControllerViewTouchListener(View.OnTouchListener listener);
 
     void setControllerViewClickListener(View.OnClickListener listener);
 
@@ -68,6 +71,8 @@ public interface IControllerView {
     void showLoadingViewDelayed(long delayMillis);
 
     void hideLoadingView();
+
+    void onVideoSceneChanged(FrameLayout videoContainer, int scene);
 
     interface OperateMode {
         int IDLE = 1;

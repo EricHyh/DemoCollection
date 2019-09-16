@@ -1,9 +1,9 @@
 package com.hyh.video.lib;
 
-import android.app.Activity;
+import android.annotation.SuppressLint;
 import android.content.Context;
-import android.content.pm.ActivityInfo;
 import android.util.Log;
+import android.view.MotionEvent;
 import android.view.Surface;
 import android.view.View;
 import android.widget.FrameLayout;
@@ -42,7 +42,8 @@ public class DefaultVideoController implements IVideoController {
     protected final IdleOperateViewTask mIdleOperateViewTask = new IdleOperateViewTask(this);
     protected final SurfaceDestroyTask mSurfaceDestroyTask = new SurfaceDestroyTask(this);
     protected final MediaEventListener mControllerMediaEventListener = new ControllerMediaEventListener();
-    protected final MediaProgressListener mControllerMediaProgressListener = new ControllerMediaProgressListener();
+    protected final VideoPositionHelper mVideoPositionHelper = new VideoPositionHelper();
+
     protected final Context mContext;
     protected final IControllerView mControllerView;
     protected VideoDelegate mVideoDelegate;
@@ -77,9 +78,11 @@ public class DefaultVideoController implements IVideoController {
         this.mSurfaceDestroyedTimeMillis = 0;
 
         mVideoDelegate.addMediaEventListener(mControllerMediaEventListener);
-        mVideoDelegate.addMediaProgressListener(mControllerMediaProgressListener);
+        mVideoDelegate.addMediaProgressListener(mVideoPositionHelper);
 
         mControllerView.setup(videoDelegate, title, mediaInfo);
+
+        mControllerView.setControllerViewTouchListener(new ControllerTouchListener());
         mControllerView.setControllerViewClickListener(new ControllerClickListener(ControllerClickListener.FLAG_CONTROLLER_VIEW));
         mControllerView.setPlayOrPauseClickListener(new ControllerClickListener(ControllerClickListener.FLAG_PLAY_OR_PAUSE));
         mControllerView.setReplayClickListener(new ControllerClickListener(ControllerClickListener.FLAG_REPLAY));
@@ -87,7 +90,7 @@ public class DefaultVideoController implements IVideoController {
         mControllerView.setFullScreenToggleClickListener(new ControllerClickListener(ControllerClickListener.FLAG_FULLSCREEN_TOGGLE));
         mControllerView.setMobileDataConfirmClickListener(new ControllerClickListener(ControllerClickListener.FLAG_MOBILE_DATA_CONFIRM));
         mControllerView.setFullscreenBackClickListener(new ControllerClickListener(ControllerClickListener.FLAG_FULLSCREEN_BACK));
-        mControllerView.setOnSeekBarChangeListener(new ControllerSeekBarChangeListener());
+        mControllerView.setOnSeekBarChangeListener(mVideoPositionHelper);
 
         mIdleOperateViewTask.remove();
         mControllerView.showInitialView();
@@ -159,38 +162,47 @@ public class DefaultVideoController implements IVideoController {
         } else if (scene == VideoDelegate.Scene.NORMAL) {
             onNormalScene(videoContainer);
         }
+        mControllerView.onVideoSceneChanged(videoContainer, scene);
     }
 
-    private void onFullscreenScene(FrameLayout videoContainer) {
+    private void onFullscreenScene(final FrameLayout videoContainer) {
         //mControllerView
-        int flags = View.SYSTEM_UI_FLAG_LOW_PROFILE
+        int systemUiVisibility = videoContainer.getSystemUiVisibility();
+        int flags = systemUiVisibility | View.SYSTEM_UI_FLAG_LOW_PROFILE
                 | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
                 | View.SYSTEM_UI_FLAG_FULLSCREEN
                 | View.SYSTEM_UI_FLAG_IMMERSIVE
                 | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
                 | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION;
-        //flags = View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN;
-
-        /*float rotation = videoContainer.getRotation();
-        if (rotation == 0) {
-            mVideoDelegate.mVideoContainer.setRotation(90);
-        }*/
-
-        ((Activity) mContext).setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
-
-
-        mControllerView.getView().setSystemUiVisibility(flags);
-
-        mControllerView.getView().setOnSystemUiVisibilityChangeListener(new View.OnSystemUiVisibilityChangeListener() {
+        videoContainer.setSystemUiVisibility(flags);
+        videoContainer.setOnSystemUiVisibilityChangeListener(new View.OnSystemUiVisibilityChangeListener() {
             @Override
             public void onSystemUiVisibilityChange(int visibility) {
-                Log.d(TAG, "onSystemUiVisibilityChange: ");
+                if (mVideoDelegate.getScene() == VideoDelegate.Scene.FULLSCREEN) {
+                    if ((visibility & View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN) == 0 ||
+                            (visibility & View.SYSTEM_UI_FLAG_FULLSCREEN) == 0 ||
+                            (visibility & View.SYSTEM_UI_FLAG_IMMERSIVE) == 0 ||
+                            (visibility & View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION) == 0 ||
+                            (visibility & View.SYSTEM_UI_FLAG_HIDE_NAVIGATION) == 0) {
+                        videoContainer.postDelayed(new Runnable() {
+                            @Override
+                            public void run() {
+                                int flags = videoContainer.getSystemUiVisibility() | View.SYSTEM_UI_FLAG_LOW_PROFILE
+                                        | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                                        | View.SYSTEM_UI_FLAG_FULLSCREEN
+                                        | View.SYSTEM_UI_FLAG_IMMERSIVE
+                                        | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                                        | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION;
+                                videoContainer.setSystemUiVisibility(flags);
+                            }
+                        }, 2000);
+                    }
+                }
             }
         });
     }
 
     private void onNormalScene(FrameLayout videoContainer) {
-        mControllerView.getView().setSystemUiVisibility(0);
     }
 
     protected void showOperateView(int mode) {
@@ -250,19 +262,47 @@ public class DefaultVideoController implements IVideoController {
         mSurfaceDestroyedTimeMillis = System.currentTimeMillis();
     }
 
+    private class VideoPositionHelper implements MediaProgressListener, SeekBar.OnSeekBarChangeListener {
 
-    private class ControllerSeekBarChangeListener implements SeekBar.OnSeekBarChangeListener {
+        private boolean mIsStartTrackingTouch;
+
+        void onStop(long currentPosition, long duration) {
+            mControllerView.setMediaProgress(0);
+            mControllerView.setCurrentPosition(0);
+        }
+
+        void onSeekStart(long seekMilliSeconds, int seekProgress) {
+            mControllerView.setMediaProgress(seekProgress);
+            mControllerView.setCurrentPosition(seekMilliSeconds);
+        }
+
+        void onSeekEnd() {
+        }
+
+        @Override
+        public void onMediaProgress(int progress, long currentPosition, long duration) {
+            if (!mIsStartTrackingTouch) {
+                mControllerView.setMediaProgress(progress);
+                mControllerView.setCurrentPosition(currentPosition);
+            }
+        }
 
         @Override
         public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+            if (fromUser) {
+                long currentPosition = Math.round(mVideoDelegate.getDuration() * progress * 1.0 / 100);
+                mControllerView.setCurrentPosition(currentPosition);
+            }
         }
 
         @Override
         public void onStartTrackingTouch(SeekBar seekBar) {
+            mIsStartTrackingTouch = true;
         }
 
         @Override
         public void onStopTrackingTouch(SeekBar seekBar) {
+            mIsStartTrackingTouch = false;
             mVideoDelegate.seekProgressTo(seekBar.getProgress());
         }
     }
@@ -320,12 +360,12 @@ public class DefaultVideoController implements IVideoController {
 
         @Override
         public void onStop(long currentPosition, long duration) {
-            mControllerView.setMediaProgress(0);
-            mControllerView.setCurrentPosition(0);
             mIdleOperateViewTask.remove();
             mControllerView.hideLoadingView();
             mControllerView.showInitialView();
             mCurControlState = CONTROL_STATE_INITIAL;
+
+            mVideoPositionHelper.onStop(currentPosition, duration);
         }
 
         @Override
@@ -347,12 +387,12 @@ public class DefaultVideoController implements IVideoController {
 
         @Override
         public void onSeekStart(long seekMilliSeconds, int seekProgress) {
-            mControllerView.setMediaProgress(seekProgress);
-            mControllerView.setCurrentPosition(seekMilliSeconds);
+            mVideoPositionHelper.onSeekStart(seekMilliSeconds, seekProgress);
         }
 
         @Override
         public void onSeekEnd() {
+            mVideoPositionHelper.onSeekEnd();
         }
 
         @Override
@@ -377,12 +417,28 @@ public class DefaultVideoController implements IVideoController {
         }
     }
 
-    private class ControllerMediaProgressListener implements MediaProgressListener {
+    private class ControllerTouchListener implements View.OnTouchListener {
 
+        @SuppressLint("ClickableViewAccessibility")
         @Override
-        public void onMediaProgress(int progress, long currentPosition, long duration) {
-            mControllerView.setMediaProgress(progress);
-            mControllerView.setCurrentPosition(currentPosition);
+        public boolean onTouch(View v, MotionEvent event) {
+            int action = event.getActionMasked();
+            switch (action) {
+                case MotionEvent.ACTION_DOWN: {
+                    if (mControllerView.isShowOperateView()) {
+                        mIdleOperateViewTask.remove();
+                    }
+                    break;
+                }
+                case MotionEvent.ACTION_UP:
+                case MotionEvent.ACTION_CANCEL: {
+                    if (mControllerView.isShowOperateView()) {
+                        mIdleOperateViewTask.post();
+                    }
+                    break;
+                }
+            }
+            return false;
         }
     }
 
@@ -582,7 +638,7 @@ public class DefaultVideoController implements IVideoController {
         void post() {
             DefaultVideoController defaultVideoController = mDefaultVideoControllerRef.get();
             if (defaultVideoController == null) return;
-            VideoUtils.postUiThreadDelayed(this, 3000);
+            VideoUtils.postUiThreadDelayed(this, 3666);
         }
 
         void remove() {
@@ -591,4 +647,5 @@ public class DefaultVideoController implements IVideoController {
             VideoUtils.removeUiThreadRunnable(this);
         }
     }
+
 }
