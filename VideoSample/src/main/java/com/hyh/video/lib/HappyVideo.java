@@ -64,30 +64,21 @@ public class HappyVideo extends FrameLayout {
 
     @Override
     public boolean dispatchKeyEvent(KeyEvent event) {
-        if (event.getKeyCode() == KeyEvent.KEYCODE_BACK
-                && event.getAction() == KeyEvent.ACTION_UP
-                && getScene() == VideoDelegate.Scene.FULLSCREEN) {
-            recoverNormalScene();
+        if (event.getKeyCode() == KeyEvent.KEYCODE_BACK && getScene() == VideoDelegate.Scene.FULLSCREEN) {
+            if (event.getAction() == KeyEvent.ACTION_UP) {
+                mVideoDelegate.onBackPress();
+            }
             return true;
         }
         return super.dispatchKeyEvent(event);
     }
 
-    @Override
-    public boolean onKeyUp(int keyCode, KeyEvent event) {
-        if (keyCode == KeyEvent.KEYCODE_BACK && getScene() == VideoDelegate.Scene.FULLSCREEN) {
-            recoverNormalScene();
-            return true;
-        }
-        return super.onKeyUp(keyCode, event);
+    public void followViewAttachState(View view) {
+        mVideoDelegate.followViewAttachState(view);
     }
 
-    public void listenerViewAttachState(View view) {
-        mVideoDelegate.listenerViewAttachState(view);
-    }
-
-    public void unListenerViewAttachState(View view) {
-        mVideoDelegate.unListenerViewAttachState(view);
+    public void unfollowViewAttachState(View view) {
+        mVideoDelegate.unfollowViewAttachState(view);
     }
 
     public void setSurfaceMeasurer(ISurfaceMeasurer surfaceMeasurer) {

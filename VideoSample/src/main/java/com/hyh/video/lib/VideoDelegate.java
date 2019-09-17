@@ -148,11 +148,15 @@ public class VideoDelegate {
         }
     }
 
-    public void listenerViewAttachState(View view) {
+    public void onBackPress() {
+        mVideoController.onBackPress();
+    }
+
+    public void followViewAttachState(View view) {
         mWithViewAttachListener.listenerViewAttachState(view);
     }
 
-    public void unListenerViewAttachState(View view) {
+    public void unfollowViewAttachState(View view) {
         mWithViewAttachListener.unListenerViewAttachState(view);
     }
 

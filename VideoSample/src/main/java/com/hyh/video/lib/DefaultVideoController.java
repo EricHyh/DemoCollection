@@ -165,6 +165,15 @@ public class DefaultVideoController implements IVideoController {
         mControllerView.onVideoSceneChanged(videoContainer, scene);
     }
 
+    @Override
+    public void onBackPress() {
+        if (!mControllerView.isLocked()) {
+            mVideoDelegate.recoverNormalScene();
+        } else {
+            mControllerView.showToast("请先解锁");
+        }
+    }
+
     private void onFullscreenScene(final FrameLayout videoContainer) {
         //mControllerView
         int systemUiVisibility = videoContainer.getSystemUiVisibility();

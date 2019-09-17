@@ -25,4 +25,5 @@ public interface IVideoController extends IVideoSurface.SurfaceListener {
 
     void onVideoSceneChanged(FrameLayout videoContainer, int scene);
 
+    void onBackPress();
 }

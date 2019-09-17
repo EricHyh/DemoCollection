@@ -1,9 +1,14 @@
 package com.hyh.video.lib;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.pm.ActivityInfo;
 import android.graphics.Color;
+import android.graphics.drawable.Drawable;
+import android.graphics.drawable.ShapeDrawable;
+import android.graphics.drawable.shapes.RoundRectShape;
 import android.os.Build;
+import android.os.Handler;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.Gravity;
@@ -11,6 +16,8 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewParent;
+import android.widget.CheckBox;
+import android.widget.CompoundButton;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -46,6 +53,8 @@ public class DefaultControllerView extends RelativeLayout implements IController
     public final LazyView<ErrorViewContainer> mErrorViewContainer;
     public final LazyView<MobileDataConfirmContainer> mMobileDataConfirmContainer;
     public final LazyView<ProgressBar> mLoadingProgress;
+    public final LazyView<CheckBox> mLockCheckBox;
+    public final LazyView<ToastView> mToastView;
 
     public VideoDelegate mVideoDelegate;
 
@@ -167,6 +176,42 @@ public class DefaultControllerView extends RelativeLayout implements IController
             LayoutParams params = new LayoutParams(_45dp, _45dp);
             params.addRule(RelativeLayout.CENTER_IN_PARENT);
             mLoadingProgress.addToParent(this, params);
+        }
+        {
+            mLockCheckBox = new LazyView<CheckBox>() {
+                @Override
+                public CheckBox create() {
+                    CheckBox checkBox = new CheckBox(context);
+                    checkBox.setButtonDrawable(R.drawable.video_lock_selector);
+                    checkBox.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+                        @Override
+                        public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                            if (isShowOperateView()) {
+                                showOperateView(OperateMode.ALIVE);
+                            }
+                        }
+                    });
+                    return checkBox;
+                }
+            };
+            int _45dp = VideoUtils.dp2px(context, 45);
+            LayoutParams params = new LayoutParams(_45dp, _45dp);
+            params.leftMargin = VideoUtils.dp2px(context, 30);
+            params.addRule(RelativeLayout.CENTER_VERTICAL);
+            mLockCheckBox.addToParent(this, params);
+        }
+        {
+            mToastView = new LazyView<ToastView>() {
+                @Override
+                public ToastView create() {
+                    return new ToastView(context);
+                }
+            };
+            LayoutParams params = new LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+            params.bottomMargin = VideoUtils.dp2px(context, 30);
+            params.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM);
+            params.addRule(RelativeLayout.CENTER_HORIZONTAL);
+            mToastView.addToParent(this, params);
         }
     }
 
@@ -393,6 +438,7 @@ public class DefaultControllerView extends RelativeLayout implements IController
         setVisibility(mMobileDataConfirmContainer, GONE);
         setVisibility(mErrorViewContainer, GONE);
         setVisibility(mEndViewContainer, GONE);
+        setVisibility(mLockCheckBox, GONE);
     }
 
     @Override
@@ -411,6 +457,7 @@ public class DefaultControllerView extends RelativeLayout implements IController
         setVisibility(mTopContainer, GONE);
         setVisibility(mInitialInfoContainer, GONE);
         setVisibility(mPlayOrPauseIcon, GONE);
+        setVisibility(mLockCheckBox, GONE);
 
         setVisibility(mBottomProgress, GONE);
         setVisibility(mBottomContainer, GONE);
@@ -426,7 +473,8 @@ public class DefaultControllerView extends RelativeLayout implements IController
 
     @Override
     public boolean isShowOperateView() {
-        return mTopContainer.getVisibility() == VISIBLE && mBottomContainer.getVisibility() == VISIBLE;
+        return (mTopContainer.getVisibility() == VISIBLE && mBottomContainer.getVisibility() == VISIBLE)
+                || mLockCheckBox.getVisibility() == VISIBLE;
     }
 
     @Override
@@ -435,13 +483,25 @@ public class DefaultControllerView extends RelativeLayout implements IController
             setVisibility(mTopContainer, GONE);
             setVisibility(mBottomContainer, GONE);
             setVisibility(mPlayOrPauseIcon, GONE);
+            setVisibility(mLockCheckBox, GONE);
 
             setVisibility(mBottomProgress, VISIBLE);
         } else {
             setBackgroundColor(Color.TRANSPARENT);
-            setVisibility(mTopContainer, VISIBLE);
-            setVisibility(mBottomContainer, VISIBLE);
-            setVisibility(mPlayOrPauseIcon, VISIBLE);
+            boolean videoLandingSpace = isVideoLandingSpace();
+            if (videoLandingSpace && isLocked()) {
+                setVisibility(mTopContainer, GONE);
+                setVisibility(mBottomContainer, GONE);
+                setVisibility(mPlayOrPauseIcon, GONE);
+            } else {
+                setVisibility(mTopContainer, VISIBLE);
+                setVisibility(mBottomContainer, VISIBLE);
+                setVisibility(mPlayOrPauseIcon, VISIBLE);
+            }
+
+            if (videoLandingSpace) {
+                setVisibility(mLockCheckBox, VISIBLE);
+            }
 
             setVisibility(mBottomProgress, GONE);
             setVisibility(mInitialInfoContainer, GONE);
@@ -458,6 +518,7 @@ public class DefaultControllerView extends RelativeLayout implements IController
         setVisibility(mBottomContainer, GONE);
         setVisibility(mBottomProgress, GONE);
         setVisibility(mErrorViewContainer, GONE);
+        setVisibility(mLockCheckBox, GONE);
     }
 
     @Override
@@ -474,6 +535,7 @@ public class DefaultControllerView extends RelativeLayout implements IController
         setVisibility(mTopContainer, GONE);
         setVisibility(mInitialInfoContainer, GONE);
         setVisibility(mPlayOrPauseIcon, GONE);
+        setVisibility(mLockCheckBox, GONE);
 
         setVisibility(mBottomProgress, GONE);
         setVisibility(mBottomContainer, GONE);
@@ -505,12 +567,35 @@ public class DefaultControllerView extends RelativeLayout implements IController
 
     @Override
     public void onVideoSceneChanged(final FrameLayout videoContainer, final int scene) {
+        if (mTopContainer.getVisibility() == View.VISIBLE) {
+            if (scene == VideoDelegate.Scene.FULLSCREEN) {
+                mLockCheckBox.setVisibility(VISIBLE);
+            } else {
+                mLockCheckBox.setVisibility(GONE);
+            }
+        }
+        mTopContainer.saveLazyAction("onVideoSceneChanged", new LazyView.LazyAction<TopContainer>() {
+            @Override
+            public void doAction(TopContainer topContainer) {
+                topContainer.onVideoSceneChanged(videoContainer, scene);
+            }
+        });
         mBottomContainer.saveLazyAction("onVideoSceneChanged", new LazyView.LazyAction<BottomContainer>() {
             @Override
             public void doAction(BottomContainer bottomContainer) {
                 bottomContainer.onVideoSceneChanged(videoContainer, scene);
             }
         });
+    }
+
+    @Override
+    public boolean isLocked() {
+        return mLockCheckBox.isCreated() && mLockCheckBox.get().isChecked();
+    }
+
+    @Override
+    public void showToast(CharSequence text) {
+        mToastView.get().showToast(text);
     }
 
     public void setVisibility(LazyView lazyView, int visibility) {
@@ -598,6 +683,23 @@ public class DefaultControllerView extends RelativeLayout implements IController
         }
     }
 
+    private boolean isVideoLandingSpace() {
+        int screenOrientation = VideoUtils.getScreenOrientation(getContext());
+        if (screenOrientation == ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+                || screenOrientation == ActivityInfo.SCREEN_ORIENTATION_REVERSE_LANDSCAPE) {
+            return true;
+        } else {
+            ViewParent parent = DefaultControllerView.this.getParent();
+            if (parent != null && parent instanceof ViewGroup) {
+                float rotation = ((ViewGroup) parent).getRotation();
+                if (rotation == 90 || rotation == 270) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
     public class TopContainer extends LinearLayout {
 
         public final ImageView fullscreenBackIcon;
@@ -606,22 +708,26 @@ public class DefaultControllerView extends RelativeLayout implements IController
         public final ImageView batteryLevel;
         public final TextView systemTime;
 
+        @SuppressLint("RtlHardcoded")
         public TopContainer(Context context) {
             super(context);
-            setBackgroundResource(R.drawable.video_top_container_bg);
             setOrientation(HORIZONTAL);
+            int _14dp = VideoUtils.dp2px(getContext(), 14);
+            setPadding(_14dp, 0, _14dp, 0);
+            setBackgroundResource(R.drawable.video_top_container_bg);
             {
                 fullscreenBackIcon = new ImageView(context);
                 fullscreenBackIcon.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
                 int _12dp = VideoUtils.dp2px(context, 12);
-                fullscreenBackIcon.setPadding(_12dp, _12dp, 0, _12dp);
+                fullscreenBackIcon.setPadding(0, _12dp, 0, _12dp);
                 fullscreenBackIcon.setImageResource(R.drawable.video_full_back_selector);
                 fullscreenBackIcon.setVisibility(GONE);
                 fullscreenBackIcon.setOnClickListener(DefaultControllerView.this);
 
-                int _32dp = VideoUtils.dp2px(context, 32);
-                LayoutParams params = new LayoutParams(_32dp, LayoutParams.MATCH_PARENT);
+                int _20dp = VideoUtils.dp2px(context, 20);
+                LayoutParams params = new LayoutParams(_20dp, LayoutParams.MATCH_PARENT);
                 params.gravity = Gravity.CENTER_VERTICAL;
+                params.rightMargin = VideoUtils.dp2px(context, 14);
                 addView(fullscreenBackIcon, params);
             }
             {
@@ -629,12 +735,15 @@ public class DefaultControllerView extends RelativeLayout implements IController
                 title.setTextSize(16);
                 title.setTextColor(0xFFDEDEDE);
                 title.setMaxLines(2);
+                title.setGravity(Gravity.CENTER_VERTICAL | Gravity.LEFT);
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
+                    title.setTextAlignment(TEXT_ALIGNMENT_GRAVITY);
+                }
                 title.setEllipsize(TextUtils.TruncateAt.END);
 
                 LayoutParams params = new LayoutParams(0, LayoutParams.WRAP_CONTENT);
-                params.gravity = Gravity.CENTER_VERTICAL;
+                params.gravity = Gravity.CENTER_VERTICAL | Gravity.LEFT;
                 params.weight = 1;
-                params.leftMargin = params.rightMargin = VideoUtils.dp2px(context, 14);
                 addView(title, params);
             }
             {
@@ -643,8 +752,8 @@ public class DefaultControllerView extends RelativeLayout implements IController
                 batteryTimeContainer.setVisibility(GONE);
 
                 LayoutParams layoutParams = new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT);
-                layoutParams.rightMargin = VideoUtils.dp2px(context, 14);
                 layoutParams.gravity = Gravity.CENTER_VERTICAL;
+                layoutParams.leftMargin = VideoUtils.dp2px(context, 14);
                 addView(batteryTimeContainer, layoutParams);
                 {
                     batteryLevel = new ImageView(context);
@@ -667,6 +776,21 @@ public class DefaultControllerView extends RelativeLayout implements IController
                 }
             }
         }
+
+        public void onVideoSceneChanged(FrameLayout videoContainer, int scene) {
+            if (scene == VideoDelegate.Scene.FULLSCREEN) {
+                fullscreenBackIcon.setVisibility(VISIBLE);
+            } else {
+                fullscreenBackIcon.setVisibility(GONE);
+            }
+            if (isVideoLandingSpace()) {
+                int _30dp = VideoUtils.dp2px(getContext(), 30);
+                setPadding(_30dp, 0, _30dp, 0);
+            } else {
+                int _14dp = VideoUtils.dp2px(getContext(), 14);
+                setPadding(_14dp, 0, _14dp, 0);
+            }
+        }
     }
 
     public class BottomContainer extends LinearLayout {
@@ -681,7 +805,10 @@ public class DefaultControllerView extends RelativeLayout implements IController
             super(context);
             setOrientation(HORIZONTAL);
             setGravity(Gravity.BOTTOM);
+            int _14dp = VideoUtils.dp2px(getContext(), 14);
+            setPadding(_14dp, 0, _14dp, 0);
             setBackgroundResource(R.drawable.video_bottom_container_bg);
+
             {
                 currentPosition = new TextView(context);
                 currentPosition.setTextColor(0xFFDEDEDE);
@@ -783,31 +910,9 @@ public class DefaultControllerView extends RelativeLayout implements IController
                 params.gravity = Gravity.CENTER_VERTICAL;
                 addView(fullscreenToggle, params);
             }
-            refreshUi();
-        }
-
-        private boolean isVideoLandingSpace() {
-            int screenOrientation = VideoUtils.getScreenOrientation(getContext());
-            if (screenOrientation == ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
-                    || screenOrientation == ActivityInfo.SCREEN_ORIENTATION_REVERSE_LANDSCAPE) {
-                return true;
-            } else {
-                ViewParent parent = DefaultControllerView.this.getParent();
-                if (parent != null && parent instanceof ViewGroup) {
-                    float rotation = ((ViewGroup) parent).getRotation();
-                    if (rotation == 90 || rotation == 270) {
-                        return true;
-                    }
-                }
-            }
-            return false;
         }
 
         public void onVideoSceneChanged(FrameLayout videoContainer, int scene) {
-            refreshUi();
-        }
-
-        private void refreshUi() {
             if (isVideoLandingSpace()) {
                 int _30dp = VideoUtils.dp2px(getContext(), 30);
                 setPadding(_30dp, 0, _30dp, 0);
@@ -963,6 +1068,51 @@ public class DefaultControllerView extends RelativeLayout implements IController
                 params.topMargin = VideoUtils.dp2px(context, 30);
                 addView(mobileDataSureButton, params);
             }
+        }
+    }
+
+    @SuppressLint("AppCompatCustomView")
+    public class ToastView extends TextView implements Runnable {
+
+        public ToastView(Context context) {
+            super(context);
+            setTextSize(12);
+            setShadowLayer(2.75f, 0, 0, 0xBB000000);
+            int _12dp = VideoUtils.dp2px(context, 12);
+            int _16dp = VideoUtils.dp2px(context, 16);
+            setPadding(_16dp, _12dp, _16dp, _12dp);
+            setTextColor(Color.WHITE);
+            setGravity(Gravity.CENTER);
+            setBackgroundDrawable(getBackgroundDrawable());
+        }
+
+        private Drawable getBackgroundDrawable() {
+            int _10dp = VideoUtils.dp2px(getContext(), 10);
+            float[] outerRadii = {_10dp, _10dp, _10dp, _10dp, _10dp, _10dp, _10dp, _10dp};
+            RoundRectShape shape = new RoundRectShape(outerRadii, null, null);
+            ShapeDrawable shapeDrawable = new ShapeDrawable(shape);
+            shapeDrawable.getPaint().setColor(0x99000000);
+            return shapeDrawable;
+        }
+
+        public void showToast(CharSequence text) {
+            setText(text);
+            Handler handler = getHandler();
+            if (handler != null) {
+                if (getVisibility() != VISIBLE) {
+                    setVisibility(VISIBLE);
+                    handler.postDelayed(this, 3000);
+                } else {
+                    handler.removeCallbacks(this);
+                    handler.postDelayed(this, 3000);
+                }
+            }
+        }
+
+        @Override
+        public void run() {
+            setVisibility(GONE);
+            setText(null);
         }
     }
 

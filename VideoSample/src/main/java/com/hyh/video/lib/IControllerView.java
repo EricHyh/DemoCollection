@@ -74,6 +74,10 @@ public interface IControllerView {
 
     void onVideoSceneChanged(FrameLayout videoContainer, int scene);
 
+    boolean isLocked();
+
+    void showToast(CharSequence text);
+
     interface OperateMode {
         int IDLE = 1;
         int ALIVE = 2;
