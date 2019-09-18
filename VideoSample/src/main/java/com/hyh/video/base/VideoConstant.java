@@ -14,7 +14,8 @@ public class VideoConstant {
                     "http://jzvd.nathen.cn/d2438fd1c37c4618a704513ad38d68c5/68626a9d53ca421c896ac8010f172b68-5287d2089db37e62345123a1be272f8b.mp4",
                     "http://jzvd.nathen.cn/25a8d119cfa94b49a7a4117257d8ebd7/f733e65a22394abeab963908f3c336db-5287d2089db37e62345123a1be272f8b.mp4",
                     "http://jzvd.nathen.cn/7512edd1ad834d40bb5b978402274b1a/9691c7f2d7b74b5e811965350a0e5772-5287d2089db37e62345123a1be272f8b.mp4",
-                    "http://jzvd.nathen.cn/c6e3dc12a1154626b3476d9bf3bd7266/6b56c5f0dc31428083757a45764763b0-5287d2089db37e62345123a1be272f8b.mp4"
+                    "http://jzvd.nathen.cn/c6e3dc12a1154626b3476d9bf3bd7266/6b56c5f0dc31428083757a45764763b0-5287d2089db37e62345123a1be272f8b.mp4",
+                    "http://113.96.140.37/vod.cntv.lxdns.com/flash/mp4video62/TMS/2019/02/20/a5c722ca046345608b92e8defa84f70d_h264418000nero_aac32-1.mp4?wshc_tag=0&wsts_tag=5d77b318&wsid_tag=71578111&wsiphost=ipdbm"
             };
 
     public static String[] videoThumbList =
@@ -26,6 +27,7 @@ public class VideoConstant {
                     "http://jzvd-pic.nathen.cn/jzvd-pic/6fc2ae91-36e2-44c5-bb10-29ae5d5c678c.png",
                     "http://jzvd-pic.nathen.cn/jzvd-pic/f03cee95-9b78-4dd5-986f-d162c06c385c.png",
                     "http://jzvd-pic.nathen.cn/jzvd-pic/e7ea659f-c3d2-4979-9ea5-f993b05e5930.png",
+                    "",
                     ""
             };
 

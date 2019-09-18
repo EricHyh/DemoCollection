@@ -4,7 +4,6 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.pm.ActivityInfo;
 import android.media.AudioManager;
-import android.util.Log;
 import android.view.Gravity;
 import android.view.Surface;
 import android.view.View;
@@ -142,14 +141,14 @@ public class VideoDelegate {
     }
 
     public void onWindowFocusChanged(View view, boolean hasWindowFocus) {
-        /*if (!hasWindowFocus) {
+        if (!hasWindowFocus) {
             view.post(new Runnable() {
                 @Override
                 public void run() {
                     pause();
                 }
             });
-        }*/
+        }
     }
 
     public void onBackPress() {
@@ -849,9 +848,6 @@ public class VideoDelegate {
             AudioManager audioManager = (AudioManager) mContext.getSystemService(Context.AUDIO_SERVICE);
             if (audioManager != null) {
                 audioManager.abandonAudioFocus(this);
-                audioManager.abandonAudioFocus(this);
-                audioManager.abandonAudioFocus(this);
-                audioManager.abandonAudioFocus(this);
             }
         }
 
@@ -859,21 +855,11 @@ public class VideoDelegate {
         public void onAudioFocusChange(int focusChange) {
             switch (focusChange) {
                 case AudioManager.AUDIOFOCUS_LOSS: {
-                    Log.d(TAG, "onAudioFocusChange: AUDIOFOCUS_LOSS");
                     pause();
                     break;
                 }
                 case AudioManager.AUDIOFOCUS_GAIN_TRANSIENT: {
-                    Log.d(TAG, "onAudioFocusChange: AUDIOFOCUS_GAIN_TRANSIENT");
                     pause();
-                    break;
-                }
-                case AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK: {
-                    Log.d(TAG, "onAudioFocusChange: AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK");
-                    break;
-                }
-                case AudioManager.AUDIOFOCUS_GAIN: {
-                    Log.d(TAG, "onAudioFocusChange: AUDIOFOCUS_GAIN");
                     break;
                 }
             }

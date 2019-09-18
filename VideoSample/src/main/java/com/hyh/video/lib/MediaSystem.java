@@ -634,7 +634,7 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
     }
 
     private void postError(int what, int extra) {
-        Log.d("", "postError: what = " + what + ", extra = " + extra);
+        Log.d("MediaSystem", "postError: what = " + what + ", extra = " + extra);
         try {
             mMediaPlayer.pause();
         } catch (Exception e) {
