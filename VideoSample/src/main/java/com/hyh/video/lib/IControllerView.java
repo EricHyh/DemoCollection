@@ -74,7 +74,7 @@ public interface IControllerView {
 
     void onVideoSceneChanged(FrameLayout videoContainer, int scene);
 
-    boolean isLocked();
+    boolean isFullScreenLocked();
 
     void showToast(CharSequence text);
 

@@ -67,6 +67,7 @@
         </activity>
         <activity
             android:name=".MultiListActivity"
+            android:configChanges="screenSize|keyboard|keyboardHidden|orientation"
             android:screenOrientation="portrait">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>

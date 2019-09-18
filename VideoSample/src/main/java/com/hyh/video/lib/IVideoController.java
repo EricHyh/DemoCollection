@@ -25,5 +25,8 @@ public interface IVideoController extends IVideoSurface.SurfaceListener {
 
     void onVideoSceneChanged(FrameLayout videoContainer, int scene);
 
+    boolean isFullScreenLocked();
+
     void onBackPress();
+
 }

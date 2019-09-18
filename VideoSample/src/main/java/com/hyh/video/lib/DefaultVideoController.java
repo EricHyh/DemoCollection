@@ -166,8 +166,13 @@ public class DefaultVideoController implements IVideoController {
     }
 
     @Override
+    public boolean isFullScreenLocked() {
+        return mControllerView.isFullScreenLocked();
+    }
+
+    @Override
     public void onBackPress() {
-        if (!mControllerView.isLocked()) {
+        if (!mControllerView.isFullScreenLocked()) {
             mVideoDelegate.recoverNormalScene();
         } else {
             mControllerView.showToast("请先解锁");
@@ -176,9 +181,10 @@ public class DefaultVideoController implements IVideoController {
 
     private void onFullscreenScene(final FrameLayout videoContainer) {
         //mControllerView
-        int systemUiVisibility = videoContainer.getSystemUiVisibility();
-        int flags = systemUiVisibility | View.SYSTEM_UI_FLAG_LOW_PROFILE
+        int flags = videoContainer.getSystemUiVisibility()
+                | View.SYSTEM_UI_FLAG_LOW_PROFILE
                 | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                | View.SYSTEM_UI_FLAG_LAYOUT_STABLE
                 | View.SYSTEM_UI_FLAG_FULLSCREEN
                 | View.SYSTEM_UI_FLAG_IMMERSIVE
                 | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
@@ -188,23 +194,29 @@ public class DefaultVideoController implements IVideoController {
             @Override
             public void onSystemUiVisibilityChange(int visibility) {
                 if (mVideoDelegate.getScene() == VideoDelegate.Scene.FULLSCREEN) {
-                    if ((visibility & View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN) == 0 ||
-                            (visibility & View.SYSTEM_UI_FLAG_FULLSCREEN) == 0 ||
-                            (visibility & View.SYSTEM_UI_FLAG_IMMERSIVE) == 0 ||
-                            (visibility & View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION) == 0 ||
-                            (visibility & View.SYSTEM_UI_FLAG_HIDE_NAVIGATION) == 0) {
+                    int systemUiVisibility = videoContainer.getSystemUiVisibility();
+                    if (visibility == 0 ||
+                            (systemUiVisibility & View.SYSTEM_UI_FLAG_LOW_PROFILE) == 0 ||
+                            (systemUiVisibility & View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN) == 0 ||
+                            (systemUiVisibility & View.SYSTEM_UI_FLAG_LAYOUT_STABLE) == 0 ||
+                            (systemUiVisibility & View.SYSTEM_UI_FLAG_FULLSCREEN) == 0 ||
+                            (systemUiVisibility & View.SYSTEM_UI_FLAG_IMMERSIVE) == 0 ||
+                            (systemUiVisibility & View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION) == 0 ||
+                            (systemUiVisibility & View.SYSTEM_UI_FLAG_HIDE_NAVIGATION) == 0) {
                         videoContainer.postDelayed(new Runnable() {
                             @Override
                             public void run() {
-                                int flags = videoContainer.getSystemUiVisibility() | View.SYSTEM_UI_FLAG_LOW_PROFILE
+                                int flags = videoContainer.getSystemUiVisibility()
+                                        | View.SYSTEM_UI_FLAG_LOW_PROFILE
                                         | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                                        | View.SYSTEM_UI_FLAG_LAYOUT_STABLE
                                         | View.SYSTEM_UI_FLAG_FULLSCREEN
                                         | View.SYSTEM_UI_FLAG_IMMERSIVE
                                         | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
                                         | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION;
                                 videoContainer.setSystemUiVisibility(flags);
                             }
-                        }, 2000);
+                        }, 3000);
                     }
                 }
             }

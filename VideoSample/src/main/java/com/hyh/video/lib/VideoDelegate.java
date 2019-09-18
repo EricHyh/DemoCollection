@@ -9,6 +9,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
 
+import java.lang.ref.WeakReference;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
@@ -269,7 +270,7 @@ public class VideoDelegate {
     }
 
     public void setFullscreenActivity(Activity fullscreenActivity) {
-        mSceneChangeHelper.mFullscreenActivity = fullscreenActivity;
+        mSceneChangeHelper.mFullscreenActivity = new WeakReference<>(fullscreenActivity);
     }
 
     public void setFullscreenAllowLandscape(boolean fullscreenAllowLandscape) {
@@ -638,7 +639,7 @@ public class VideoDelegate {
         final Context context;
 
         int mScene = Scene.NORMAL;
-        Activity mFullscreenActivity;
+        WeakReference<Activity> mFullscreenActivity;
         boolean mFullscreenAllowLandscape = true;
         boolean mFullscreenAllowRotate = true;
 
@@ -771,7 +772,10 @@ public class VideoDelegate {
         }
 
         public Activity getActivity() {
-            if (mFullscreenActivity != null) return mFullscreenActivity;
+            if (mFullscreenActivity != null) {
+                Activity activity = mFullscreenActivity.get();
+                if (activity != null) return activity;
+            }
             if (mContext instanceof Activity) return ((Activity) mContext);
             return null;
         }
@@ -786,7 +790,7 @@ public class VideoDelegate {
                         Activity activity = getActivity();
                         activity.setRequestedOrientation(newOrientation);
                     } else if (newOrientation == OrientationManager.ORIENTATION_PORTRAIT) {
-                        if (VideoUtils.isAccelerometerRotationOpened(mContext)) {
+                        if (VideoUtils.isAccelerometerRotationOpened(mContext) && !mVideoController.isFullScreenLocked()) {
                             recoverNormalScene();
                         }
                     }

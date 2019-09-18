@@ -4,6 +4,7 @@ import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.pm.ActivityInfo;
 import android.graphics.Color;
+import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.ShapeDrawable;
 import android.graphics.drawable.shapes.RoundRectShape;
@@ -13,6 +14,7 @@ import android.text.TextUtils;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.MotionEvent;
+import android.view.TouchDelegate;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewParent;
@@ -208,7 +210,7 @@ public class DefaultControllerView extends RelativeLayout implements IController
                 }
             };
             LayoutParams params = new LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-            params.bottomMargin = VideoUtils.dp2px(context, 30);
+            params.bottomMargin = VideoUtils.dp2px(context, 25);
             params.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM);
             params.addRule(RelativeLayout.CENTER_HORIZONTAL);
             mToastView.addToParent(this, params);
@@ -489,7 +491,7 @@ public class DefaultControllerView extends RelativeLayout implements IController
         } else {
             setBackgroundColor(Color.TRANSPARENT);
             boolean videoLandingSpace = isVideoLandingSpace();
-            if (videoLandingSpace && isLocked()) {
+            if (videoLandingSpace && isFullScreenLocked()) {
                 setVisibility(mTopContainer, GONE);
                 setVisibility(mBottomContainer, GONE);
                 setVisibility(mPlayOrPauseIcon, GONE);
@@ -589,7 +591,7 @@ public class DefaultControllerView extends RelativeLayout implements IController
     }
 
     @Override
-    public boolean isLocked() {
+    public boolean isFullScreenLocked() {
         return mLockCheckBox.isCreated() && mLockCheckBox.get().isChecked();
     }
 
@@ -793,6 +795,7 @@ public class DefaultControllerView extends RelativeLayout implements IController
         }
     }
 
+    @SuppressWarnings("AppCompatCustomView")
     public class BottomContainer extends LinearLayout {
 
         public final TextView currentPosition;
@@ -899,12 +902,39 @@ public class DefaultControllerView extends RelativeLayout implements IController
                 addView(definition, params);
             }
             {
-                fullscreenToggle = new ImageView(context);
+                final int _12dp = VideoUtils.dp2px(context, 12);
+                fullscreenToggle = new ImageView(context) {
+
+                    private final Rect rect = new Rect();
+                    private final TouchDelegate touchDelegate = new TouchDelegate(rect, this);
+                    private int previousLeft = -1;
+                    private int previousTop = -1;
+                    private int previousRight = -1;
+                    private int previousBottom = -1;
+
+                    @Override
+                    protected void onLayout(boolean changed, int left, int top, int right, int bottom) {
+                        super.onLayout(changed, left, top, right, bottom);
+                        if (left != previousLeft || top != previousTop || right != previousRight || bottom != previousBottom) {
+                            previousLeft = left;
+                            previousTop = top;
+                            previousRight = right;
+                            previousBottom = bottom;
+                            rect.set(left - _12dp, top - _12dp, right + _12dp, bottom + _12dp);
+                            final View parent = (View) this.getParent();
+                            if (parent != null) {
+                                parent.setTouchDelegate(touchDelegate);
+                            }
+                        }
+                    }
+                };
+
                 fullscreenToggle.setImageResource(R.drawable.video_enlarge);
                 fullscreenToggle.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
                 int _16dp = VideoUtils.dp2px(context, 16);
                 fullscreenToggle.setPadding(0, _16dp, 0, _16dp);
                 fullscreenToggle.setOnClickListener(DefaultControllerView.this);
+
 
                 LayoutParams params = new LayoutParams(_16dp, LayoutParams.MATCH_PARENT);
                 params.gravity = Gravity.CENTER_VERTICAL;
