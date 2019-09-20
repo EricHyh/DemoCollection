@@ -13,6 +13,7 @@ import android.view.ViewGroup;
 import com.hyh.web.behavior.NestedScrollWebView;
 import com.hyh.web.utils.DisplayUtil;
 
+
 /**
  * Created by Eric_He on 2019/8/25.
  */
@@ -27,7 +28,6 @@ public class ViewMoreWebView extends NestedScrollWebView {
     private int mFoldMode = FoldMode.NONE;
 
     private int mTouchSlop;
-    private float mDensity;
 
     private int mViewMoreAreaHeight;
     private ViewMoreDrawable mViewMoreDrawable;
@@ -48,11 +48,15 @@ public class ViewMoreWebView extends NestedScrollWebView {
         init();
     }
 
+    public ViewMoreWebView(Context context, AttributeSet attrs, int defStyleAttr) {
+        super(context, attrs, defStyleAttr);
+        init();
+    }
+
     private void init() {
         setOverScrollMode(OVER_SCROLL_NEVER);
         final ViewConfiguration configuration = ViewConfiguration.get(getContext());
         mTouchSlop = configuration.getScaledTouchSlop();
-        mDensity = getContext().getResources().getDisplayMetrics().density;
     }
 
     public void setFoldMode(int foldMode) {
@@ -75,11 +79,14 @@ public class ViewMoreWebView extends NestedScrollWebView {
     }
 
     private void handleHtmlFoldMode() {
+        int contentHeight = getWebContentHeight();
         if (mIsHandledUnfold) {
+            if (contentHeight < Math.round(1.2f * DisplayUtil.getScreenHeight(getContext()))) {
+                mIsHandledUnfold = false;
+            }
             return;
         }
-        int contentHeight = Math.round(getContentHeight() * mDensity);
-        if (contentHeight > Math.round(1.5f * DisplayUtil.getScreenHeight(getContext()))) {
+        if (contentHeight > Math.round(1.2f * DisplayUtil.getScreenHeight(getContext()))) {
             mIsHandledUnfold = true;
             ViewGroup parent = (ViewGroup) getParent();
             int parentScrollY = parent.getScrollY();
@@ -192,7 +199,7 @@ public class ViewMoreWebView extends NestedScrollWebView {
     }
 
     private int computeCurrentMaxScrollUpDy() {
-        int contentHeight = Math.round(getContentHeight() * mDensity);
+        int contentHeight = getWebContentHeight();
         return Math.max(contentHeight - getMeasuredHeight(), 0);
     }
 

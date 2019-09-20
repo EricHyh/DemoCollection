@@ -7,6 +7,7 @@ import android.support.v4.view.NestedScrollingChild2;
 import android.support.v4.view.NestedScrollingChildHelper;
 import android.support.v4.view.ViewCompat;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.MotionEvent;
 import android.view.VelocityTracker;
 import android.view.ViewConfiguration;
@@ -45,9 +46,9 @@ public class NestedScrollWebView extends WebView implements NestedScrollingChild
 
     private final NestedScrollingChildHelper mChildHelper = new NestedScrollingChildHelper(this);
     private final ViewFlingHelper mViewFlingHelper = new ViewFlingHelper();
-    private final int mMaximumFlingVelocity;
-    private final int mTouchSlop;
-    private final float mDensity;
+    private int mMaximumFlingVelocity;
+    private int mTouchSlop;
+    private float mDensity;
 
     private int mInitialTouchX;
     private int mInitialTouchY;
@@ -66,20 +67,26 @@ public class NestedScrollWebView extends WebView implements NestedScrollingChild
     private VelocityTracker mVelocityTracker;
 
     public NestedScrollWebView(Context context) {
-        this(context, null);
+        super(context.getApplicationContext());
+        init();
     }
 
     public NestedScrollWebView(Context context, AttributeSet attrs) {
-        this(context, attrs, 0);
+        super(context.getApplicationContext(), attrs);
+        init();
     }
 
     public NestedScrollWebView(Context context, AttributeSet attrs, int defStyleAttr) {
-        super(context, attrs, defStyleAttr);
+        super(context.getApplicationContext(), attrs, defStyleAttr);
+        init();
+    }
+
+    private void init() {
         setNestedScrollingEnabled(true);
-        final ViewConfiguration configuration = ViewConfiguration.get(context);
+        final ViewConfiguration configuration = ViewConfiguration.get(getContext());
         mMaximumFlingVelocity = configuration.getScaledMaximumFlingVelocity();
         mTouchSlop = configuration.getScaledTouchSlop();
-        mDensity = context.getResources().getDisplayMetrics().density;
+        mDensity = getContext().getResources().getDisplayMetrics().density;
     }
 
 
@@ -108,7 +115,8 @@ public class NestedScrollWebView extends WebView implements NestedScrollingChild
             case MotionEvent.ACTION_DOWN: {
                 mInitialTouchX = mLastTouchX = Math.round(event.getRawX());
                 mInitialTouchY = mLastTouchY = Math.round(event.getRawY());
-                startNestedScroll(ViewCompat.SCROLL_AXIS_VERTICAL, ViewCompat.TYPE_TOUCH);
+                boolean startNestedScroll = startNestedScroll(ViewCompat.SCROLL_AXIS_VERTICAL, ViewCompat.TYPE_TOUCH);
+                Log.d(TAG, "onTouchEvent: ACTION_DOWN startNestedScroll = " + startNestedScroll);
                 mIsOverTouchSlop = false;
                 mIsOverScrolled = false;
                 mIsTouchHorizontal = false;
@@ -128,7 +136,11 @@ public class NestedScrollWebView extends WebView implements NestedScrollingChild
                 if (handMotionEventByHorizontal(event, dx, dy, tx, ty)) return true;
 
                 int webScrollY = 0;
+                Log.d(TAG, "onTouchEvent: dy = " + dy);
                 if (dispatchNestedPreScroll(0, dy, mScrollConsumed, mScrollOffset, ViewCompat.TYPE_TOUCH)) {
+
+                    Log.d(TAG, "onTouchEvent: dispatchNestedPreScroll");
+
                     dx -= mScrollConsumed[0];
                     dy -= mScrollConsumed[1];
                     webScrollY = dy;
@@ -182,7 +194,7 @@ public class NestedScrollWebView extends WebView implements NestedScrollingChild
             return true;
         }
         if (mIsOverTouchSlop) return false;
-        if (Math.abs(tx) > mTouchSlop) {
+        if (Math.abs(tx) > mTouchSlop && Math.abs(tx) > Math.abs(ty)) {
             mIsOverTouchSlop = true;
             if (!mIsOverScrolled) {
                 mIsTouchHorizontal = true;
@@ -257,12 +269,6 @@ public class NestedScrollWebView extends WebView implements NestedScrollingChild
         super.onDetachedFromWindow();
         recycleVelocityTracker();
         mViewFlingHelper.stop();
-    }
-
-
-    @Override
-    public boolean canScrollVertically(int direction) {
-        return super.canScrollVertically(direction);
     }
 
     @Override

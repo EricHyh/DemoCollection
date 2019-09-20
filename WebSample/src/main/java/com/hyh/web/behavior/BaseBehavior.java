@@ -4,6 +4,7 @@ import android.content.Context;
 import android.support.annotation.NonNull;
 import android.support.design.widget.CoordinatorLayout;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 
@@ -53,7 +54,11 @@ public abstract class BaseBehavior<V extends View> extends CoordinatorLayout.Beh
         }
         int width = child.getMeasuredWidth();
         int height = child.getMeasuredHeight();
-        child.layout(0, dependenciesHeight, width, height + dependenciesHeight);
+        try {
+            child.layout(0, dependenciesHeight, width, height + dependenciesHeight);
+        } catch (Exception e) {
+            Log.d(TAG, "BaseBehavior onLayoutChild child = " + child + " ", e);
+        }
         return true;
     }
 
