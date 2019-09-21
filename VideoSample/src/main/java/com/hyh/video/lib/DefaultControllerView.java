@@ -382,42 +382,42 @@ public class DefaultControllerView extends RelativeLayout implements IController
     }
 
     @Override
-    public void setControllerViewTouchListener(View.OnTouchListener listener) {
+    public void setControllerViewTouchListener(OnTouchListener listener) {
         mListenerInfo.mControllerViewTouchListener = listener;
     }
 
     @Override
-    public void setControllerViewClickListener(View.OnClickListener listener) {
+    public void setControllerViewClickListener(OnClickListener listener) {
         mListenerInfo.mControllerViewClickListener = listener;
     }
 
     @Override
-    public void setPlayOrPauseClickListener(final View.OnClickListener listener) {
+    public void setPlayOrPauseClickListener(final OnClickListener listener) {
         mListenerInfo.mPlayOrPauseClickListener = listener;
     }
 
     @Override
-    public void setReplayClickListener(final View.OnClickListener listener) {
+    public void setReplayClickListener(final OnClickListener listener) {
         mListenerInfo.mReplayClickListener = listener;
     }
 
     @Override
-    public void setRetryClickListener(final View.OnClickListener listener) {
+    public void setRetryClickListener(final OnClickListener listener) {
         mListenerInfo.mRetryClickListener = listener;
     }
 
     @Override
-    public void setFullScreenToggleClickListener(final View.OnClickListener listener) {
+    public void setFullScreenToggleClickListener(final OnClickListener listener) {
         mListenerInfo.mFullScreenToggleClickListener = listener;
     }
 
     @Override
-    public void setMobileDataConfirmClickListener(final View.OnClickListener listener) {
+    public void setMobileDataConfirmClickListener(final OnClickListener listener) {
         mListenerInfo.mMobileDataConfirmClickListener = listener;
     }
 
     @Override
-    public void setFullscreenBackClickListener(final View.OnClickListener listener) {
+    public void setFullscreenBackClickListener(final OnClickListener listener) {
         mListenerInfo.mFullscreenBackClickListener = listener;
     }
 
@@ -1148,14 +1148,14 @@ public class DefaultControllerView extends RelativeLayout implements IController
 
     public static class ControllerListenerInfo {
 
-        public View.OnTouchListener mControllerViewTouchListener;
-        public View.OnClickListener mControllerViewClickListener;
-        public View.OnClickListener mPlayOrPauseClickListener;
-        public View.OnClickListener mReplayClickListener;
-        public View.OnClickListener mRetryClickListener;
-        public View.OnClickListener mFullScreenToggleClickListener;
-        public View.OnClickListener mMobileDataConfirmClickListener;
-        public View.OnClickListener mFullscreenBackClickListener;
+        public OnTouchListener mControllerViewTouchListener;
+        public OnClickListener mControllerViewClickListener;
+        public OnClickListener mPlayOrPauseClickListener;
+        public OnClickListener mReplayClickListener;
+        public OnClickListener mRetryClickListener;
+        public OnClickListener mFullScreenToggleClickListener;
+        public OnClickListener mMobileDataConfirmClickListener;
+        public OnClickListener mFullscreenBackClickListener;
         public SeekBar.OnSeekBarChangeListener mOnSeekBarChangeListener;
 
     }

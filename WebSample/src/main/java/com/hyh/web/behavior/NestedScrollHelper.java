@@ -126,7 +126,6 @@ class NestedScrollHelper {
             if (canScrollVertically(target, yvel)) {
                 return false;
             }
-
             mScroller.fling(0, 0, 0, yvel, 0, 0, Integer.MIN_VALUE, Integer.MAX_VALUE);
             if (mScroller.computeScrollOffset()) {
                 ViewCompat.postOnAnimation(coordinatorLayout, new FlingRunnable(coordinatorLayout, target));

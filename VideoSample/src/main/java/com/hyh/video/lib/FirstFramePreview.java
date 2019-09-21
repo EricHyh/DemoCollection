@@ -32,7 +32,7 @@ public class FirstFramePreview extends FrameLayout implements IVideoPreview {
         super(context);
         {
             mPreviewImage = new ImageView(context);
-            FrameLayout.LayoutParams imageParams = new FrameLayout.LayoutParams(0, 0);
+            LayoutParams imageParams = new LayoutParams(0, 0);
             mPreviewImage.setScaleType(ImageView.ScaleType.FIT_CENTER);
             imageParams.gravity = Gravity.CENTER;
             addView(mPreviewImage, imageParams);

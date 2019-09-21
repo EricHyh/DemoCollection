@@ -1,9 +1,11 @@
 package com.hyh.video.lib;
 
 import android.app.Activity;
+import android.app.Application;
 import android.content.Context;
 import android.content.pm.ActivityInfo;
 import android.media.AudioManager;
+import android.os.Bundle;
 import android.view.Gravity;
 import android.view.Surface;
 import android.view.View;
@@ -34,10 +36,13 @@ public class VideoDelegate {
     private final ViewAttachStateListener mRootViewAttachListener = new ViewAttachStateListener();
     private final ViewAttachStateListener mWithViewAttachListener = new ViewAttachStateListener();
     private final AudioFocusChangeHelper mAudioFocusChangeHelper = new AudioFocusChangeHelper();
+    private final ActivityLifecycleHelper mActivityLifecycleHelper = new ActivityLifecycleHelper();
 
     protected final IMediaPlayer mMediaPlayer = new MediaSystem();
     protected final Context mContext;
     protected final IMediaInfo mMediaInfo;
+
+    private WeakReference<Activity> mActivity;
 
     protected ISurfaceMeasurer mSurfaceMeasurer = new FitCenterMeasurer();
     protected IVideoBackground mVideoBackground;
@@ -138,17 +143,6 @@ public class VideoDelegate {
 
     public void onDetachedFromWindow(View view) {
         mRootViewAttachListener.unListenerViewAttachState(view.getRootView());
-    }
-
-    public void onWindowFocusChanged(View view, boolean hasWindowFocus) {
-        if (!hasWindowFocus) {
-            view.post(new Runnable() {
-                @Override
-                public void run() {
-                    pause();
-                }
-            });
-        }
     }
 
     public void onBackPress() {
@@ -271,13 +265,21 @@ public class VideoDelegate {
         return set;
     }
 
-    public void setFullscreenActivity(Activity fullscreenActivity) {
-        mSceneChangeHelper.mFullscreenActivity = new WeakReference<>(fullscreenActivity);
+    public void setActivity(Activity activity) {
+        mActivity = new WeakReference<>(activity);
+    }
+
+    protected Activity getActivity() {
+        if (mActivity != null) {
+            Activity activity = mActivity.get();
+            if (activity != null) return activity;
+        }
+        if (mContext instanceof Activity) return ((Activity) mContext);
+        return null;
     }
 
     public void setFullscreenAllowLandscape(boolean fullscreenAllowLandscape) {
-        mSceneChangeHelper.mFullscreenAllowLandscape =
-                fullscreenAllowLandscape;
+        mSceneChangeHelper.mFullscreenAllowLandscape = fullscreenAllowLandscape;
     }
 
     public void setFullscreenAllowRotate(boolean fullscreenAllowRotate) {
@@ -468,6 +470,7 @@ public class VideoDelegate {
                 mVideoContainer.setKeepScreenOn(true);
             }
             mAudioFocusChangeHelper.requestAudioFocus();
+            mActivityLifecycleHelper.listenerActivityLifecycle();
         }
 
         @Override
@@ -493,6 +496,7 @@ public class VideoDelegate {
                 mVideoContainer.setKeepScreenOn(false);
             }
             mAudioFocusChangeHelper.abandonAudioFocus();
+            mActivityLifecycleHelper.unListenerActivityLifecycle();
         }
 
         @Override
@@ -504,6 +508,7 @@ public class VideoDelegate {
                 mVideoContainer.setKeepScreenOn(false);
             }
             mAudioFocusChangeHelper.abandonAudioFocus();
+            mActivityLifecycleHelper.unListenerActivityLifecycle();
         }
 
         @Override
@@ -550,6 +555,7 @@ public class VideoDelegate {
                 mVideoContainer.setKeepScreenOn(false);
             }
             mAudioFocusChangeHelper.abandonAudioFocus();
+            mActivityLifecycleHelper.unListenerActivityLifecycle();
         }
 
         @Override
@@ -574,6 +580,7 @@ public class VideoDelegate {
                 mVideoContainer.setKeepScreenOn(false);
             }
             mAudioFocusChangeHelper.abandonAudioFocus();
+            mActivityLifecycleHelper.unListenerActivityLifecycle();
         }
 
         @Override
@@ -586,6 +593,7 @@ public class VideoDelegate {
             }
             mSceneChangeHelper.onVideoRelease();
             mAudioFocusChangeHelper.abandonAudioFocus();
+            mActivityLifecycleHelper.unListenerActivityLifecycle();
         }
     }
 
@@ -647,7 +655,6 @@ public class VideoDelegate {
         final Context context;
 
         int mScene = Scene.NORMAL;
-        WeakReference<Activity> mFullscreenActivity;
         boolean mFullscreenAllowLandscape = true;
         boolean mFullscreenAllowRotate = true;
 
@@ -779,15 +786,6 @@ public class VideoDelegate {
             }
         }
 
-        public Activity getActivity() {
-            if (mFullscreenActivity != null) {
-                Activity activity = mFullscreenActivity.get();
-                if (activity != null) return activity;
-            }
-            if (mContext instanceof Activity) return ((Activity) mContext);
-            return null;
-        }
-
         @Override
         public void onChanged(int oldOrientation, int newOrientation) {
             if (mScene == Scene.FULLSCREEN) {
@@ -862,6 +860,81 @@ public class VideoDelegate {
                     pause();
                     break;
                 }
+            }
+        }
+    }
+
+    private class ActivityLifecycleHelper implements Application.ActivityLifecycleCallbacks {
+
+        private Integer mResumedActivityHashCode;
+
+        private Integer mActivityHashCode;
+
+        void listenerActivityLifecycle() {
+            Application application = VideoUtils.getApplication(mContext);
+            if (application == null) return;
+            Activity activity = getActivity();
+            if (activity != null) {
+                mActivityHashCode = System.identityHashCode(activity);
+            }
+            application.registerActivityLifecycleCallbacks(this);
+        }
+
+        void unListenerActivityLifecycle() {
+            mActivityHashCode = null;
+            mResumedActivityHashCode = null;
+            Application application = VideoUtils.getApplication(mContext);
+            if (application == null) return;
+            application.unregisterActivityLifecycleCallbacks(this);
+        }
+
+        @Override
+        public void onActivityCreated(Activity activity, Bundle savedInstanceState) {
+
+        }
+
+        @Override
+        public void onActivityStarted(Activity activity) {
+        }
+
+        @Override
+        public void onActivityResumed(Activity activity) {
+            mResumedActivityHashCode = System.identityHashCode(activity);
+        }
+
+        @Override
+        public void onActivityPaused(Activity activity) {
+            int hashCode = System.identityHashCode(activity);
+            if (mResumedActivityHashCode != null && mResumedActivityHashCode == hashCode) {
+                mResumedActivityHashCode = null;
+            }
+            if (isExecuteStart()) {
+                if (mActivityHashCode != null) {
+                    if (mActivityHashCode == hashCode) {
+                        pause();
+                    }
+                } else {
+                    if (mResumedActivityHashCode == null || mResumedActivityHashCode != hashCode) {
+                        pause();
+                    }
+                }
+            }
+        }
+
+        @Override
+        public void onActivityStopped(Activity activity) {
+        }
+
+        @Override
+        public void onActivitySaveInstanceState(Activity activity, Bundle outState) {
+        }
+
+        @Override
+        public void onActivityDestroyed(Activity activity) {
+            unListenerActivityLifecycle();
+            int hashCode = System.identityHashCode(activity);
+            if (mResumedActivityHashCode != null && mResumedActivityHashCode == hashCode) {
+                mResumedActivityHashCode = null;
             }
         }
     }

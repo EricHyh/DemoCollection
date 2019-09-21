@@ -2,6 +2,7 @@ package com.hyh.video.lib;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.app.Application;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.pm.ActivityInfo;
@@ -224,5 +225,16 @@ public class VideoUtils {
             e1.printStackTrace();
         }
         return statusBarHeight;
+    }
+
+    public static Application getApplication(Context context) {
+        if (context instanceof Application) {
+            return (Application) context;
+        }
+        Context applicationContext = context.getApplicationContext();
+        if (applicationContext != null) {
+            return (Application) applicationContext;
+        }
+        return null;
     }
 }

@@ -57,12 +57,6 @@ public class HappyVideo extends FrameLayout {
     }
 
     @Override
-    public void onWindowFocusChanged(boolean hasWindowFocus) {
-        super.onWindowFocusChanged(hasWindowFocus);
-        mVideoDelegate.onWindowFocusChanged(this, hasWindowFocus);
-    }
-
-    @Override
     public boolean dispatchKeyEvent(KeyEvent event) {
         if (event.getKeyCode() == KeyEvent.KEYCODE_BACK && getScene() == VideoDelegate.Scene.FULLSCREEN) {
             if (event.getAction() == KeyEvent.ACTION_UP) {
@@ -126,8 +120,8 @@ public class HappyVideo extends FrameLayout {
         return mVideoDelegate.setup(source, title, looping);
     }
 
-    public void setFullscreenActivity(Activity activity) {
-        mVideoDelegate.setFullscreenActivity(activity);
+    public void setActivity(Activity activity) {
+        mVideoDelegate.setActivity(activity);
     }
 
     public void setFullscreenAllowLandscape(boolean allowLandscape) {
