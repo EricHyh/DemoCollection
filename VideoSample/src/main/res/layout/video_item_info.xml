@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:paddingLeft="16dp"
+    android:paddingRight="16dp"
+    tools:background="#FF0000">
+
+    <ImageView
+        android:id="@+id/newsfeed_author_icon"
+        android:layout_width="36dp"
+        android:layout_height="36dp"
+        android:layout_marginBottom="12dp"
+        android:layout_marginTop="12dp"
+        tools:background="#FF00FF"/>
+
+    <TextView
+        android:id="@+id/newsfeed_author_name"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerVertical="true"
+        android:layout_marginLeft="16dp"
+        android:layout_toRightOf="@+id/newsfeed_author_icon"
+        tools:text="author name"/>
+
+    <ImageView
+        android:layout_width="20dp"
+        android:layout_height="20dp"
+        android:layout_alignParentRight="true"
+        android:layout_centerVertical="true"
+        tools:background="#FFFF00"/>
+
+</RelativeLayout>
