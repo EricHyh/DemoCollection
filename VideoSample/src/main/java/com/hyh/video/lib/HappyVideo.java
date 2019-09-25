@@ -16,7 +16,7 @@ import android.widget.FrameLayout;
 
 public class HappyVideo extends FrameLayout {
 
-    private VideoDelegate mVideoDelegate;
+    protected VideoDelegate mVideoDelegate;
 
     public HappyVideo(Context context) {
         this(context, null);
@@ -80,16 +80,32 @@ public class HappyVideo extends FrameLayout {
         mVideoDelegate.setSurfaceMeasurer(surfaceMeasurer);
     }
 
+    public ISurfaceMeasurer getSurfaceMeasurer() {
+        return mVideoDelegate.getSurfaceMeasurer();
+    }
+
     public void setVideoBackground(IVideoBackground background) {
         mVideoDelegate.setVideoBackground(background);
+    }
+
+    public IVideoBackground getVideoBackground() {
+        return mVideoDelegate.getVideoBackground();
     }
 
     public void setVideoPreview(IVideoPreview videoPreview) {
         mVideoDelegate.setVideoPreview(videoPreview);
     }
 
+    public IVideoPreview getVideoPreview() {
+        return mVideoDelegate.getVideoPreview();
+    }
+
     public void setVideoController(IVideoController controller) {
         mVideoDelegate.setVideoController(controller);
+    }
+
+    public IVideoController getVideoController() {
+        return mVideoDelegate.getVideoController();
     }
 
     public void addMediaEventListener(MediaEventListener listener) {
@@ -116,8 +132,16 @@ public class HappyVideo extends FrameLayout {
         mVideoDelegate.removeSurfaceListener(listener);
     }
 
+    public boolean setup(DataSource source, CharSequence title) {
+        return mVideoDelegate.setup(source, title);
+    }
+
     public boolean setup(DataSource source, CharSequence title, boolean looping) {
         return mVideoDelegate.setup(source, title, looping);
+    }
+
+    public boolean setup(DataSource source, CharSequence title, long playCount, boolean looping) {
+        return mVideoDelegate.setup(source, title, playCount, looping);
     }
 
     public void setActivity(Activity activity) {

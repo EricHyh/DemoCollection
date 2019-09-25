@@ -3,6 +3,8 @@ package com.hyh.video.lib;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
+import android.graphics.drawable.Drawable;
 import android.view.Gravity;
 import android.view.Surface;
 import android.view.View;
@@ -21,15 +23,23 @@ public class FirstFramePreview extends FrameLayout implements IVideoPreview {
     private final ImageView mPreviewImage;
     private final VideoPreviewHelper mVideoPreviewHelper;
 
+    private Drawable mDefaultDrawable;
+
     private ISurfaceMeasurer mSurfaceMeasurer;
 
     private DataSource mDataSource;
+
     private int mVideoWidth;
     private int mVideoHeight;
 
 
     public FirstFramePreview(Context context) {
+        this(context, new ColorDrawable(0xFFE8E8E8));
+    }
+
+    public FirstFramePreview(Context context, Drawable defaultDrawable) {
         super(context);
+        this.mDefaultDrawable = defaultDrawable;
         {
             mPreviewImage = new ImageView(context);
             LayoutParams imageParams = new LayoutParams(0, 0);
@@ -54,6 +64,10 @@ public class FirstFramePreview extends FrameLayout implements IVideoPreview {
         });
     }
 
+    public void setDefaultDrawable(Drawable defaultDrawable) {
+        mDefaultDrawable = defaultDrawable;
+    }
+
     @Override
     public View getView() {
         return this;
@@ -71,7 +85,8 @@ public class FirstFramePreview extends FrameLayout implements IVideoPreview {
             mPreviewImage.setImageBitmap(null);
         }
         mDataSource = dataSource;
-        this.setBackgroundColor(0xFFE8E8E8);
+
+        setBackgroundDrawable(mDefaultDrawable);
         requestFirstFrame(mediaInfo);
         mVideoPreviewHelper.setUp(videoDelegate);
     }

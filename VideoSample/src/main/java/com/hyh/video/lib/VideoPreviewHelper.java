@@ -153,7 +153,7 @@ public class VideoPreviewHelper {
         }
     }
 
-    interface PreviewAction {
+    public interface PreviewAction {
 
         void showPreview();
 

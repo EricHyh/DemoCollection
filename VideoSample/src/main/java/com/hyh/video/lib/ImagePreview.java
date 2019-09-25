@@ -2,6 +2,8 @@ package com.hyh.video.lib;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
+import android.graphics.drawable.ColorDrawable;
+import android.graphics.drawable.Drawable;
 import android.view.Surface;
 import android.view.View;
 import android.widget.ImageView;
@@ -15,13 +17,20 @@ import android.widget.ImageView;
 @SuppressLint("AppCompatCustomView")
 public class ImagePreview extends ImageView implements IVideoPreview {
 
-    private final VideoPreviewHelper mVideoPreviewHelper;
+    protected final VideoPreviewHelper mVideoPreviewHelper;
 
-    private DataSource mDataSource;
+    protected Drawable mDefaultDrawable;
+
+    protected DataSource mDataSource;
 
     public ImagePreview(Context context) {
+        this(context, new ColorDrawable(0xFFE8E8E8));
+    }
+
+    public ImagePreview(Context context, Drawable defaultDrawable) {
         super(context);
         setScaleType(ScaleType.CENTER_CROP);
+        mDefaultDrawable = defaultDrawable;
 
         mVideoPreviewHelper = new VideoPreviewHelper(new VideoPreviewHelper.PreviewAction() {
             @Override
@@ -40,6 +49,10 @@ public class ImagePreview extends ImageView implements IVideoPreview {
         });
     }
 
+    public void setDefaultDrawable(Drawable defaultDrawable) {
+        mDefaultDrawable = defaultDrawable;
+    }
+
     @Override
     public View getView() {
         return this;
@@ -53,7 +66,11 @@ public class ImagePreview extends ImageView implements IVideoPreview {
     public void setUp(VideoDelegate videoDelegate, IMediaInfo mediaInfo) {
         DataSource dataSource = videoDelegate.getDataSource();
         if (mDataSource != null && !mDataSource.equals(dataSource)) {
-            setImageBitmap(null);
+            if (mDefaultDrawable != null) {
+                setImageDrawable(mDefaultDrawable);
+            } else {
+                setImageBitmap(null);
+            }
         }
         mDataSource = dataSource;
         mVideoPreviewHelper.setUp(videoDelegate);

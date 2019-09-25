@@ -72,7 +72,7 @@ public class DefaultVideoController implements IVideoController {
     }
 
     @Override
-    public void setup(VideoDelegate videoDelegate, CharSequence title, IMediaInfo mediaInfo) {
+    public void setup(VideoDelegate videoDelegate, CharSequence title, long playCount, IMediaInfo mediaInfo) {
         this.mVideoDelegate = videoDelegate;
         this.mIsPauseBySurfaceDestroyed = false;
         this.mSurfaceDestroyedTimeMillis = 0;
@@ -80,7 +80,7 @@ public class DefaultVideoController implements IVideoController {
         mVideoDelegate.addMediaEventListener(mControllerMediaEventListener);
         mVideoDelegate.addMediaProgressListener(mVideoPositionHelper);
 
-        mControllerView.setup(videoDelegate, title, mediaInfo);
+        mControllerView.setup(videoDelegate, title, playCount, mediaInfo);
 
         mControllerView.setControllerViewTouchListener(new ControllerTouchListener());
         mControllerView.setControllerViewClickListener(new ControllerClickListener(ControllerClickListener.FLAG_CONTROLLER_VIEW));

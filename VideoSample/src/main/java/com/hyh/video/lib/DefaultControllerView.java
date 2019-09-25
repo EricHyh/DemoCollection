@@ -28,10 +28,9 @@ import android.widget.RelativeLayout;
 import android.widget.SeekBar;
 import android.widget.TextView;
 
-import com.hyh.video.sample.R;
-
 import java.lang.ref.WeakReference;
 import java.lang.reflect.Field;
+import java.math.BigDecimal;
 import java.util.Locale;
 
 /**
@@ -223,7 +222,7 @@ public class DefaultControllerView extends RelativeLayout implements IController
     }
 
     @Override
-    public void setup(VideoDelegate videoDelegate, final CharSequence title, IMediaInfo mediaInfo) {
+    public void setup(VideoDelegate videoDelegate, final CharSequence title, final long playCount, IMediaInfo mediaInfo) {
         this.mVideoDelegate = videoDelegate;
         setVisibility(mLoadingProgress, View.GONE);
         mTopContainer.saveLazyAction("setTitle", new LazyView.LazyAction<TopContainer>() {
@@ -252,10 +251,27 @@ public class DefaultControllerView extends RelativeLayout implements IController
         mInitialInfoContainer.saveLazyAction("reset", new LazyView.LazyAction<InitialInfoContainer>() {
             @Override
             public void doAction(InitialInfoContainer initialInfoContainer) {
-                initialInfoContainer.playTimes.setVisibility(GONE);
+                initialInfoContainer.playCount.setVisibility(GONE);
                 initialInfoContainer.duration.setVisibility(GONE);
             }
         });
+        if (playCount > 0) {
+            mInitialInfoContainer.saveLazyAction("setPlayCount", new LazyView.LazyAction<InitialInfoContainer>() {
+                @Override
+                public void doAction(InitialInfoContainer initialInfoContainer) {
+                    initialInfoContainer.playCount.setVisibility(VISIBLE);
+                    initialInfoContainer.playCount.setText(formatPlayCount(playCount));
+                }
+            });
+        } else {
+            mInitialInfoContainer.saveLazyAction("setPlayCount", new LazyView.LazyAction<InitialInfoContainer>() {
+                @Override
+                public void doAction(InitialInfoContainer initialInfoContainer) {
+                    initialInfoContainer.playCount.setVisibility(GONE);
+                    initialInfoContainer.playCount.setText(null);
+                }
+            });
+        }
         if (mediaInfo != null) {
             mediaInfo.getDuration(new IMediaInfo.Result<Long>() {
                 @Override
@@ -602,6 +618,22 @@ public class DefaultControllerView extends RelativeLayout implements IController
 
     public void setVisibility(LazyView lazyView, int visibility) {
         lazyView.setVisibility(visibility);
+    }
+
+    //多少万次播放
+    private String formatPlayCount(long playTimes) {
+        if (playTimes < 10000) {
+            return playTimes + "次播放";
+        } else {
+            double w = playTimes * 1.0 / 10000;
+            if (w < 10.0f) {
+                BigDecimal b = new BigDecimal(w);
+                w = b.setScale(1, BigDecimal.ROUND_HALF_UP).doubleValue();
+                return w + "万次播放";
+            } else {
+                return Math.round(w) + "万次播放";
+            }
+        }
     }
 
     //00:00:00
@@ -957,7 +989,7 @@ public class DefaultControllerView extends RelativeLayout implements IController
 
     public class InitialInfoContainer extends FrameLayout {
 
-        public final TextView playTimes;
+        public final TextView playCount;
         public final TextView duration;
 
         public InitialInfoContainer(Context context) {
@@ -965,14 +997,14 @@ public class DefaultControllerView extends RelativeLayout implements IController
             int _14dp = VideoUtils.dp2px(context, 14);
             setPadding(_14dp, 0, _14dp, 0);
             {
-                playTimes = new TextView(context);
-                playTimes.setTextSize(12);
-                playTimes.setVisibility(GONE);
-                playTimes.setTextColor(0xFFDEDEDE);
+                playCount = new TextView(context);
+                playCount.setTextSize(12);
+                playCount.setVisibility(GONE);
+                playCount.setTextColor(0xFFDEDEDE);
 
                 LayoutParams params = new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT);
                 params.gravity = Gravity.START | Gravity.CENTER_VERTICAL;
-                addView(playTimes, params);
+                addView(playCount, params);
             }
             {
                 duration = new TextView(context);

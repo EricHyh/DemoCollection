@@ -54,6 +54,8 @@ public class VideoDelegate {
     protected FrameLayout mVideoContainer;
 
     protected CharSequence mTitle;
+    protected long mPlayCount;
+
 
     public VideoDelegate(Context context) {
         this.mContext = context;
@@ -171,6 +173,10 @@ public class VideoDelegate {
         }
     }
 
+    public ISurfaceMeasurer getSurfaceMeasurer() {
+        return mSurfaceMeasurer;
+    }
+
     public void setVideoBackground(IVideoBackground background) {
         if (mVideoBackground == background) return;
         if (mVideoBackground != null) {
@@ -186,6 +192,10 @@ public class VideoDelegate {
                 mVideoContainer.addView(mVideoBackground.getBackgroundView(), 0);
             }
         }
+    }
+
+    public IVideoBackground getVideoBackground() {
+        return mVideoBackground;
     }
 
     public void setVideoPreview(IVideoPreview videoPreview) {
@@ -207,6 +217,10 @@ public class VideoDelegate {
         }
     }
 
+    public IVideoPreview getVideoPreview() {
+        return mVideoPreview;
+    }
+
     public void setVideoController(IVideoController controller) {
         if (mVideoController == controller) return;
         if (mVideoController != null) {
@@ -216,9 +230,13 @@ public class VideoDelegate {
         if (mVideoController != null) {
             mVideoContainer.addView(mVideoController.getView());
             if (getDataSource() != null) {
-                mVideoController.setup(this, mTitle, mMediaInfo);
+                mVideoController.setup(this, mTitle, mPlayCount, mMediaInfo);
             }
         }
+    }
+
+    public IVideoController getVideoController() {
+        return mVideoController;
     }
 
     public void addMediaEventListener(MediaEventListener listener) {
@@ -248,17 +266,26 @@ public class VideoDelegate {
         mSurfaceListeners.remove(listener);
     }
 
+    public boolean setup(DataSource source, CharSequence title) {
+        return setup(source, title, false);
+    }
+
     public boolean setup(DataSource source, CharSequence title, boolean looping) {
+        return setup(source, title, 0, looping);
+    }
+
+    public boolean setup(DataSource source, CharSequence title, long playCount, boolean looping) {
         boolean set = mMediaPlayer.setDataSource(source);
         if (set) {
             mMediaInfo.setup(source);
             this.mTitle = title;
+            this.mPlayCount = playCount;
             mMediaPlayer.setLooping(looping);
             if (mVideoPreview != null) {
                 mVideoPreview.setUp(this, mMediaInfo);
             }
             if (mVideoController != null) {
-                mVideoController.setup(this, title, mMediaInfo);
+                mVideoController.setup(this, title, playCount, mMediaInfo);
             }
             mVideoSurface.reset();
         }

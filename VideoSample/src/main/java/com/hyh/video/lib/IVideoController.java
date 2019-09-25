@@ -13,7 +13,7 @@ public interface IVideoController extends IVideoSurface.SurfaceListener {
 
     View getView();
 
-    void setup(VideoDelegate videoDelegate, CharSequence title, IMediaInfo mediaInfo);
+    void setup(VideoDelegate videoDelegate, CharSequence title, long playCount, IMediaInfo mediaInfo);
 
     boolean interceptPrepare(boolean autoStart);
 

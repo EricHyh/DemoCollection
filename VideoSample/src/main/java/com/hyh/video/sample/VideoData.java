@@ -52,7 +52,7 @@ public class VideoData implements MediaProgressListener {
         end = System.currentTimeMillis();
         Log.d("NativeVideoController", "bindVideoView: use time2 = " + (end - start));
 
-        mVideo.setup(new DataSource(videoUrl, DataSource.TYPE_NET), "视频标题", false);
+        mVideo.setup(new DataSource(videoUrl, DataSource.TYPE_NET), "视频标题", 0, false);
 
         end = System.currentTimeMillis();
         Log.d("NativeVideoController", "bindVideoView: use time3 = " + (end - start));
