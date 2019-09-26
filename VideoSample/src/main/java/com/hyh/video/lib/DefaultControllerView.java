@@ -28,6 +28,8 @@ import android.widget.RelativeLayout;
 import android.widget.SeekBar;
 import android.widget.TextView;
 
+import com.hyh.video.sample.R;
+
 import java.lang.ref.WeakReference;
 import java.lang.reflect.Field;
 import java.math.BigDecimal;
@@ -586,7 +588,7 @@ public class DefaultControllerView extends RelativeLayout implements IController
     @Override
     public void onVideoSceneChanged(final FrameLayout videoContainer, final int scene) {
         if (mTopContainer.getVisibility() == View.VISIBLE) {
-            if (scene == VideoDelegate.Scene.FULLSCREEN) {
+            if (scene == Scene.FULLSCREEN) {
                 mLockCheckBox.setVisibility(VISIBLE);
             } else {
                 mLockCheckBox.setVisibility(GONE);
@@ -604,6 +606,9 @@ public class DefaultControllerView extends RelativeLayout implements IController
                 bottomContainer.onVideoSceneChanged(videoContainer, scene);
             }
         });
+        if (scene == Scene.NORMAL && isFullScreenLocked()) {
+            mLockCheckBox.get().setChecked(false);
+        }
     }
 
     @Override
@@ -812,7 +817,7 @@ public class DefaultControllerView extends RelativeLayout implements IController
         }
 
         public void onVideoSceneChanged(FrameLayout videoContainer, int scene) {
-            if (scene == VideoDelegate.Scene.FULLSCREEN) {
+            if (scene == Scene.FULLSCREEN) {
                 fullscreenBackIcon.setVisibility(VISIBLE);
             } else {
                 fullscreenBackIcon.setVisibility(GONE);

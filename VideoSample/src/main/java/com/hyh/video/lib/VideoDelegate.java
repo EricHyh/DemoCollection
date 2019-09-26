@@ -32,6 +32,7 @@ public class VideoDelegate {
     private final List<MediaEventListener> mMediaEventListeners = new CopyOnWriteArrayList<>();
     private final List<MediaProgressListener> mMediaProgressListeners = new CopyOnWriteArrayList<>();
     private final List<IVideoSurface.SurfaceListener> mSurfaceListeners = new CopyOnWriteArrayList<>();
+    private final List<IVideoSceneChangeListener> mVideoSceneChangeListeners = new CopyOnWriteArrayList<>();
     private final SceneChangeHelper mSceneChangeHelper;
     private final ViewAttachStateListener mRootViewAttachListener = new ViewAttachStateListener();
     private final ViewAttachStateListener mWithViewAttachListener = new ViewAttachStateListener();
@@ -264,6 +265,16 @@ public class VideoDelegate {
 
     public void removeSurfaceListener(IVideoSurface.SurfaceListener listener) {
         mSurfaceListeners.remove(listener);
+    }
+
+
+    public void addVideoSceneChangeListener(IVideoSceneChangeListener listener) {
+        if (listener == null || mVideoSceneChangeListeners.contains(listener)) return;
+        mVideoSceneChangeListeners.add(listener);
+    }
+
+    public void removeVideoSceneChangeListener(IVideoSceneChangeListener listener) {
+        mVideoSceneChangeListeners.remove(listener);
     }
 
     public boolean setup(DataSource source, CharSequence title) {
@@ -665,12 +676,6 @@ public class VideoDelegate {
         }
     }
 
-    public interface Scene {
-        int NORMAL = 0;
-        int FULLSCREEN = 1;
-        int TINY = 2;
-    }
-
     class SceneChangeHelper implements OrientationManager.OrientationChangedListener {
 
         private static final int FULLSCREEN_KEEP_ORIENTATION = 1;
@@ -695,6 +700,7 @@ public class VideoDelegate {
 
         boolean startFullscreenScene() {
             if (mScene == Scene.FULLSCREEN) return false;
+            int oldScene = mScene;
             mScene = Scene.FULLSCREEN;
             ViewGroup rootView = (ViewGroup) mVideoContainer.getRootView();
             mNormalVideoContainer = mVideoContainer;
@@ -738,12 +744,13 @@ public class VideoDelegate {
                 }
             }
             rootView.requestChildFocus(happyVideo, rootView.getFocusedChild());
-            mVideoController.onVideoSceneChanged(mVideoContainer, mScene);
+            onVideoSceneChanged(oldScene, mScene);
             return true;
         }
 
         boolean recoverNormalScene() {
             if (mScene == Scene.NORMAL) return false;
+            int oldScene = mScene;
             mScene = Scene.NORMAL;
             ViewGroup parent = (ViewGroup) mVideoContainer.getParent();
             if (parent != null) {
@@ -777,8 +784,17 @@ public class VideoDelegate {
                     break;
                 }
             }
-            mVideoController.onVideoSceneChanged(mVideoContainer, mScene);
+            onVideoSceneChanged(oldScene, mScene);
             return true;
+        }
+
+        private void onVideoSceneChanged(int oldScene, int newScene) {
+            mVideoController.onVideoSceneChanged(mVideoContainer, newScene);
+            if (!mVideoSceneChangeListeners.isEmpty()) {
+                for (IVideoSceneChangeListener listener : mVideoSceneChangeListeners) {
+                    listener.onSceneChanged(oldScene, newScene);
+                }
+            }
         }
 
         int getFullscreenMode(Activity activity) {

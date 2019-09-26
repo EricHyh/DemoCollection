@@ -58,7 +58,7 @@ public class HappyVideo extends FrameLayout {
 
     @Override
     public boolean dispatchKeyEvent(KeyEvent event) {
-        if (event.getKeyCode() == KeyEvent.KEYCODE_BACK && getScene() == VideoDelegate.Scene.FULLSCREEN) {
+        if (event.getKeyCode() == KeyEvent.KEYCODE_BACK && getScene() == Scene.FULLSCREEN) {
             if (event.getAction() == KeyEvent.ACTION_UP) {
                 mVideoDelegate.onBackPress();
             }
@@ -130,6 +130,14 @@ public class HappyVideo extends FrameLayout {
 
     public void removeSurfaceListener(IVideoSurface.SurfaceListener listener) {
         mVideoDelegate.removeSurfaceListener(listener);
+    }
+
+    public void addVideoSceneChangeListener(IVideoSceneChangeListener listener) {
+        mVideoDelegate.addVideoSceneChangeListener(listener);
+    }
+
+    public void removeVideoSceneChangeListener(IVideoSceneChangeListener listener) {
+        mVideoDelegate.removeVideoSceneChangeListener(listener);
     }
 
     public boolean setup(DataSource source, CharSequence title) {

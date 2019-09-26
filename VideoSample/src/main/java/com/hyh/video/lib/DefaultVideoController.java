@@ -157,9 +157,9 @@ public class DefaultVideoController implements IVideoController {
 
     @Override
     public void onVideoSceneChanged(FrameLayout videoContainer, int scene) {
-        if (scene == VideoDelegate.Scene.FULLSCREEN) {
+        if (scene == Scene.FULLSCREEN) {
             onFullscreenScene(videoContainer);
-        } else if (scene == VideoDelegate.Scene.NORMAL) {
+        } else if (scene == Scene.NORMAL) {
             onNormalScene(videoContainer);
         }
         mControllerView.onVideoSceneChanged(videoContainer, scene);
@@ -193,7 +193,7 @@ public class DefaultVideoController implements IVideoController {
         videoContainer.setOnSystemUiVisibilityChangeListener(new View.OnSystemUiVisibilityChangeListener() {
             @Override
             public void onSystemUiVisibilityChange(int visibility) {
-                if (mVideoDelegate.getScene() == VideoDelegate.Scene.FULLSCREEN) {
+                if (mVideoDelegate.getScene() == Scene.FULLSCREEN) {
                     int systemUiVisibility = videoContainer.getSystemUiVisibility();
                     if (visibility == 0 ||
                             (systemUiVisibility & View.SYSTEM_UI_FLAG_LOW_PROFILE) == 0 ||
@@ -228,7 +228,7 @@ public class DefaultVideoController implements IVideoController {
 
     protected void showOperateView(int mode) {
         mControllerView.showOperateView(mode);
-        if (mVideoDelegate.getScene() == VideoDelegate.Scene.FULLSCREEN) {
+        if (mVideoDelegate.getScene() == Scene.FULLSCREEN) {
             /*if (mode == IControllerView.OperateMode.ALIVE) {
                 int flags = View.SYSTEM_UI_FLAG_LOW_PROFILE
                         | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
@@ -428,6 +428,10 @@ public class DefaultVideoController implements IVideoController {
             mIdleOperateViewTask.remove();
             mControllerView.showEndView();
             mCurControlState = CONTROL_STATE_END;
+
+            if (mVideoDelegate.getScene() != Scene.NORMAL) {
+                mVideoDelegate.recoverNormalScene();
+            }
         }
 
         @Override
@@ -574,7 +578,7 @@ public class DefaultVideoController implements IVideoController {
         }
 
         private void handleFullscreenToggleClick() {
-            if (mVideoDelegate.getScene() == VideoDelegate.Scene.NORMAL) {
+            if (mVideoDelegate.getScene() == Scene.NORMAL) {
                 mVideoDelegate.startFullscreenScene();
             } else {
                 mVideoDelegate.recoverNormalScene();
@@ -605,7 +609,7 @@ public class DefaultVideoController implements IVideoController {
         }
 
         private void handleFullscreenBackClick() {
-            if (mVideoDelegate.getScene() == VideoDelegate.Scene.FULLSCREEN) {
+            if (mVideoDelegate.getScene() == Scene.FULLSCREEN) {
                 mVideoDelegate.recoverNormalScene();
             }
         }
