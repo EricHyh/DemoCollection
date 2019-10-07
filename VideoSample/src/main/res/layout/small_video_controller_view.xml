@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:background="@drawable/test_small_video_cover">
+
+    <com.hyh.video.widget.NiceImageView
+        android:id="@+id/small_video_author_head"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:layout_alignParentBottom="true"
+        android:layout_marginBottom="16dp"
+        android:layout_marginLeft="16dp"
+        android:src="@drawable/test_head"
+        app:is_circle="true"/>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignBottom="@+id/small_video_author_head"
+        android:layout_alignTop="@+id/small_video_author_head"
+        android:layout_marginLeft="10dp"
+        android:layout_toRightOf="@+id/small_video_author_head"
+        android:gravity="center_vertical"
+        android:singleLine="true"
+        android:textColor="#FFFFFF"
+        android:textSize="18sp"
+        tools:text="author name"/>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_above="@+id/small_video_author_head"
+        android:layout_marginBottom="10dp"
+        android:layout_marginLeft="16dp"
+        android:layout_marginRight="16dp"
+        android:maxLines="2"
+        android:textColor="#FFFFFF"
+        android:textSize="16sp"
+        tools:text="this is title | this is title | this is title | this is title | this is title | this is title"/>
+
+    <ImageView
+        android:layout_width="42dp"
+        android:layout_height="42dp"
+        android:src="@drawable/small_video_play"
+        android:layout_centerInParent="true"/>
+
+</RelativeLayout>
