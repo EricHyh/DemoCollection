@@ -40,6 +40,7 @@ public class FirstFramePreview extends FrameLayout implements IVideoPreview {
     public FirstFramePreview(Context context, Drawable defaultDrawable) {
         super(context);
         this.mDefaultDrawable = defaultDrawable;
+        setBackgroundDrawable(mDefaultDrawable);
         {
             mPreviewImage = new ImageView(context);
             LayoutParams imageParams = new LayoutParams(0, 0);

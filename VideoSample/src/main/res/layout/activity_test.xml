@@ -5,12 +5,11 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <com.hyh.video.widget.NiceImageView
+    <com.hyh.video.widget.CircleImageView
         android:layout_width="60dp"
         android:layout_height="60dp"
-        android:src="@drawable/test_head"
         android:background="#FF0000"
         android:scaleType="centerCrop"
-        app:is_circle="true"/>
+        android:src="@drawable/test_head"/>
 
 </LinearLayout>

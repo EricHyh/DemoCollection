@@ -6,6 +6,7 @@ import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.view.Surface;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.ImageView;
 
 /**
@@ -31,6 +32,7 @@ public class ImagePreview extends ImageView implements IVideoPreview {
         super(context);
         setScaleType(ScaleType.CENTER_CROP);
         mDefaultDrawable = defaultDrawable;
+        setImageDrawable(mDefaultDrawable);
 
         mVideoPreviewHelper = new VideoPreviewHelper(new VideoPreviewHelper.PreviewAction() {
             @Override
@@ -60,6 +62,14 @@ public class ImagePreview extends ImageView implements IVideoPreview {
 
     @Override
     public void setSurfaceMeasurer(ISurfaceMeasurer surfaceMeasurer) {
+        ViewGroup.LayoutParams layoutParams = getLayoutParams();
+        if (layoutParams == null) {
+            layoutParams = new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
+            setLayoutParams(layoutParams);
+        } else {
+            layoutParams.width = ViewGroup.LayoutParams.MATCH_PARENT;
+            layoutParams.height = ViewGroup.LayoutParams.MATCH_PARENT;
+        }
     }
 
     @Override

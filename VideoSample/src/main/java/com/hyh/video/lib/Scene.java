@@ -8,5 +8,5 @@ package com.hyh.video.lib;
 public interface Scene {
     int NORMAL = 0;
     int FULLSCREEN = 1;
-    int TINY = 2;
+    //int TINY = 2;
 }

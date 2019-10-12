@@ -207,10 +207,11 @@ public class VideoDelegate {
         this.mVideoPreview = videoPreview;
         if (mVideoPreview != null) {
             mVideoPreview.setSurfaceMeasurer(mSurfaceMeasurer);
+            View view = mVideoPreview.getView();
             if (mVideoBackground != null && mVideoBackground.getBackgroundView() != null) {
-                mVideoContainer.addView(mVideoPreview.getView(), 2);
+                mVideoContainer.addView(view, 2);
             } else {
-                mVideoContainer.addView(mVideoPreview.getView(), 1);
+                mVideoContainer.addView(view, 1);
             }
             if (getDataSource() != null) {
                 mVideoPreview.setUp(this, mMediaInfo);

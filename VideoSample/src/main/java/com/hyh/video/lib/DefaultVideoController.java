@@ -226,32 +226,6 @@ public class DefaultVideoController implements IVideoController {
     private void onNormalScene(FrameLayout videoContainer) {
     }
 
-    protected void showOperateView(int mode) {
-        mControllerView.showOperateView(mode);
-        if (mVideoDelegate.getScene() == Scene.FULLSCREEN) {
-            /*if (mode == IControllerView.OperateMode.ALIVE) {
-                int flags = View.SYSTEM_UI_FLAG_LOW_PROFILE
-                        | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-                        | View.SYSTEM_UI_FLAG_IMMERSIVE
-                        | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-                        | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION;
-                mControllerView.getView().setSystemUiVisibility(flags);
-            } else {
-                int flags = View.SYSTEM_UI_FLAG_LOW_PROFILE
-                        | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-                        | View.SYSTEM_UI_FLAG_FULLSCREEN
-                        | View.SYSTEM_UI_FLAG_IMMERSIVE
-                        | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-                        | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION;
-                mControllerView.getView().setSystemUiVisibility(flags);
-            }*/
-        }
-    }
-
-    protected boolean isAllowPlayWhenMobileData() {
-        return sAllowPlayWhenMobileData;
-    }
-
     @Override
     public void onSurfaceCreate(Surface surface) {
         Log.d(TAG, "onSurfaceCreate: ");
@@ -283,21 +257,143 @@ public class DefaultVideoController implements IVideoController {
         mSurfaceDestroyedTimeMillis = System.currentTimeMillis();
     }
 
+
+    protected void handleControllerViewClick() {
+        switch (mCurControlState) {
+            case CONTROL_STATE_INITIAL: {
+                if (!VideoUtils.isNetEnv(mContext)) {
+                    Toast.makeText(mContext, "网络不可用", Toast.LENGTH_SHORT).show();
+                } else {
+                    mVideoDelegate.start();
+                }
+                break;
+            }
+            case CONTROL_STATE_OPERATE: {
+                mIdleOperateViewTask.remove();
+                if (mControllerView.isShowOperateView()) {
+                    showOperateView(IControllerView.OperateMode.IDLE);
+                } else {
+                    showOperateView(IControllerView.OperateMode.ALIVE);
+                    if (mVideoDelegate.isExecuteStart()) {
+                        mIdleOperateViewTask.post();
+                    }
+                }
+                break;
+            }
+        }
+    }
+
+    protected void handleStartIconClick() {
+        mIdleOperateViewTask.remove();
+        if (mVideoDelegate.isExecuteStart()) {
+            mVideoDelegate.pause();
+        } else {
+            if (!VideoUtils.isNetEnv(mContext)) {
+                Toast.makeText(mContext, "网络不可用", Toast.LENGTH_SHORT).show();
+            } else {
+                mVideoDelegate.start();
+                mIdleOperateViewTask.post();
+            }
+        }
+    }
+
+    protected void handleReplayIconCLick() {
+        if (!VideoUtils.isNetEnv(mContext)) {
+            Toast.makeText(mContext, "网络不可用", Toast.LENGTH_SHORT).show();
+        } else {
+            mVideoDelegate.restart();
+            mControllerView.hideEndView();
+        }
+    }
+
+
+    protected void handleRetryButtonClick() {
+        if (!VideoUtils.isNetEnv(mContext)) {
+            Toast.makeText(mContext, "网络不可用", Toast.LENGTH_SHORT).show();
+        } else {
+            mVideoDelegate.retry();
+            mControllerView.hideErrorView();
+        }
+    }
+
+    protected void handleFullscreenToggleClick() {
+        if (mVideoDelegate.getScene() == Scene.NORMAL) {
+            mVideoDelegate.startFullscreenScene();
+        } else {
+            mVideoDelegate.recoverNormalScene();
+        }
+    }
+
+    protected void handleMobileDataConfirmClick() {
+        sAllowPlayWhenMobileData = true;
+        switch (mCurInterceptCommand) {
+            case INTERCEPT_PREPARE: {
+                mVideoDelegate.prepare(mInterceptPrepareAutoStart);
+                break;
+            }
+            case INTERCEPT_START: {
+                mVideoDelegate.start();
+                break;
+            }
+            case INTERCEPT_RESTART: {
+                mVideoDelegate.restart();
+                break;
+            }
+            case INTERCEPT_RETRY: {
+                mVideoDelegate.retry();
+                break;
+            }
+        }
+        mControllerView.hideMobileDataConfirm();
+    }
+
+    protected void handleFullscreenBackClick() {
+        if (mVideoDelegate.getScene() == Scene.FULLSCREEN) {
+            mVideoDelegate.recoverNormalScene();
+        }
+    }
+
+    protected void showOperateView(int mode) {
+        mControllerView.showOperateView(mode);
+        if (mVideoDelegate.getScene() == Scene.FULLSCREEN) {
+            /*if (mode == IControllerView.OperateMode.ALIVE) {
+                int flags = View.SYSTEM_UI_FLAG_LOW_PROFILE
+                        | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                        | View.SYSTEM_UI_FLAG_IMMERSIVE
+                        | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                        | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION;
+                mControllerView.getView().setSystemUiVisibility(flags);
+            } else {
+                int flags = View.SYSTEM_UI_FLAG_LOW_PROFILE
+                        | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                        | View.SYSTEM_UI_FLAG_FULLSCREEN
+                        | View.SYSTEM_UI_FLAG_IMMERSIVE
+                        | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                        | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION;
+                mControllerView.getView().setSystemUiVisibility(flags);
+            }*/
+        }
+    }
+
+    protected boolean isAllowPlayWhenMobileData() {
+        return sAllowPlayWhenMobileData;
+    }
+
     private class VideoPositionHelper implements MediaProgressListener, SeekBar.OnSeekBarChangeListener {
 
         private boolean mIsStartTrackingTouch;
 
-        void onStop(long currentPosition, long duration) {
+        public void onStop(long currentPosition, long duration) {
             mControllerView.setMediaProgress(0);
             mControllerView.setCurrentPosition(0);
         }
 
-        void onSeekStart(long seekMilliSeconds, int seekProgress) {
+        public void onSeekStart(long seekMilliSeconds, int seekProgress) {
             mControllerView.setMediaProgress(seekProgress);
             mControllerView.setCurrentPosition(seekMilliSeconds);
         }
 
-        void onSeekEnd() {
+        public void onSeekEnd() {
         }
 
         @Override
@@ -328,7 +424,7 @@ public class DefaultVideoController implements IVideoController {
         }
     }
 
-    private class ControllerMediaEventListener extends SimpleMediaEventListener {
+    public class ControllerMediaEventListener extends SimpleMediaEventListener {
 
         @Override
         public void onPreparing(boolean autoStart) {
@@ -360,9 +456,6 @@ public class DefaultVideoController implements IVideoController {
         public void onStart(long currentPosition, long duration, int bufferingPercent) {
             mControllerView.hideLoadingView();
             mCurControlState = CONTROL_STATE_OPERATE;
-
-            Log.d(TAG, "onStart: " + mVideoDelegate.isPlaying());
-
         }
 
         @Override
@@ -442,7 +535,7 @@ public class DefaultVideoController implements IVideoController {
         }
     }
 
-    private class ControllerTouchListener implements View.OnTouchListener {
+    public class ControllerTouchListener implements View.OnTouchListener {
 
         @SuppressLint("ClickableViewAccessibility")
         @Override
@@ -467,7 +560,7 @@ public class DefaultVideoController implements IVideoController {
         }
     }
 
-    private class ControllerClickListener implements View.OnClickListener {
+    public class ControllerClickListener implements View.OnClickListener {
 
         private static final int FLAG_CONTROLLER_VIEW = 1;
         private static final int FLAG_PLAY_OR_PAUSE = 2;
@@ -516,106 +609,9 @@ public class DefaultVideoController implements IVideoController {
                 }
             }
         }
-
-        private void handleControllerViewClick() {
-            switch (mCurControlState) {
-                case CONTROL_STATE_INITIAL: {
-                    if (!VideoUtils.isNetEnv(mContext)) {
-                        Toast.makeText(mContext, "网络不可用", Toast.LENGTH_SHORT).show();
-                    } else {
-                        mVideoDelegate.start();
-                    }
-                    break;
-                }
-                case CONTROL_STATE_OPERATE: {
-                    mIdleOperateViewTask.remove();
-                    if (mControllerView.isShowOperateView()) {
-                        showOperateView(IControllerView.OperateMode.IDLE);
-                    } else {
-                        showOperateView(IControllerView.OperateMode.ALIVE);
-                        if (mVideoDelegate.isExecuteStart()) {
-                            mIdleOperateViewTask.post();
-                        }
-                    }
-                    break;
-                }
-            }
-        }
-
-        private void handleStartIconClick() {
-            mIdleOperateViewTask.remove();
-            if (mVideoDelegate.isExecuteStart()) {
-                mVideoDelegate.pause();
-                mControllerView.setPlayStyle();
-            } else {
-                if (!VideoUtils.isNetEnv(mContext)) {
-                    Toast.makeText(mContext, "网络不可用", Toast.LENGTH_SHORT).show();
-                } else {
-                    mVideoDelegate.start();
-                    mControllerView.setPauseStyle();
-                    mIdleOperateViewTask.post();
-                }
-            }
-        }
-
-        private void handleReplayIconCLick() {
-            if (!VideoUtils.isNetEnv(mContext)) {
-                Toast.makeText(mContext, "网络不可用", Toast.LENGTH_SHORT).show();
-            } else {
-                mVideoDelegate.restart();
-                mControllerView.hideEndView();
-            }
-        }
-
-
-        private void handleRetryButtonClick() {
-            if (!VideoUtils.isNetEnv(mContext)) {
-                Toast.makeText(mContext, "网络不可用", Toast.LENGTH_SHORT).show();
-            } else {
-                mVideoDelegate.retry();
-                mControllerView.hideErrorView();
-            }
-        }
-
-        private void handleFullscreenToggleClick() {
-            if (mVideoDelegate.getScene() == Scene.NORMAL) {
-                mVideoDelegate.startFullscreenScene();
-            } else {
-                mVideoDelegate.recoverNormalScene();
-            }
-        }
-
-        private void handleMobileDataConfirmClick() {
-            sAllowPlayWhenMobileData = true;
-            switch (mCurInterceptCommand) {
-                case INTERCEPT_PREPARE: {
-                    mVideoDelegate.prepare(mInterceptPrepareAutoStart);
-                    break;
-                }
-                case INTERCEPT_START: {
-                    mVideoDelegate.start();
-                    break;
-                }
-                case INTERCEPT_RESTART: {
-                    mVideoDelegate.restart();
-                    break;
-                }
-                case INTERCEPT_RETRY: {
-                    mVideoDelegate.retry();
-                    break;
-                }
-            }
-            mControllerView.hideMobileDataConfirm();
-        }
-
-        private void handleFullscreenBackClick() {
-            if (mVideoDelegate.getScene() == Scene.FULLSCREEN) {
-                mVideoDelegate.recoverNormalScene();
-            }
-        }
     }
 
-    private static class SurfaceDestroyTask implements Runnable {
+    public static class SurfaceDestroyTask implements Runnable {
 
         private WeakReference<DefaultVideoController> mDefaultVideoControllerRef;
 
@@ -632,20 +628,20 @@ public class DefaultVideoController implements IVideoController {
             defaultVideoController.mCurControlState = CONTROL_STATE_INITIAL;
         }
 
-        void post() {
+        public void post() {
             DefaultVideoController defaultVideoController = mDefaultVideoControllerRef.get();
             if (defaultVideoController == null) return;
             VideoUtils.postUiThreadDelayed(this, 300);
         }
 
-        void remove() {
+        public void remove() {
             DefaultVideoController defaultVideoController = mDefaultVideoControllerRef.get();
             if (defaultVideoController == null) return;
             VideoUtils.removeUiThreadRunnable(this);
         }
     }
 
-    private static class IdleOperateViewTask implements Runnable {
+    public static class IdleOperateViewTask implements Runnable {
 
         private WeakReference<DefaultVideoController> mDefaultVideoControllerRef;
 
@@ -660,13 +656,13 @@ public class DefaultVideoController implements IVideoController {
             defaultVideoController.showOperateView(IControllerView.OperateMode.IDLE);
         }
 
-        void post() {
+        public void post() {
             DefaultVideoController defaultVideoController = mDefaultVideoControllerRef.get();
             if (defaultVideoController == null) return;
             VideoUtils.postUiThreadDelayed(this, 3666);
         }
 
-        void remove() {
+        public void remove() {
             DefaultVideoController defaultVideoController = mDefaultVideoControllerRef.get();
             if (defaultVideoController == null) return;
             VideoUtils.removeUiThreadRunnable(this);

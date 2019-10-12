@@ -28,8 +28,6 @@ import android.widget.RelativeLayout;
 import android.widget.SeekBar;
 import android.widget.TextView;
 
-import com.hyh.video.sample.R;
-
 import java.lang.ref.WeakReference;
 import java.lang.reflect.Field;
 import java.math.BigDecimal;
@@ -633,8 +631,13 @@ public class DefaultControllerView extends RelativeLayout implements IController
             double w = playTimes * 1.0 / 10000;
             if (w < 10.0f) {
                 BigDecimal b = new BigDecimal(w);
-                w = b.setScale(1, BigDecimal.ROUND_HALF_UP).doubleValue();
-                return w + "万次播放";
+                int scale = b.scale();
+                if (scale > 1) {
+                    w = b.setScale(1, BigDecimal.ROUND_HALF_UP).doubleValue();
+                    return w + "万次播放";
+                } else {
+                    return Math.round(w) + "万次播放";
+                }
             } else {
                 return Math.round(w) + "万次播放";
             }
@@ -1030,7 +1033,7 @@ public class DefaultControllerView extends RelativeLayout implements IController
 
     public class EndViewContainer extends FrameLayout {
 
-        private final LinearLayout replayContainer;
+        public final LinearLayout replayContainer;
 
         public EndViewContainer(Context context) {
             super(context);
@@ -1069,8 +1072,8 @@ public class DefaultControllerView extends RelativeLayout implements IController
 
     public class ErrorViewContainer extends LinearLayout {
 
-        private final TextView errorText;
-        private final TextView retryButton;
+        public final TextView errorText;
+        public final TextView retryButton;
 
         public ErrorViewContainer(Context context) {
             super(context);
@@ -1104,8 +1107,8 @@ public class DefaultControllerView extends RelativeLayout implements IController
 
     public class MobileDataConfirmContainer extends LinearLayout {
 
-        private final TextView mobileDataConfirmText;
-        private final TextView mobileDataSureButton;
+        public final TextView mobileDataConfirmText;
+        public final TextView mobileDataSureButton;
 
         public MobileDataConfirmContainer(Context context) {
             super(context);
@@ -1197,11 +1200,11 @@ public class DefaultControllerView extends RelativeLayout implements IController
 
     }
 
-    private static class ShowLoadingViewTask implements Runnable {
+    public static class ShowLoadingViewTask implements Runnable {
 
-        private final WeakReference<DefaultControllerView> mControllerViewRef;
+        public final WeakReference<DefaultControllerView> mControllerViewRef;
 
-        private volatile boolean mIsRemove;
+        public volatile boolean mIsRemove;
 
         public ShowLoadingViewTask(DefaultControllerView controllerView) {
             mControllerViewRef = new WeakReference<>(controllerView);
@@ -1215,14 +1218,14 @@ public class DefaultControllerView extends RelativeLayout implements IController
             controllerView.showLoadingView();
         }
 
-        void post(long delayMillis) {
+        public void post(long delayMillis) {
             DefaultControllerView controllerView = mControllerViewRef.get();
             if (controllerView == null) return;
             mIsRemove = false;
             VideoUtils.postUiThreadDelayed(this, delayMillis);
         }
 
-        void remove() {
+        public void remove() {
             mIsRemove = true;
             DefaultControllerView controllerView = mControllerViewRef.get();
             if (controllerView == null) return;
