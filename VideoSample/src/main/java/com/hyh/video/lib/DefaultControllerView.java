@@ -28,6 +28,8 @@ import android.widget.RelativeLayout;
 import android.widget.SeekBar;
 import android.widget.TextView;
 
+import com.hyh.video.sample.R;
+
 import java.lang.ref.WeakReference;
 import java.lang.reflect.Field;
 import java.math.BigDecimal;
@@ -1038,7 +1040,6 @@ public class DefaultControllerView extends RelativeLayout implements IController
         public EndViewContainer(Context context) {
             super(context);
             setBackgroundColor(0x55000000);
-
             replayContainer = new LinearLayout(context);
             replayContainer.setOrientation(LinearLayout.HORIZONTAL);
             replayContainer.setOnClickListener(DefaultControllerView.this);

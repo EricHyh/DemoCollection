@@ -2,14 +2,35 @@
 <LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:background="#FF061727"
+    android:orientation="horizontal">
 
-    <com.hyh.video.widget.CircleImageView
-        android:layout_width="60dp"
-        android:layout_height="60dp"
+
+    <TextView
+        android:id="@+id/text"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_vertical"
+        android:layout_marginRight="20dp"
+        android:layout_weight="1"
         android:background="#FF0000"
-        android:scaleType="centerCrop"
-        android:src="@drawable/test_head"/>
+        android:ellipsize="marquee"
+        android:focusable="true"
+        android:focusableInTouchMode="true"
+        android:singleLine="true"
+        android:textColor="#FFFFFF"
+        android:textSize="16sp"
+        tools:text="1 2 3 4 5 6 7 8 9 a b c d e f g h i"/>
+
+    <!--"1 2 3 4 5 6 7 8 9 a b c d e f g h i j k l m n o p q r s t u v w x y z"-->
+
+
+    <View
+        android:layout_width="200dp"
+        android:layout_height="20dp"
+        android:background="#FFFFFF"/>
 
 </LinearLayout>

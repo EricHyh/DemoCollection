@@ -26,6 +26,33 @@ public class VideoManager {
         }
     }
 
+    public void pauseCurrent() {
+        synchronized (mLock) {
+            VideoDelegate currentStartVideo = mCurrentStartVideo;
+            if (currentStartVideo != null) {
+                currentStartVideo.pause();
+            }
+        }
+    }
+
+    public void stopCurrent() {
+        synchronized (mLock) {
+            VideoDelegate currentStartVideo = mCurrentStartVideo;
+            if (currentStartVideo != null) {
+                currentStartVideo.stop();
+            }
+        }
+    }
+
+    public void releaseCurrent() {
+        synchronized (mLock) {
+            VideoDelegate currentStartVideo = mCurrentStartVideo;
+            if (currentStartVideo != null) {
+                currentStartVideo.release();
+            }
+        }
+    }
+
     private class VideoListener extends SimpleMediaEventListener {
 
         private VideoDelegate mVideo;
