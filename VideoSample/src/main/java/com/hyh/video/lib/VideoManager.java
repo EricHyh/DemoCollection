@@ -1,5 +1,7 @@
 package com.hyh.video.lib;
 
+import java.lang.ref.WeakReference;
+
 /**
  * Created by Eric_He on 2019/3/10.
  */
@@ -14,7 +16,7 @@ public class VideoManager {
         return sInstance;
     }
 
-    private VideoDelegate mCurrentStartVideo;
+    private WeakReference<VideoDelegate> mCurrentStartVideoRef;
 
     void addVideo(VideoDelegate video) {
         video.addMediaEventListener(new VideoListener(video));
@@ -22,33 +24,47 @@ public class VideoManager {
 
     public boolean hasStartVideo() {
         synchronized (mLock) {
-            return mCurrentStartVideo != null && mCurrentStartVideo.isExecuteStart();
+            final WeakReference<VideoDelegate> currentStartVideoRef = mCurrentStartVideoRef;
+            if (currentStartVideoRef != null) {
+                final VideoDelegate videoDelegate = currentStartVideoRef.get();
+                return videoDelegate != null && videoDelegate.isExecuteStart();
+            }
+            return false;
         }
     }
 
     public void pauseCurrent() {
         synchronized (mLock) {
-            VideoDelegate currentStartVideo = mCurrentStartVideo;
-            if (currentStartVideo != null) {
-                currentStartVideo.pause();
+            final WeakReference<VideoDelegate> currentStartVideoRef = mCurrentStartVideoRef;
+            if (currentStartVideoRef != null) {
+                final VideoDelegate currentStartVideo = currentStartVideoRef.get();
+                if (currentStartVideo != null) {
+                    currentStartVideo.pause();
+                }
             }
         }
     }
 
     public void stopCurrent() {
         synchronized (mLock) {
-            VideoDelegate currentStartVideo = mCurrentStartVideo;
-            if (currentStartVideo != null) {
-                currentStartVideo.stop();
+            final WeakReference<VideoDelegate> currentStartVideoRef = mCurrentStartVideoRef;
+            if (currentStartVideoRef != null) {
+                VideoDelegate currentStartVideo = currentStartVideoRef.get();
+                if (currentStartVideo != null) {
+                    currentStartVideo.stop();
+                }
             }
         }
     }
 
     public void releaseCurrent() {
         synchronized (mLock) {
-            VideoDelegate currentStartVideo = mCurrentStartVideo;
-            if (currentStartVideo != null) {
-                currentStartVideo.release();
+            final WeakReference<VideoDelegate> currentStartVideoRef = mCurrentStartVideoRef;
+            if (currentStartVideoRef != null) {
+                VideoDelegate currentStartVideo = currentStartVideoRef.get();
+                if (currentStartVideo != null) {
+                    currentStartVideo.release();
+                }
             }
         }
     }
@@ -107,20 +123,24 @@ public class VideoManager {
 
         private void handleVideoStart() {
             synchronized (mLock) {
-                if (mCurrentStartVideo == mVideo) {
+                final WeakReference<VideoDelegate> currentStartVideoRef = mCurrentStartVideoRef;
+                VideoDelegate currentStartVideo = currentStartVideoRef == null ? null : currentStartVideoRef.get();
+                if (currentStartVideo == mVideo) {
                     return;
                 }
-                if (mCurrentStartVideo != null) {
-                    mCurrentStartVideo.pause();
+                if (currentStartVideo != null) {
+                    currentStartVideo.pause();
                 }
-                mCurrentStartVideo = mVideo;
+                mCurrentStartVideoRef = new WeakReference<>(mVideo);
             }
         }
 
         private void handleVideoEnd() {
             synchronized (mLock) {
-                if (mCurrentStartVideo == mVideo) {
-                    mCurrentStartVideo = null;
+                final WeakReference<VideoDelegate> currentStartVideoRef = mCurrentStartVideoRef;
+                VideoDelegate currentStartVideo = currentStartVideoRef == null ? null : currentStartVideoRef.get();
+                if (currentStartVideo == mVideo) {
+                    mCurrentStartVideoRef = null;
                 }
             }
         }

@@ -30,7 +30,7 @@ public class ImagePreview extends ImageView implements IVideoPreview {
 
     public ImagePreview(Context context, Drawable defaultDrawable) {
         super(context);
-        setScaleType(ScaleType.CENTER_CROP);
+        setScaleType(ScaleType.FIT_CENTER);
         mDefaultDrawable = defaultDrawable;
         setImageDrawable(mDefaultDrawable);
 

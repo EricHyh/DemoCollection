@@ -145,7 +145,7 @@ public class VideoDelegate {
     }
 
     public void onDetachedFromWindow(View view) {
-        mRootViewAttachListener.unListenerViewAttachState(view.getRootView());
+        //mRootViewAttachListener.unListenerViewAttachState(view.getRootView());
     }
 
     public void onBackPress() {
@@ -495,6 +495,8 @@ public class VideoDelegate {
 
         @Override
         public void onPrepared(long duration) {
+            mSceneChangeHelper.prepare();
+
             for (MediaEventListener listener : mMediaEventListeners) {
                 listener.onPrepared(duration);
             }
@@ -624,13 +626,14 @@ public class VideoDelegate {
 
         @Override
         public void onRelease(long currentPosition, long duration) {
+            mSceneChangeHelper.release();
+
             for (MediaEventListener listener : mMediaEventListeners) {
                 listener.onRelease(currentPosition, duration);
             }
             if (mVideoContainer != null) {
                 mVideoContainer.setKeepScreenOn(false);
             }
-            mSceneChangeHelper.onVideoRelease();
             mAudioFocusChangeHelper.abandonAudioFocus();
             mActivityLifecycleHelper.unListenerActivityLifecycle();
         }
@@ -674,6 +677,8 @@ public class VideoDelegate {
         @Override
         public void onViewDetachedFromWindow(View v) {
             release();
+            unListenerViewAttachState(v);
+            VideoUtils.log("ViewAttachStateListener onViewDetachedFromWindow: " + v);
         }
     }
 
@@ -696,6 +701,10 @@ public class VideoDelegate {
 
         SceneChangeHelper(Context context) {
             this.context = context;
+        }
+
+        void prepare() {
+            VideoUtils.log("SceneChangeHelper prepare: " + this);
             OrientationManager.getInstance(context).addOrientationChangedListener(this);
         }
 
@@ -872,7 +881,8 @@ public class VideoDelegate {
             }
         }
 
-        void onVideoRelease() {
+        void release() {
+            VideoUtils.log("SceneChangeHelper release: " + this);
             OrientationManager.getInstance(context).removeOrientationChangedListener(this);
         }
     }

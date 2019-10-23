@@ -61,13 +61,14 @@ public class OrientationManager implements SensorEventListener {
     }
 
     public void addOrientationChangedListener(OrientationChangedListener listener) {
-        if (listener == null) return;
+        if (listener == null || mListeners.contains(listener)) return;
         mListeners.add(listener);
     }
 
     public void removeOrientationChangedListener(OrientationChangedListener listener) {
         if (listener == null) return;
         mListeners.remove(listener);
+        VideoUtils.log("removeOrientationChangedListener size = " + mListeners.size());
     }
 
     public int getCurrentOrientation() {
