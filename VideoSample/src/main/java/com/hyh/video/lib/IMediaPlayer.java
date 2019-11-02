@@ -64,7 +64,7 @@ public interface IMediaPlayer {
 
         public static final int IDLE = 0;
 
-        public static final int INITIALIZED = 1;
+        public static final int INITIALIZED = 1;//设置了数据
 
         public static final int PREPARING = 2;
 
