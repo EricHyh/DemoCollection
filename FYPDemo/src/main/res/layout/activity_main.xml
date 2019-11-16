@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <com.hyh.fyp.behavior.ScrollableCoordinatorLayout
+        xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:app="http://schemas.android.com/apk/res-auto"
+        android:id="@+id/scrollable_coordinatorlayout"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <com.hyh.fyp.behavior.HeaderNestedScrollView
+            android:id="@+id/header_nested_scrollview"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="60dp"
+                    android:background="#FF0000" />
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="60dp"
+                    android:background="#FF00FF" />
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="60dp"
+                    android:background="#FF00FF" />
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="60dp"
+                    android:background="#FF00FF" />
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="60dp"
+                    android:background="#FF00FF" />
+
+            </LinearLayout>
+
+        </com.hyh.fyp.behavior.HeaderNestedScrollView>
+
+        <android.support.v4.widget.NestedScrollView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:fillViewport="true"
+            app:layout_behavior="com.hyh.fyp.behavior.FixedBehavior">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="100dp"
+                    android:background="#0000FF" />
+            </LinearLayout>
+
+
+        </android.support.v4.widget.NestedScrollView>
+
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            app:layout_behavior="com.hyh.fyp.behavior.ContentBehavior">
+
+            <android.support.v7.widget.RecyclerView
+                android:id="@+id/recycler_view"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent" />
+
+        </FrameLayout>
+
+    </com.hyh.fyp.behavior.ScrollableCoordinatorLayout>
+
+    <Button
+        android:id="@+id/expand_btn"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentRight="true"
+        android:layout_alignParentBottom="true"
+        android:onClick="expand"
+        android:text="展开" />
+
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_above="@+id/expand_btn"
+        android:layout_alignParentRight="true"
+        android:onClick="collapse"
+        android:text="折叠" />
+
+</RelativeLayout>
