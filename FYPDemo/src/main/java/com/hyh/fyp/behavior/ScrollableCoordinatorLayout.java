@@ -46,10 +46,12 @@ public class ScrollableCoordinatorLayout extends CoordinatorLayout {
         int scrollRange = getScrollRange();
         int scrollY = getScrollY();
         if (expanded) {
+            if (scrollY == 0) return;
             //scrollTo(0, 0);
             mScroller.startScroll(0, scrollY, 0, -scrollY);
             postInvalidate();
         } else {
+            if (scrollY == scrollRange) return;
             mScroller.startScroll(0, scrollY, 0, scrollRange - scrollY);
             postInvalidate();
             //scrollTo(0, getScrollRange());

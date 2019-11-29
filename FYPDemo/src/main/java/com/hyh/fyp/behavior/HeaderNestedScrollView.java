@@ -4,6 +4,7 @@ import android.content.Context;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.design.widget.CoordinatorLayout;
+import android.support.v4.view.ViewCompat;
 import android.support.v4.widget.NestedScrollView;
 import android.util.AttributeSet;
 import android.util.Log;
@@ -232,6 +233,9 @@ public class HeaderNestedScrollView extends CustomNestedScrollView implements Co
                                        @NonNull View target,
                                        int type) {
             super.onStopNestedScroll(coordinatorLayout, child, target, type);
+            if (type == ViewCompat.TYPE_NON_TOUCH) {
+                mLastFlingView = null;
+            }
         }
 
         @Override
@@ -247,6 +251,7 @@ public class HeaderNestedScrollView extends CustomNestedScrollView implements Co
                 mLastFlingView = target;
                 return false;
             }
+            mLastFlingView = null;
             return true;
         }
 
@@ -264,6 +269,7 @@ public class HeaderNestedScrollView extends CustomNestedScrollView implements Co
                 mLastFlingView = target;
                 return false;
             }
+            mLastFlingView = null;
             return true;
         }
     }
