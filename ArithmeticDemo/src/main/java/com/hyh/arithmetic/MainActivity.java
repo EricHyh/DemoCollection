@@ -38,6 +38,7 @@ public class MainActivity extends Activity {
                 } else if ((leftIndex > 0 && rightIndex == 0) || index - rightIndex == 1) {
                     rightNum = num;
                     rightIndex = index;
+
                 }
             }
             if (index == array.length - 1 || num < lastNum) {
