@@ -146,6 +146,21 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
         if (isLooping != null) {
             mediaPlayer.setLooping(isLooping);
         }
+
+        final float[] volume = mVolume;
+        if (volume != null) {
+            mediaPlayer.setVolume(volume[0], volume[1]);
+        }
+
+        final Float speed = mSpeed;
+        if (speed != null) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                PlaybackParams pp = mediaPlayer.getPlaybackParams();
+                pp.setSpeed(speed);
+                mediaPlayer.setPlaybackParams(pp);
+            }
+        }
+
         return mediaPlayer;
     }
 
@@ -425,9 +440,9 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
 
     @Override
     public void setVolume(float leftVolume, float rightVolume) {
-        if (isReleased()) return;
         mVolume[0] = leftVolume;
         mVolume[1] = rightVolume;
+        if (isReleased()) return;
         mMediaPlayer.setVolume(leftVolume, rightVolume);
     }
 
@@ -438,9 +453,9 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
 
     @Override
     public void setSpeed(float speed) {
+        mSpeed = speed;
         if (isReleased()) return;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            mSpeed = speed;
             PlaybackParams pp = mMediaPlayer.getPlaybackParams();
             pp.setSpeed(speed);
             mMediaPlayer.setPlaybackParams(pp);

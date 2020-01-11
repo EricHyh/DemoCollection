@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.os.Bundle;
+import android.os.Handler;
 import android.support.annotation.Nullable;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
@@ -73,6 +74,15 @@ public class Scroll5Activity extends Activity implements IWebViewClient {
             }
         });
         multiAdapter.addMultiModule(loadingModule);*/
+
+        new Handler().postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                normalDataModule.insertData("条目新", 0);
+            }
+        }, 10 * 1000);
+
+
         recyclerView.setAdapter(multiAdapter);
     }
 
@@ -93,6 +103,8 @@ public class Scroll5Activity extends Activity implements IWebViewClient {
 
     private static class NormalDataModule extends MultiModule<String> {
 
+        private static final String TAG = "NormalDataModule";
+
         NormalDataModule() {
             ArrayList<String> strings = new ArrayList<>();
             for (int index = 0; index < 100; index++) {
@@ -108,7 +120,6 @@ public class Scroll5Activity extends Activity implements IWebViewClient {
             textView.setTextSize(30);
             textView.setTextColor(Color.BLACK);
             textView.setGravity(Gravity.CENTER);
-
 
 
             textView.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
@@ -142,6 +153,7 @@ public class Scroll5Activity extends Activity implements IWebViewClient {
                 protected void bindDataAndEvent() {
                     TextView textView = (TextView) itemView;
                     textView.setText(getData());
+                    Log.d(TAG, "bindDataAndEvent: " + getData());
                 }
             };
         }

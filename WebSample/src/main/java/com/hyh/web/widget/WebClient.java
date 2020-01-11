@@ -85,6 +85,7 @@ public class WebClient implements IWebViewClient, IWebChromeClient {
         settings.setAllowFileAccess(true);
         settings.setAppCacheEnabled(true);
 
+
         mWebView.setDownloadListener(new DownloadListenerImpl(mContext));
         mWebView.setWebViewClient(new WebViewClientImpl(mContext, this));
         mWebView.setWebChromeClient(new WebChromeClientImpl(this));
@@ -126,7 +127,7 @@ public class WebClient implements IWebViewClient, IWebChromeClient {
         if (mOutWebViewClient != null) {
             mOutWebViewClient.onPageStarted(view, url, favicon);
         }
-       /* mWebView.loadUrl("javascript:(function() {" + "var parent = document.getElementsByTagName('head').item(0);" + "var style = document.createElement('style');" + "style.type = 'text/css';" + "style.innerHTML = window.atob('" + AppContext.nightCode + "');" + "parent.appendChild(style)" + "})();");*/
+        /* mWebView.loadUrl("javascript:(function() {" + "var parent = document.getElementsByTagName('head').item(0);" + "var style = document.createElement('style');" + "style.type = 'text/css';" + "style.innerHTML = window.atob('" + AppContext.nightCode + "');" + "parent.appendChild(style)" + "})();");*/
 
     }
 
@@ -226,7 +227,7 @@ public class WebClient implements IWebViewClient, IWebChromeClient {
             Intent intent = new Intent(Intent.ACTION_VIEW, uri);
             intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             PackageManager packageManager = mContext.getPackageManager();
-                /*查询是否存在该intent对应的浏览器*/
+            /*查询是否存在该intent对应的浏览器*/
             List<ResolveInfo> infoList =
                     packageManager.queryIntentActivities(intent, PackageManager.MATCH_DEFAULT_ONLY);
             if (infoList != null && infoList.size() != 0) {

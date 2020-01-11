@@ -23,7 +23,8 @@ public class WebActivity extends Activity {
         viewMoreWebView.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         setContentView(viewMoreWebView);
         mWebClient = new WebClient(getApplication(), viewMoreWebView);
-        mWebClient.loadUrl("https://jumpluna.58.com/i/LZYBeQ6a1luDubj");
+        //mWebClient.loadUrl("https://jumpluna.58.com/i/LZYBeQ6a1luDubj");
+        mWebClient.loadUrl("http://192.168.3.145/web/mobile/a/a.html");
     }
 
 

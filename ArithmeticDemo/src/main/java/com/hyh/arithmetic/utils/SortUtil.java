@@ -44,7 +44,6 @@ public class SortUtil {
             rangeSize = newRangeSize;
             rangeArray = newRangeArray;
         }
-        //sortRange(list, startIndex, endIndex);
     }
 
     //快速排序实现，递归实现
