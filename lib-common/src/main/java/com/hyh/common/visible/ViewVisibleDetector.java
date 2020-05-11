@@ -21,6 +21,10 @@ import java.util.Map;
 
 public class ViewVisibleDetector {
 
+    private static final String TAG = "ViewVisibleDetector";
+
+    private static final int INVISIBLE_DETECT_THRESHOLD_VALUE = 3;
+
     public static void setVisibleHandler(View view, IVisibleHandler visibleHandler) {
         if (view == null) return;
         view.setTag(R.id.view_visible_handler_id, visibleHandler);
@@ -175,12 +179,19 @@ public class ViewVisibleDetector {
                                                 ItemVisibleInfo itemVisibleInfo) {
         int requiredVisibleType = itemVisibleStrategy.requiredVisibleType;
         float visibleScale = getVisibleScale(view, requiredVisibleType);
+
         if (visibleScale <= 0.0f) {
             if (itemVisibleInfo.isVisible) {
-                itemVisibleInfo.isVisible = false;
-                exposureHandler.onViewInvisible(view, itemVisibleStrategy);
+                if (itemVisibleInfo.totalInVisibleTimes >= INVISIBLE_DETECT_THRESHOLD_VALUE) {
+                    itemVisibleInfo.reset();
+                    exposureHandler.onViewInvisible(view, itemVisibleStrategy);
+                } else {
+                    itemVisibleInfo.totalInVisibleTimes++;
+                    ThreadUtil.postUiThread(this::onDetect);
+                }
             }
         } else {
+            itemVisibleInfo.totalInVisibleTimes = 0;
             if (visibleScale >= itemVisibleStrategy.requiredVisibleScale) {
                 if (!itemVisibleInfo.isVisible) {
                     itemVisibleInfo.isVisible = true;
@@ -221,11 +232,22 @@ public class ViewVisibleDetector {
             // 理论上，这里只有 View 滑出屏幕后 且定时任务执行的时候才会走这里；
             // 实际在 View#onViewDetachedFromWindow 后就要重置状态
             if (itemVisibleInfo.isVisible) {
-                itemVisibleInfo.isVisible = false;
-                exposureHandler.onViewInvisible(view, itemVisibleStrategy);
+                if (itemVisibleInfo.totalInVisibleTimes >= INVISIBLE_DETECT_THRESHOLD_VALUE) {
+                    itemVisibleInfo.reset();
+                    exposureHandler.onViewInvisible(view, itemVisibleStrategy);
+                } else {
+                    itemVisibleInfo.totalInVisibleTimes++;
+                    ThreadUtil.postUiThread(this::onDetect);
+                }
+            } else {
+                if (itemVisibleInfo.totalInVisibleTimes >= INVISIBLE_DETECT_THRESHOLD_VALUE) {
+                    itemVisibleInfo.reset();
+                } else {
+                    itemVisibleInfo.totalInVisibleTimes++;
+                }
             }
-            itemVisibleInfo.reset();
         } else {
+            itemVisibleInfo.totalInVisibleTimes = 0;
             if (visibleScale >= itemVisibleStrategy.requiredVisibleScale) {
                 if (!itemVisibleInfo.isVisible) {
                     long currentTimeMillis = SystemClock.elapsedRealtime();
@@ -239,12 +261,7 @@ public class ViewVisibleDetector {
                     } else {
                         if (!itemVisibleInfo.isPostDetectDelayed) {
                             itemVisibleInfo.isPostDetectDelayed = true;
-                            ThreadUtil.postUiThreadDelayed(new Runnable() {
-                                @Override
-                                public void run() {
-                                    onDetect();
-                                }
-                            }, itemVisibleStrategy.requiredVisibleTimeMillis);
+                            ThreadUtil.postUiThreadDelayed(this::onDetect, itemVisibleStrategy.requiredVisibleTimeMillis);
                         }
                     }
                 }
@@ -282,12 +299,15 @@ public class ViewVisibleDetector {
 
         int totalVisibleTimeMillis;
 
+        int totalInVisibleTimes;
+
         boolean isPostDetectDelayed;
 
         void reset() {
             isVisible = false;
             lastVisibleTimeMillis = 0L;
             totalVisibleTimeMillis = 0;
+            totalInVisibleTimes = 0;
             isPostDetectDelayed = false;
         }
     }

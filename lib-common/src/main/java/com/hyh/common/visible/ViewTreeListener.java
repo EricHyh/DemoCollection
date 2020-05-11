@@ -1,5 +1,6 @@
 package com.hyh.common.visible;
 
+import android.annotation.SuppressLint;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -8,8 +9,6 @@ import android.os.Build;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
-
-import androidx.annotation.RequiresApi;
 
 import com.hyh.common.R;
 import com.hyh.common.receiver.ScreenListener;
@@ -21,6 +20,7 @@ import com.hyh.common.utils.ViewUtil;
 import java.lang.ref.WeakReference;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
+
 
 /**
  * @author Administrator
@@ -75,7 +75,9 @@ public class ViewTreeListener implements View.OnAttachStateChangeListener,
     @Override
     public void onViewDetachedFromWindow(View v) {
         ScreenReceiver.getInstance(v.getContext()).removeListener(this);
-        v.getViewTreeObserver().removeOnGlobalLayoutListener(this);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
+            v.getViewTreeObserver().removeOnGlobalLayoutListener(this);
+        }
         //v.getViewTreeObserver().removeOnPreDrawListener(this);
         v.getViewTreeObserver().removeOnScrollChangedListener(this);
 
@@ -178,7 +180,8 @@ public class ViewTreeListener implements View.OnAttachStateChangeListener,
     }
 
 
-    @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
+
+    @SuppressLint("NewApi")
     static class WindowFocusChangeListenerWrapper implements ViewTreeObserver.OnWindowFocusChangeListener {
 
         private static final int TAG_ID = ViewUtil.generateViewId();

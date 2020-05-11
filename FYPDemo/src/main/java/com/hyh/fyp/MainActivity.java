@@ -2,6 +2,8 @@ package com.hyh.fyp;
 
 import android.graphics.Color;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.HandlerThread;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
@@ -11,19 +13,21 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
+import com.hyh.common.utils.ViewUtil;
 import com.hyh.fyp.behavior.HeaderNestedScrollView;
 import com.hyh.fyp.behavior.ScrollableCoordinatorLayout;
 
 public class MainActivity extends AppCompatActivity {
 
-    private static final String TAG = "MainActivity";
+    private static final String TAG = "MainActivity_";
     private ScrollableCoordinatorLayout mCoordinatorLayout;
+    private HandlerThread mHandlerThread;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        RecyclerView recyclerView = findViewById(R.id.recycler_view);
+        final RecyclerView recyclerView = findViewById(R.id.recycler_view);
         recyclerView.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.VERTICAL, false));
         recyclerView.setAdapter(new MyAdapter());
 
@@ -33,6 +37,22 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onScrollChange(View v, int scrollX, int scrollY, int oldScrollX, int oldScrollY) {
                 Log.d(TAG, "onScrollChange: scrollY = " + scrollY);
+            }
+        });
+
+        mHandlerThread = new HandlerThread("test");
+        mHandlerThread.start();
+
+
+
+        final Handler handler = new Handler(mHandlerThread.getLooper());
+
+        handler.post(new Runnable() {
+            @Override
+            public void run() {
+                boolean viewInScreen = ViewUtil.isViewInScreen(recyclerView);
+                Log.d(TAG, "run: viewInScreen = " + viewInScreen);
+                handler.postDelayed(this, 5000);
             }
         });
     }
@@ -75,5 +95,11 @@ public class MainActivity extends AppCompatActivity {
         public int getItemCount() {
             return 100;
         }
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        mHandlerThread.quit();
     }
 }
