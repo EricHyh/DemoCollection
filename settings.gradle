@@ -1,1 +1,1 @@
-include ':sample', ':library-download', ':greendao-generator', ':library-ui', ':lib-download', ':DownloadSample', ':VideoSample', ':WebSample', ':FYPDemo', ':ArithmeticDemo', ':lib-common'
+include ':sample', ':library-download', ':greendao-generator', ':library-ui', ':lib-download', ':DownloadSample', ':VideoSample', ':WebSample', ':FYPDemo', ':ArithmeticDemo', ':lib-common', ':lib-plugin-core'

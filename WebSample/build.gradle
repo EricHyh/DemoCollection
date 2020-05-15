@@ -43,6 +43,12 @@ dependencies {
     compile 'com.android.support:percent:27.1.1'
     compile 'com.android.support:support-annotations:27.1.1'
 
+
+    /*compile 'com.android.support:appcompat-v7:25.0.0'
+    compile 'com.android.support:design:25.0.0'
+    compile 'com.android.support:percent:25.0.0'
+    compile 'com.android.support:support-annotations:25.0.0'*/
+
     compile 'com.scwang.smartrefresh:SmartRefreshLayout:1.0.5.1'
 
     testCompile 'junit:junit:4.12'

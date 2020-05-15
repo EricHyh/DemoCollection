@@ -3,7 +3,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     package="com.hyh.web">
 
-    <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.INTERNET" />
 
     <application
         android:name=".widget.AppContext"
@@ -14,84 +14,13 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme"
         tools:ignore="GoogleAppIndexingWarning">
-        <activity android:name=".MainActivity">
-            <!--<intent-filter>
-                <action android:name="android.intent.action.MAIN"/>
-
-                <category android:name="android.intent.category.LAUNCHER"/>
-            </intent-filter>-->
-        </activity>
-
-        <activity android:name=".TestYLYNewsDetailAct">
-            <!-- <intent-filter>
-                 <action android:name="android.intent.action.MAIN"/>
-
-                 <category android:name="android.intent.category.LAUNCHER"/>
-             </intent-filter>-->
-        </activity>
-
-        <activity android:name=".ScrollActivity">
-            <!--<intent-filter>
-                <action android:name="android.intent.action.MAIN"/>
-
-                <category android:name="android.intent.category.LAUNCHER"/>
-            </intent-filter>-->
-        </activity>
-
-        <activity android:name=".Scroll2Activity">
-            <!--<intent-filter>
-                <action android:name="android.intent.action.MAIN"/>
-
-                <category android:name="android.intent.category.LAUNCHER"/>
-            </intent-filter>-->
-        </activity>
-
-        <activity android:name=".Scroll3Activity">
-            <!--<intent-filter>
-                <action android:name="android.intent.action.MAIN"/>
-
-                <category android:name="android.intent.category.LAUNCHER"/>
-            </intent-filter>-->
-        </activity>
-
-
-        <activity android:name=".Scroll4Activity">
-            <!--<intent-filter>
-                <action android:name="android.intent.action.MAIN"/>
-
-                <category android:name="android.intent.category.LAUNCHER"/>
-            </intent-filter>-->
-        </activity>
 
         <activity
             android:name=".Scroll5Activity"
             android:screenOrientation="portrait">
-            <!--<intent-filter>
-                <action android:name="android.intent.action.MAIN"/>
 
-                <category android:name="android.intent.category.LAUNCHER"/>
-            </intent-filter>-->
         </activity>
 
-        <activity android:name=".ViewPagerActivity"/>
-
-        <!--<activity android:name=".WebStartActivity">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN"/>
-
-                <category android:name="android.intent.category.LAUNCHER"/>
-            </intent-filter>
-        </activity>-->
-        <activity android:name=".BannerWebActivity"/>
-        <activity
-            android:name=".SplashWebActivity"
-            android:screenOrientation="portrait">
-            <!--<intent-filter>
-                <action android:name="android.intent.action.MAIN"/>
-
-                <category android:name="android.intent.category.LAUNCHER"/>
-            </intent-filter>-->
-        </activity>
 
         <activity android:name=".TestViewActivity">
             <!--<intent-filter>
@@ -104,12 +33,23 @@
         <activity
             android:name="com.hyh.web.WebActivity"
             android:screenOrientation="portrait">
-            <intent-filter>
+            <!--<intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
 
                 <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>-->
+        </activity>
+
+        <activity
+            android:name=".ViewPagerActivity"
+            android:screenOrientation="portrait" >
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
     </application>
 
 </manifest>
