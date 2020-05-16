@@ -19,9 +19,9 @@ import com.hyh.web.R;
 import com.hyh.web.multi.ItemHolder;
 import com.hyh.web.multi.MultiAdapter;
 import com.hyh.web.multi.MultiModule;
-import com.hyh.web.widget.CustomWebView;
-import com.hyh.web.widget.ViewMoreWebView;
-import com.hyh.web.widget.WebClient;
+import com.hyh.web.widget.web.CustomWebView;
+import com.hyh.web.widget.web.ViewMoreWebView;
+import com.hyh.web.widget.web.WebClient;
 
 import java.util.ArrayList;
 
@@ -93,8 +93,8 @@ public class WebFragment extends Fragment {
     @Override
     public void onViewCreated(View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        mWebClient.loadUrl("https://jumpluna.58.com/i/LZYBeQ6a1luDubj");
-        //mWebClient.loadUrl("http://www.baidu.com");
+        //mWebClient.loadUrl("https://jumpluna.58.com/i/LZYBeQ6a1luDubj");
+        mWebClient.loadUrl("http://www.baidu.com");
     }
 
     @Override

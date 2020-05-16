@@ -1,4 +1,4 @@
-package com.hyh.web.behavior;
+package com.hyh.web.widget.web;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
@@ -16,8 +16,6 @@ import android.view.ViewGroup;
 import android.view.ViewParent;
 import android.view.animation.Interpolator;
 import android.widget.OverScroller;
-
-import com.hyh.web.widget.CustomWebView;
 
 import static android.support.v4.view.ViewCompat.TYPE_NON_TOUCH;
 import static android.support.v4.view.ViewCompat.TYPE_TOUCH;

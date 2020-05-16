@@ -1,4 +1,4 @@
-package com.hyh.web.widget;
+package com.hyh.web.widget.web;
 
 import android.graphics.Bitmap;
 import android.webkit.WebView;

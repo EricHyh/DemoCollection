@@ -6,9 +6,9 @@ import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.view.ViewGroup;
 
-import com.hyh.web.behavior.NestedScrollWebView;
-import com.hyh.web.widget.CustomWebView;
-import com.hyh.web.widget.WebClient;
+import com.hyh.web.widget.web.NestedScrollWebView;
+import com.hyh.web.widget.web.CustomWebView;
+import com.hyh.web.widget.web.WebClient;
 
 /**
  * Created by Eric_He on 2019/8/25.

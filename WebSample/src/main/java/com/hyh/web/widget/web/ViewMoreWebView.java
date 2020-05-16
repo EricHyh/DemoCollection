@@ -1,4 +1,4 @@
-package com.hyh.web.widget;
+package com.hyh.web.widget.web;
 
 import android.content.Context;
 import android.graphics.Canvas;
@@ -10,15 +10,15 @@ import android.view.MotionEvent;
 import android.view.ViewConfiguration;
 import android.view.ViewGroup;
 
-import com.hyh.web.behavior.NestedScrollWebView;
 import com.hyh.web.utils.DisplayUtil;
+import com.hyh.web.widget.ViewMoreDrawable;
 
 
 /**
  * Created by Eric_He on 2019/8/25.
  */
 
-public class ViewMoreWebView extends NestedScrollWebView {
+public class ViewMoreWebView extends NewNestedScrollWebView {
 
     private static final String TAG = "ViewMoreWebView";
 

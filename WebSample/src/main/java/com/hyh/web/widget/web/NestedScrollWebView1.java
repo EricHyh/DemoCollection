@@ -1,4 +1,4 @@
-package com.hyh.web.behavior;
+package com.hyh.web.widget.web;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
@@ -14,8 +14,6 @@ import android.view.ViewConfiguration;
 import android.view.animation.Interpolator;
 import android.widget.OverScroller;
 
-import com.hyh.web.widget.web.CustomWebView;
-
 import static android.support.v4.view.ViewCompat.TYPE_NON_TOUCH;
 import static android.support.v4.view.ViewCompat.TYPE_TOUCH;
 import static java.lang.Math.abs;
@@ -29,7 +27,7 @@ import static java.lang.Math.round;
  * @data 2019/6/10
  */
 
-public class HNestedScrollWebView extends CustomWebView implements NestedScrollingChild2 {
+public class NestedScrollWebView1 extends CustomWebView implements NestedScrollingChild2 {
 
     private static final String TAG = "NestedScrollWebView";
 
@@ -93,23 +91,22 @@ public class HNestedScrollWebView extends CustomWebView implements NestedScrolli
     private static final int SCROLL_HORIZONTAL_NONE = 0;
     private static final int SCROLL_HORIZONTAL_ALLOW = 1;
     private static final int SCROLL_HORIZONTAL_TEMP_ALLOW = 2;
-    //private static final int SCROLL_HORIZONTAL_TEMP_DISALLOW = 3;
-    private static final int SCROLL_HORIZONTAL_DISALLOW = 4;
-    private static final int SCROLL_HORIZONTAL_END = 5;
+    private static final int SCROLL_HORIZONTAL_DISALLOW = 3;
+    private static final int SCROLL_HORIZONTAL_END = 4;
 
     private int mScrollHorizontalState;
 
-    public HNestedScrollWebView(Context context) {
+    public NestedScrollWebView1(Context context) {
         super(context.getApplicationContext());
         init();
     }
 
-    public HNestedScrollWebView(Context context, AttributeSet attrs) {
+    public NestedScrollWebView1(Context context, AttributeSet attrs) {
         super(context.getApplicationContext(), attrs);
         init();
     }
 
-    public HNestedScrollWebView(Context context, AttributeSet attrs, int defStyleAttr) {
+    public NestedScrollWebView1(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context.getApplicationContext(), attrs, defStyleAttr);
         init();
     }
@@ -131,20 +128,14 @@ public class HNestedScrollWebView extends CustomWebView implements NestedScrolli
         super.onOverScrolled(scrollX, scrollY, clampedX, clampedY);
         mOverScrolled = true;
 
-        if (mScrollHorizontalState == SCROLL_HORIZONTAL_TEMP_ALLOW) {
-            mScrollHorizontalState = SCROLL_HORIZONTAL_DISALLOW;
-        }
+        mScrollHorizontalState = SCROLL_HORIZONTAL_END;
 
-        Log.d(TAG, "LOOK- onOverScrolled: ");
+        Log.d(TAG, "onOverScrolled: ");
     }
 
     @Override
     public boolean dispatchTouchEvent(MotionEvent ev) {
         mCurTouchAction = ev.getActionMasked();
-        /*if (mCurTouchAction == MotionEvent.ACTION_DOWN) {
-
-        }*/
-
         return super.dispatchTouchEvent(ev);
     }
 
@@ -259,19 +250,14 @@ public class HNestedScrollWebView extends CustomWebView implements NestedScrolli
                 mInitialTouchX = mLastTouchX = (int) (event.getX() + 0.5f);
                 mInitialTouchY = mLastTouchY = (int) (event.getY() + 0.5f);
 
-                startNestedScroll(ViewCompat.SCROLL_AXIS_VERTICAL, ViewCompat.TYPE_TOUCH);
-
+                boolean startNestedScroll = startNestedScroll(ViewCompat.SCROLL_AXIS_VERTICAL, ViewCompat.TYPE_TOUCH);
+                Log.d(TAG, "onTouchEvent: ACTION_DOWN startNestedScroll = " + startNestedScroll);
 
                 mOverTouchSlop = false;
                 mOverScrolled = false;
                 mTouchOrientation = ORIENTATION_NONE;
 
-                if (mScrollHorizontalState != SCROLL_HORIZONTAL_DISALLOW) {
-                    mScrollHorizontalState = SCROLL_HORIZONTAL_NONE;
-                } else {
-                    mScrollHorizontalState = SCROLL_HORIZONTAL_END;
-                }
-
+                mScrollHorizontalState = SCROLL_HORIZONTAL_NONE;
                 break;
             }
             case MotionEvent.ACTION_POINTER_DOWN: {
@@ -281,23 +267,16 @@ public class HNestedScrollWebView extends CustomWebView implements NestedScrolli
                 break;
             }
             case MotionEvent.ACTION_MOVE: {
-                if (mOverScrolled) {
-                    Log.d(TAG, "LOOK- mScrollHorizontalState = " + mScrollHorizontalState);
-                }
-                if (mScrollHorizontalState == SCROLL_HORIZONTAL_DISALLOW) {
-
-                    Log.d(TAG, "LOOK- onTouchEvent: SCROLL_HORIZONTAL_DISALLOW");
-
+                /*if (mScrollHorizontalState == SCROLL_HORIZONTAL_END) {
                     MotionEvent newEvent = MotionEvent.obtain(event);
+                    //event.recycle();
                     newEvent.setAction(MotionEvent.ACTION_DOWN);
 
                     cancelTouch();
 
                     getRootView().dispatchTouchEvent(newEvent);
-
-
                     return false;
-                }
+                }*/
 
                 final int index = event.findPointerIndex(mScrollPointerId);
                 if (index < 0) {
@@ -314,6 +293,9 @@ public class HNestedScrollWebView extends CustomWebView implements NestedScrolli
                 int ty = y - mInitialTouchY;
 
                 if (handMotionEventByHorizontal(event, dx, dy, tx, ty)) return true;
+
+
+
 
                 if (dispatchNestedPreScroll(dx, dy, mScrollConsumed, mScrollOffset, TYPE_TOUCH)) {
                     dx -= mScrollConsumed[0];
@@ -341,7 +323,7 @@ public class HNestedScrollWebView extends CustomWebView implements NestedScrolli
                         getParent().requestDisallowInterceptTouchEvent(true);
                     }
                 }
-                if (abs(ty) > mTouchSlop) {
+                if (abs(mInitialTouchY - y) > mTouchSlop) {
                     //屏蔽WebView本身的滑动，滑动事件自己处理
                     event.setAction(MotionEvent.ACTION_CANCEL);
                 }
@@ -362,15 +344,10 @@ public class HNestedScrollWebView extends CustomWebView implements NestedScrolli
                     setScrollState(SCROLL_STATE_IDLE);
                 }
                 resetTouch();
-
-                mScrollHorizontalState = SCROLL_HORIZONTAL_NONE;
                 break;
             }
             case MotionEvent.ACTION_CANCEL: {
                 cancelTouch();
-                if (mScrollHorizontalState != SCROLL_HORIZONTAL_DISALLOW) {
-                    mScrollHorizontalState = SCROLL_HORIZONTAL_NONE;
-                }
                 break;
             }
         }
@@ -454,14 +431,12 @@ public class HNestedScrollWebView extends CustomWebView implements NestedScrolli
 
     private boolean handMotionEventByHorizontal(MotionEvent event, int dx, int dy, int tx, int ty) {
         if (mOverScrolled) {
+            //requestDisallowInterceptTouchEvent(false);
             return false;
         }
         if (mTouchOrientation == ORIENTATION_HORIZONTAL) {
+            //requestDisallowInterceptTouchEvent(true);
             super.onTouchEvent(event);
-            /*if (mScrollHorizontalState == SCROLL_HORIZONTAL_TEMP_ALLOW
-                    && abs(tx) > 4 * mTouchSlop) {
-                mScrollHorizontalState = SCROLL_HORIZONTAL_ALLOW;
-            }*/
             return true;
         } else {
             if (!mOverTouchSlop) {
@@ -472,6 +447,7 @@ public class HNestedScrollWebView extends CustomWebView implements NestedScrolli
                     mTouchOrientation = (abs(tx) > abs(ty)) ? ORIENTATION_HORIZONTAL : ORIENTATION_VERTICAL;
                 }
                 if (mTouchOrientation == ORIENTATION_HORIZONTAL) {
+                    //requestDisallowInterceptTouchEvent(true);
                     super.onTouchEvent(event);
                     return true;
                 }
@@ -485,6 +461,8 @@ public class HNestedScrollWebView extends CustomWebView implements NestedScrolli
             mVelocityTracker.clear();
         }
         stopNestedScroll(TYPE_TOUCH);
+
+        //requestDisallowInterceptTouchEvent(false);
     }
 
     private void cancelTouch() {
@@ -502,15 +480,6 @@ public class HNestedScrollWebView extends CustomWebView implements NestedScrolli
 
     @Override
     public boolean canScrollHorizontally(int direction) {
-        if (mScrollHorizontalState == SCROLL_HORIZONTAL_DISALLOW) {
-            Log.d(TAG, "LOOK-  canScrollHorizontally: SCROLL_HORIZONTAL_DISALLOW");
-            return false;
-        }
-        if (mScrollHorizontalState == SCROLL_HORIZONTAL_ALLOW) {
-            Log.d(TAG, "LOOK-  canScrollHorizontally: SCROLL_HORIZONTAL_ALLOW");
-            return true;
-        }
-
         boolean scrollHorizontally = super.canScrollHorizontally(direction);
         if (scrollHorizontally) return true;
 
@@ -518,17 +487,12 @@ public class HNestedScrollWebView extends CustomWebView implements NestedScrolli
                 + " | mCurTouchAction = " + mCurTouchAction
                 + " | mScrollHorizontalState = " + mScrollHorizontalState);
 
-        if (mCurTouchAction == MotionEvent.ACTION_DOWN || mCurTouchAction == MotionEvent.ACTION_MOVE) {
+        if (mCurTouchAction == MotionEvent.ACTION_MOVE) {
             if (mScrollHorizontalState == SCROLL_HORIZONTAL_NONE) {
-                boolean tempCanScrollHorizontally = isTempCanScrollHorizontally();
-                mScrollHorizontalState = tempCanScrollHorizontally ?
+                mScrollHorizontalState = isTempCanScrollHorizontally() ?
                         SCROLL_HORIZONTAL_TEMP_ALLOW : SCROLL_HORIZONTAL_DISALLOW;
-                Log.d(TAG, "LOOK-  canScrollHorizontally: tempCanScrollHorizontally = " + tempCanScrollHorizontally);
             }
-
-            boolean scroll_horizontal_temp_allow = mScrollHorizontalState == SCROLL_HORIZONTAL_TEMP_ALLOW;
-            Log.d(TAG, "LOOK-  canScrollHorizontally: scroll_horizontal_temp_allow = " + scroll_horizontal_temp_allow);
-            return scroll_horizontal_temp_allow;
+            //return mScrollHorizontalState == SCROLL_HORIZONTAL_TEMP_ALLOW;
         }
 
         return false;
@@ -536,7 +500,7 @@ public class HNestedScrollWebView extends CustomWebView implements NestedScrolli
 
     private boolean isTempCanScrollHorizontally() {
         return (mTouchOrientation == ORIENTATION_NONE)
-                || (mTouchOrientation == ORIENTATION_HORIZONTAL && !mOverScrolled);
+                || (mTouchOrientation == ORIENTATION_HORIZONTAL && !mOverTouchSlop);
     }
 
     @Override
@@ -767,7 +731,7 @@ public class HNestedScrollWebView extends CustomWebView implements NestedScrolli
                 mReSchedulePostAnimationCallback = true;
             } else {
                 removeCallbacks(this);
-                ViewCompat.postOnAnimation(HNestedScrollWebView.this, this);
+                ViewCompat.postOnAnimation(NestedScrollWebView1.this, this);
             }
         }
 

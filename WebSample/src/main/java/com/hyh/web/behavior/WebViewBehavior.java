@@ -2,6 +2,7 @@ package com.hyh.web.behavior;
 
 import android.content.Context;
 import android.util.AttributeSet;
+import android.webkit.WebView;
 
 /**
  * @author Administrator
@@ -9,7 +10,7 @@ import android.util.AttributeSet;
  * @data 2019/6/10
  */
 
-public class WebViewBehavior extends BaseBehavior<NestedScrollWebView> {
+public class WebViewBehavior extends BaseBehavior<WebView> {
 
     public WebViewBehavior(Context context) {
         this(context, null);
@@ -20,7 +21,7 @@ public class WebViewBehavior extends BaseBehavior<NestedScrollWebView> {
     }
 
     @Override
-    protected int scrollY(NestedScrollWebView view, int dy) {
+    protected int scrollY(WebView view, int dy) {
         if (dy > 0) {
             int curMaxScrollDy = computeCurrentMaxScrollUpDy(view);
             int viewScrollDy = Math.min(curMaxScrollDy, dy);
@@ -35,16 +36,16 @@ public class WebViewBehavior extends BaseBehavior<NestedScrollWebView> {
     }
 
     @Override
-    protected void stopFling(NestedScrollWebView view) {
-        view.stopFling();
+    protected void stopFling(WebView view) {
+        //view.stopFling();
     }
 
-    private int computeCurrentMaxScrollUpDy(NestedScrollWebView view) {
+    private int computeCurrentMaxScrollUpDy(WebView view) {
         int contentHeight = Math.round(view.getContentHeight() * view.getResources().getDisplayMetrics().density);
         return Math.max(contentHeight - view.getMeasuredHeight(), 0);
     }
 
-    private int computeCurrentMinScrollDownDy(NestedScrollWebView view) {
+    private int computeCurrentMinScrollDownDy(WebView view) {
         return -view.getScrollY();
     }
 

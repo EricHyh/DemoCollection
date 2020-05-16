@@ -30,7 +30,7 @@
     </android.support.v4.widget.NestedScrollView>
 
 
-    <com.hyh.web.widget.ViewMoreWebView
+    <com.hyh.web.widget.web.ViewMoreWebView
         android:id="@+id/web_view"
         android:layout_width="match_parent"
         android:layout_height="match_parent"

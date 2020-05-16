@@ -17,8 +17,8 @@ import android.widget.TextView;
 import com.hyh.web.multi.ItemHolder;
 import com.hyh.web.multi.MultiAdapter;
 import com.hyh.web.multi.MultiModule;
-import com.hyh.web.widget.ViewMoreWebView;
-import com.hyh.web.widget.WebClient;
+import com.hyh.web.widget.web.ViewMoreWebView;
+import com.hyh.web.widget.web.WebClient;
 
 import java.util.ArrayList;
 
