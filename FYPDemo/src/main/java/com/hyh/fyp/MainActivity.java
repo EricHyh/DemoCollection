@@ -43,8 +43,6 @@ public class MainActivity extends AppCompatActivity {
         mHandlerThread = new HandlerThread("test");
         mHandlerThread.start();
 
-
-
         final Handler handler = new Handler(mHandlerThread.getLooper());
 
         handler.post(new Runnable() {
@@ -64,7 +62,6 @@ public class MainActivity extends AppCompatActivity {
     public void collapse(View view) {
         mCoordinatorLayout.setExpanded(false);
     }
-
 
     private static class ItemHolder extends RecyclerView.ViewHolder {
 
