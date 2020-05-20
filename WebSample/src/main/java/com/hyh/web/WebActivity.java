@@ -4,10 +4,11 @@ import android.app.Activity;
 import android.content.Context;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
+import android.view.LayoutInflater;
 import android.view.ViewGroup;
 
-import com.hyh.web.widget.web.NestedScrollWebView;
 import com.hyh.web.widget.web.CustomWebView;
+import com.hyh.web.widget.web.NestedScrollWebView;
 import com.hyh.web.widget.web.WebClient;
 
 /**
@@ -30,6 +31,8 @@ public class WebActivity extends Activity {
         //mWebClient.loadUrl("http://192.168.3.145/web/mobile/a/a.html");
         //mWebClient.loadUrl("http://192.168.3.145/web/mobile/3/index.html");
         mWebClient.loadUrl("https://jumpluna.58.com/i/LZYBeQ6a1luDubj");
+
+        LayoutInflater.from(this);
     }
 
 
