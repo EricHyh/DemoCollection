@@ -1,17 +1,17 @@
-# Android动态换肤框架PrettySkin原理篇（一） —— LayoutInflater的理解及使用
+# Android动态换肤框架PrettySkin原理篇（一）- LayoutInflater的理解及使用
 
 ## 前言
-相信大家一定接触到过如何在应用不重启的情况下，实现切换应用主题这个问题。我会专门写一个系列，来介绍如何实现动态切换应用皮肤（包含动态切换主题），今天我们来一起探讨第一个问题，LayoutInflater的理解及使用。闲话少说，先上图：
+PrettySkin是我之前实现的一个Android动态换肤框架，实现了应用内主题换肤、外部APK文件换肤，自定义皮肤包等功能，功能齐全，更多说明请移步[Github项目](https://github.com/EricHyh/PrettySkin-master)中查看。我打算专门写一个系列，来记录我实现这个库的关键部分原理以及思路，感兴趣的朋友可以看一看。本篇我们先探讨第一个问题，LayoutInflater的理解及使用。闲话少说，先上图：
 
 <img width="300"  src="https://raw.githubusercontent.com/EricHyh/file-repo/master/PrettySkin/gif/homepage.gif"/>
 
 
 ## 思考
-在刚接触这个问题时，我总是把思路聚焦在Activity的**setTheme**函数上，但这其实是一个错误的想法。一个Activity的主题只能在**setContentView**之前设置，在**setContentView**之后再通过**setTheme**设置主题是没有意义的；一般情况下Activity的View是在**setContentView**的时候创建的，创建View时会使用**setContentView**之前设置的主题，之后再设置的主题是不会主动应用在已经创建好的View上，所以也就没办法通过这种方式达到我们想要的切换主题的效果。  
+在刚接触动态换肤这个问题时，我就感觉这不就是换个主题就解决了吗？所以起初我总是把思路聚焦在Activity的**setTheme**函数上，但这其实是一个错误的想法。一个Activity的主题只能在**setContentView**之前设置，在**setContentView**之后再通过**setTheme**设置主题是没有意义的；一般情况下Activity的View是在**setContentView**的时候创建的，创建View时会使用**setContentView**之前设置的主题，之后再设置的主题是不会主动应用在已经创建好的View上，所以也就没办法通过这种方式达到我们想要的切换主题的效果。  
 
-我们仔细想想，我们为什么要动态更换应用主题，其实根本目的是想动态的更换View的某些属性，例如背景色、图片、文字颜色等等。那这些东西我们平时是怎么更换它们的？额~~难道是通过**view.setBackground**这些函数？没错，你想得没错，android动态换肤就是这么简单，这个想法就是整个实现中的核心中的核心。你可能在想，我读书少，你不要忽悠我。我真没骗你，你往下看就知道了。  
+仔细想想，我们为什么要设置应用主题，其实根本目的是想让View用到主题中定义的资源，例如背景色、图片、文字颜色等等。但是View创建后，我们只能通过**view.setXXX**这类函数去修改View的某些属性，例如通过**view.setBackground**去设置View的背景。额~~难道我们只能通过这类函数去实现View的换肤吗？没错，你想得没错，Android动态换肤就是这么简单，这个想法就是整个实现中的核心中的核心。
 
-上面我们说到，我们要通过**view.setBackground**这类函数去实现一个换肤框架。很显然遍历View树上所有的View一个个去设置它们要改变的属性是不科学的，我们需要定义一套规则去方便我们管理整个换肤过程，最好是使用的时候跟我们平时使用主题一样，不要让我们操太多心。
+上面我们说到，我们要通过**view.setXXX**这类函数去实现一个换肤框架。很显然遍历View树上所有的View一个个去设置它们要改变的属性是不科学的，我们需要定义一套规则去方便我们管理整个换肤过程，最好是使用的时候跟我们平时使用主题一样，不要让我们操太多心。
 
 说了这么多，我们先整理下思路：
 1. 拿到所有需要更换属性的View（以下统称为皮肤View）；
@@ -74,7 +74,7 @@ public class SkinInflateFactory implements LayoutInflater.Factory2 {
             SkinView skinView = new SkinView(view, attrKeyMap);//构造一个皮肤View的数据结构
             mSkinViews.add(skinView);//添加到列表中，切换主题时遍历该列表实现View的属性更换
             ISkin currentSkin = getCurrentSkin();//获取当前的主题皮肤
-            if(currentSkin != null){//如果有就让新建的View使用这个皮肤
+            if(currentSkin != null){//如果有皮肤，就让新创建的View使用这个皮肤
                 skinView.changeSkin(currentSkin);
             }
             return view;
@@ -195,7 +195,7 @@ class ContextImpl extends Context {
 
 }
 ```
-顺便说一下，Android的Context采用的是装饰设计模式，其它所有的**Context**对象的本质上都是基于**ContextImpl**包装实现的，所以有一些**Context**它们获取到的LayoutInflater就是通过**ContextImpl**获取的，例如Application、Service、BroadcastReceiver#onCreate中的Context参数、ContentProvider中的Context成员变量；
+顺便说一下，Android的Context采用的是装饰设计模式，其它所有的Context对象的本质上都是基于**ContextImpl**包装实现的，所以有一些Context它们获取到的LayoutInflater就是通过**ContextImpl**获取的，例如Application、Service、BroadcastReceiver#onCreate中的Context参数、ContentProvider中的Context成员变量；
 
 2. ContextThemeWrapper有何独特之处  
 
@@ -286,4 +286,6 @@ public class AppContext extends Application {
 ```
 
 ## 文末总结
+LayoutInflater在整个换肤框架中起到一个桥梁的作用，它让皮肤View与皮肤之间建立了联系，这样就可以实现当皮肤变化时通知皮肤View做相应的变化。  
 
+在下一篇中我会介绍如何定义皮肤View以及皮肤属性，关键类 - AttributeSet，敬请期待。
