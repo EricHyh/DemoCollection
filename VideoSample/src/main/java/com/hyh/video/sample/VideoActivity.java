@@ -34,6 +34,10 @@ public class VideoActivity extends Activity implements SeekBar.OnSeekBarChangeLi
     private ImageView mVideoImage;
 
     private final String mVideoUrl1 = "http://vod.cntv.lxdns.com/flash/mp4video62/TMS/2019/02/20/a5c722ca046345608b92e8defa84f70d_h264418000nero_aac32-1.mp4";
+
+    //private final String mVideoUrl1 = "http://yly-dsp-test.oss-cn-beijing.aliyuncs.com/upload/video/1ec4fc98-a737-4df4-876a-af97e9ba74e1.mp4";
+
+    //
     private final String mVideoUrl2 = "http://mvvideo11.meitudata.com/5c63dbdc4f28bmhao7spvv1537_H264_1_25d3df13c76f20.mp4?k=1ead2ea555539969a4d28624b9ea6051&t=5c6d7640";
 
     @Override

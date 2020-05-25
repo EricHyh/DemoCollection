@@ -1,7 +1,7 @@
 # Android动态换肤框架PrettySkin原理篇（一）- LayoutInflater的理解及使用
 
 ## 前言
-PrettySkin是我之前实现的一个Android动态换肤框架，实现了应用内主题换肤、外部APK文件换肤，自定义皮肤包等功能，功能齐全，更多说明请移步[Github项目](https://github.com/EricHyh/PrettySkin-master)中查看。我打算专门写一个系列，来记录我实现这个库的关键部分原理以及思路，感兴趣的朋友可以看一看。本篇我们先探讨第一个问题，LayoutInflater的理解及使用。闲话少说，先上图：
+PrettySkin是我之前写的一个Android动态换肤框架，实现了应用内主题换肤、外部APK文件换肤，自定义皮肤包等功能，功能齐全，更多说明请移步[Github项目](https://github.com/EricHyh/PrettySkin-master)中查看。我打算专门写一个系列，来记录我实现这个库的关键部分原理以及思路，感兴趣的朋友可以看一看。本篇我们先探讨第一个问题，LayoutInflater的理解及使用。闲话少说，先上图：
 
 <img width="300"  src="https://raw.githubusercontent.com/EricHyh/file-repo/master/PrettySkin/gif/homepage.gif"/>
 
@@ -9,7 +9,7 @@ PrettySkin是我之前实现的一个Android动态换肤框架，实现了应用
 ## 思考
 在刚接触动态换肤这个问题时，我就感觉这不就是换个主题就解决了吗？所以起初我总是把思路聚焦在Activity的**setTheme**函数上，但这其实是一个错误的想法。一个Activity的主题只能在**setContentView**之前设置，在**setContentView**之后再通过**setTheme**设置主题是没有意义的；一般情况下Activity的View是在**setContentView**的时候创建的，创建View时会使用**setContentView**之前设置的主题，之后再设置的主题是不会主动应用在已经创建好的View上，所以也就没办法通过这种方式达到我们想要的切换主题的效果。  
 
-仔细想想，我们为什么要设置应用主题，其实根本目的是想让View用到主题中定义的资源，例如背景色、图片、文字颜色等等。但是View创建后，我们只能通过**view.setXXX**这类函数去修改View的某些属性，例如通过**view.setBackground**去设置View的背景。额~~难道我们只能通过这类函数去实现View的换肤吗？没错，你想得没错，Android动态换肤就是这么简单，这个想法就是整个实现中的核心中的核心。
+仔细想想，我们为什么要设置应用主题，其实根本目的是想让View用到主题中定义的资源，例如背景色、图片、文字颜色等等。但是View创建后，我们只能通过**view.setXXX**这类函数去修改View的某些属性，例如通过**view.setBackground**去设置View的背景。额~~难道我们只能通过这类函数去实现View的换肤吗？没错，你想得没错，Android动态换肤就是这么简单，这个想法就是整个框架中的核心。
 
 上面我们说到，我们要通过**view.setXXX**这类函数去实现一个换肤框架。很显然遍历View树上所有的View一个个去设置它们要改变的属性是不科学的，我们需要定义一套规则去方便我们管理整个换肤过程，最好是使用的时候跟我们平时使用主题一样，不要让我们操太多心。
 
@@ -21,7 +21,7 @@ PrettySkin是我之前实现的一个Android动态换肤框架，实现了应用
 
 
 ## 如何拿到所有的皮肤View，LayoutInflater闪亮登场
-已经有过很多的文章介绍LayoutInflater的源码，这里我就不做过多的撰述，直接讲与本文相关部分。Android的布局文件都是通过LayoutInflater去解析成对应的View树，一般来说LayoutInflater内部已经完全的实现了整个过程，我们不需要去关心它的内部实现。如果我们想接管View的创建过程，可以通过LayoutInflater的**setFactory**或者**setFactory2**去实现。这里简单看下**Factory**和**Factory2**究竟是何方神圣。
+已经有过很多的文章介绍LayoutInflater的源码，这里我就不做过多的撰述，直接讲与本文相关部分。Android的布局文件都是通过LayoutInflater去解析成对应的View树，一般来说LayoutInflater已经完整地实现了整个过程，我们不需要去关心它的内部实现。如果我们想接管View的创建过程，可以通过LayoutInflater的**setFactory**或者**setFactory2**去实现。这里简单看下**Factory**和**Factory2**究竟是何方神圣。
 
 Factory源码：
 ```
@@ -54,7 +54,7 @@ public interface Factory2 extends Factory {
             @NonNull Context context, @NonNull AttributeSet attrs);
 }
 ```
-总的来说当我们设置了**Factory**或者**Factory2**后，我们可以接管创建View的步骤，在这里我们可以实现对皮肤View的收集，伪代码如下：
+可以看到**Factory2**是继承自**Factory** ，**Factory2**是对**Factory**的扩展，在**API 11**引入，所以现在一般都是使用**Factory2**，这里不需要过多关心它们的区别。重点关注它们中的创建View的函数，可以通过实现该函数来接管创建View的步骤，在这里我们可以实现对皮肤View的收集，伪代码如下：
 ```
 public class SkinInflateFactory implements LayoutInflater.Factory2 {
 
@@ -126,7 +126,7 @@ public void setLayoutInflaterSkinable(LayoutInflater layoutInflater) {
 ```
 
 ## 如何拿到应用中所有的LayoutInflater（本文重点）
-在上节中，我们已经知道如何通过给LayoutInflater设置**Factory**去收集皮肤View。那么我们现在就需要拿到进程中LayoutInflater对象去设置**Factory**，我们通常会通过以下两种方式去获取LayoutInflater对象：
+在上节中，我们已经知道如何通过给LayoutInflater设置Factory去收集皮肤View。那么我们现在就需要拿到进程中LayoutInflater对象去设置Factory，我们通常会通过以下两种方式去获取LayoutInflater对象：
 ```
 //方式一
 LayoutInflater layoutInflater = (LayoutInflater) context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
@@ -146,8 +146,8 @@ public static LayoutInflater from(Context context) {
 }
 ```
 
-那么现在问题来了，我怎么拿到所有的LayoutInflater对象？在解答这个问题前，请大家先思考一个问题，一个应用进程会有几个LayoutInflater对象？  
-理论上来说LayoutInflater的数量可以多到内存爆炸，因为LayoutInflater是可以由我们随意创建的，这里我们不讨论这种情况。一般情况下，根据我个人愚见：
+那么现在问题来了，我怎么拿到所有的LayoutInflater对象？这里我们得先搞清楚一个应用进程会有几个LayoutInflater对象？  
+理论上来说LayoutInflater的数量可以多到内存爆炸，因为LayoutInflater是可以由我们随意创建的，这里我们不讨论这种情况。一般情况下，LayoutInflater的数量如下所示：
 
 > LayoutInflater的数量 = 1 + ContextThemeWrapper的数量 + AsyncLayoutInflater的数量;
 
@@ -197,7 +197,7 @@ class ContextImpl extends Context {
 ```
 顺便说一下，Android的Context采用的是装饰设计模式，其它所有的Context对象的本质上都是基于**ContextImpl**包装实现的，所以有一些Context它们获取到的LayoutInflater就是通过**ContextImpl**获取的，例如Application、Service、BroadcastReceiver#onCreate中的Context参数、ContentProvider中的Context成员变量；
 
-2. ContextThemeWrapper有何独特之处  
+2. ContextThemeWrapper与LayoutInflater的关系
 
 ContextThemeWrapper会创建一个LayoutInflater对象，用于解析布局，相关源码片段如下：
 ```
@@ -220,7 +220,7 @@ public class ContextThemeWrapper extends ContextWrapper {
 所以每个ContextThemeWrapper都会有一个LayoutInflater，知道这个还不够，还得知道怎么拿到所有的ContextThemeWrapper；一般情况下：
 > ContextThemeWrapper的数量 = Activity的数量 + dialog的数量 + 开发者创建的ContextThemeWrapper的数量；
 
-其中Activity的数量是因为它自己本身就继承自ContextThemeWrapper，Dialog它会把构造函数中传入的Context包装成ContextThemeWrapper，开发者创建的就不用多说了，你自己创建的你自己最清楚；相关源码片段如下：
+其中Activity的数量是因为它自己本身就继承自ContextThemeWrapper，Dialog它会把构造函数中传入的Context包装成ContextThemeWrapper，开发者创建的就不用多说了，自己创建的自己最清楚；相关源码片段如下：
 ```
 public class Activity extends ContextThemeWrapper { //这里继承ContextThemeWrapper 
 }
@@ -245,9 +245,8 @@ public class Dialog {
 ```
 
 
-3. AsyncLayoutInflater
+3. AsyncLayoutInflater与LayoutInflater的关系
 AsyncLayoutInflater是官方推出的一款用于异步布局的扩展库，翻阅内部的源码可知，它也会创建一个LayoutInflater对象：
-
 ```
 public final class AsyncLayoutInflater {
     
