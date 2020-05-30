@@ -5,13 +5,15 @@ import android.graphics.Canvas;
 import android.graphics.Path;
 import android.util.AttributeSet;
 
+import androidx.appcompat.widget.AppCompatImageView;
+
 /**
  * @author Administrator
  * @description
  * @data 2019/10/9
  */
 
-public class CircleImageView extends android.support.v7.widget.AppCompatImageView {
+public class CircleImageView extends AppCompatImageView {
 
     private Path mPath;
 

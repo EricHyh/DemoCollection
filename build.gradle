@@ -9,9 +9,10 @@ buildscript {
             url 'https://maven.google.com/'
             name 'Google'
         }
+        maven { url 'https://jitpack.io' }
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:2.3.3'
+        classpath 'com.android.tools.build:gradle:3.4.2'
 
 
         classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.2'
@@ -32,6 +33,7 @@ allprojects {
             url 'https://maven.google.com/'
             name 'Google'
         }
+        maven { url 'https://jitpack.io' }
     }
 }
 

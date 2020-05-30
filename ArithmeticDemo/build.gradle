@@ -17,9 +17,21 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
 }
 
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
     compile 'com.android.support:support-annotations:27.1.1'
+
+    implementation 'io.reactivex.rxjava3:rxandroid:3.0.0'
+    implementation 'io.reactivex.rxjava3:rxjava:3.0.4'
+
+    /*implementation 'com.trello.rxlifecycle4:rxlifecycle:4.0.0'
+    implementation 'com.trello.rxlifecycle4:rxlifecycle-android:4.0.0'
+    implementation 'com.trello.rxlifecycle4:rxlifecycle-components:4.0.0'
+    implementation 'com.trello.rxlifecycle4:rxlifecycle-android-lifecycle:4.0.0'*/
 }
