@@ -185,5 +185,22 @@ public class RxUseActivity extends Activity {
 
         });
         setContentView(button);
+
+        new Thread(
+                () -> {
+                    test();
+                    test(null);
+                    test(1,2);
+                }
+        ).start();
+
+
     }
+
+    private void test(Object... objects) {
+        List<? extends Cloneable> list = Arrays.asList(objects, new byte[]{1, 2, 3}, new int[]{1, 2, 3});
+        Log.d(TAG, "test: ");
+    }
+
+
 }
