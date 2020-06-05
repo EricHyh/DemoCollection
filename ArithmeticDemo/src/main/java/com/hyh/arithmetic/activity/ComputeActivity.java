@@ -25,7 +25,11 @@ public class ComputeActivity extends Activity {
     }
 
     public void compute1(View view) {
-        String expression = "1+(2*3)-(5+6)/ 7";
+        String xx = "+1.633";
+        double v = Double.parseDouble(xx);
+        Log.d(TAG, "compute1: v = " + v);
+
+        String expression = "+ 1+(2*3)-(5+6)/ 7";
         double compute = ComputeUtil.compute(expression);
         Log.d(TAG, "compute1: " + compute);
 
@@ -35,7 +39,6 @@ public class ComputeActivity extends Activity {
         int x4 = (1) - 30;
         int x5 = (25);
         int x6 = (((1 - 3) - 30) - (25 - 3));
-
 
 
         double compute1 = ComputeUtil.compute("(  1 + (1 - 30) - (25) )");

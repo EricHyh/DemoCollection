@@ -7,7 +7,7 @@ package com.hyh.arithmetic.count;
  */
 public class ComputeUtil {
 
-    private static final String DOUBLE_REGEX = "^(\\s*-?\\s*\\d+)(\\.\\d+)?$";
+    private static final String DOUBLE_REGEX = "^(\\s*[-|+]?\\s*\\d+)(\\.\\d+)?$";
 
     public static double compute(String expression) {
         expression = expression.trim();
@@ -44,7 +44,7 @@ public class ComputeUtil {
             if (expression.matches(DOUBLE_REGEX)) {
                 return Double.parseDouble(expression.replaceAll("\\s", ""));
             } else {
-                expression = expression.substring(1, expression.length() - 1).trim();
+                expression = expression.substring(1, expression.length() - 1).trim();//去掉括号，例如(1 + 2)
                 return compute(expression);
             }
         }
