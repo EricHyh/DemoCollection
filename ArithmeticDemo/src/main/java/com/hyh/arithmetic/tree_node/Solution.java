@@ -11,9 +11,47 @@ import java.util.List;
 public class Solution {
 
 
+    public void getKFromRoot(TreeNode root, int k, List<Integer> res) {
+        if (root == null) return;
+        if (k == 0) {
+            res.add(root.val);
+            return;
+        }
+        getKFromRoot(root.left, k - 1, res);
+        getKFromRoot(root.right, k - 1, res);
+    }
+
+    public int dfs(TreeNode root, TreeNode target, int k, List<Integer> res) {
+        if (root == null) return -1;
+        if (root.val == target.val) {
+            getKFromRoot(root, k, res);
+            return k;
+        }
+        int l = dfs(root.left, target, k, res);
+        int r = dfs(root.right, target, k, res);
+
+        if (l < 0 && r < 0) {
+            return -1;
+        } else if (l > 0) {
+            if (l == 1) res.add(root.val);
+            else getKFromRoot(root.right, l - 2, res);
+            return l - 1;
+        } else {
+            if (r == 1) res.add(root.val);
+            else getKFromRoot(root.left, r - 2, res);
+            return r - 1;
+        }
+    }
+
+
     public List<Integer> distanceK(TreeNode root, TreeNode target, int K) {
         List<Integer> values = new ArrayList<>();
-        if (K == 0) {
+
+        dfs(root, target, K, values);
+
+
+
+        /*if (K == 0) {
             values.add(target.val);
             return values;
         }
@@ -57,7 +95,7 @@ public class Solution {
         }
 
         collectNodeValue(target, K, values);
-        collectNodeValue(targetParent, K - 1, values);
+        collectNodeValue(targetParent, K - 1, values);*/
 
         return values;
     }

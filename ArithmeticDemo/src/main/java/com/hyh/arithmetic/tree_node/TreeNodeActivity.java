@@ -35,11 +35,11 @@ public class TreeNodeActivity extends Activity {
             @Override
             public void onClick(View v) {
                 //[3,5,1,6,2,0,8,null,null,7,4];
-                //TreeNode node = TreeNode.create(new Integer[]{3, 5, 1, 6, 2, 0, 8, null, null, 7, 4});
+                TreeNode node = TreeNode.create(new Integer[]{3, 5, 1, 6, 2, 0, 8, null, null, 7, 4});
 
-                TreeNode node = TreeNode.create(new Integer[]{0, 1, null, 3, 2});
+                //TreeNode node = TreeNode.create(new Integer[]{0, 1, null, 3, 2});
 
-                List<Integer> values = new Solution().distanceK(node, node.left.right, 1);
+                List<Integer> values = new Solution().distanceK(node, node.left, 2);
                 Log.d(TAG, "onClick: ");
             }
         });
