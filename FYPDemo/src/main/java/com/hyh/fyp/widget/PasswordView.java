@@ -13,7 +13,6 @@ import android.text.Editable;
 import android.text.InputFilter;
 import android.text.TextWatcher;
 import android.util.AttributeSet;
-import android.util.Log;
 import android.widget.EditText;
 
 import com.hyh.fyp.R;
@@ -158,10 +157,11 @@ public class PasswordView extends EditText implements TextWatcher {
         }
     }
 
-
     public void setPasswordListener(PasswordListener passwordListener) {
         mPasswordListener = passwordListener;
     }
+
+
 
     @Override
     protected void onAttachedToWindow() {
@@ -200,7 +200,6 @@ public class PasswordView extends EditText implements TextWatcher {
 
         switch (widthMode) {
             case MeasureSpec.UNSPECIFIED: {
-                Log.d(TAG, "onMeasure: UNSPECIFIED");
                 float expectedBoxWidth = mBoxWidth;
                 if (mBoxWidthPercent > 0) {
                     expectedBoxWidth = width * mBoxWidthPercent;
@@ -215,7 +214,6 @@ public class PasswordView extends EditText implements TextWatcher {
                 break;
             }
             case MeasureSpec.EXACTLY: {
-                Log.d(TAG, "onMeasure: EXACTLY");
                 width = getDefaultSize(getSuggestedMinimumWidth(), widthMeasureSpec);
                 switch (mBoxMeasureType) {
                     case BOX_MEASURE_MODE_FILL: {
@@ -258,7 +256,6 @@ public class PasswordView extends EditText implements TextWatcher {
             }
             case MeasureSpec.AT_MOST: {
                 int maxWidth = getDefaultSize(getSuggestedMinimumWidth(), widthMeasureSpec);
-                Log.d(TAG, "onMeasure: AT_MOST maxWidth = " + maxWidth);
                 switch (mBoxMeasureType) {
                     case BOX_MEASURE_MODE_FILL: {
                         float measureBoxWidth = (maxWidth
@@ -552,14 +549,6 @@ public class PasswordView extends EditText implements TextWatcher {
                 right -= mBoxBorderSize * 0.5f;
                 bottom -= mBoxBorderSize * 0.5f;
                 boxRectF.set(left, top, right, bottom);
-
-
-                float startX = left;
-                float startY = (mMeasureBoxHeight + 2 * mBoxBorderSize) * 0.5f;
-                float stopX = right;
-                float stopY = startY;
-                canvas.drawLine(startX, startY, stopX, stopY, mPaint);
-
             }
         }
 
@@ -595,14 +584,6 @@ public class PasswordView extends EditText implements TextWatcher {
             right -= mBoxBorderSize * 0.5f;
             bottom -= mBoxBorderSize * 0.5f;
             boxRect.set(left, top, right, bottom);
-
-
-            float startX = left;
-            float startY = (mMeasureBoxHeight + 2 * mBoxBorderSize) * 0.5f;
-            float stopX = right;
-            float stopY = startY;
-            canvas.drawLine(startX, startY, stopX, stopY, mPaint);
-
         }
 
         return mBoxRectFs;
@@ -642,6 +623,7 @@ public class PasswordView extends EditText implements TextWatcher {
     }
 
     private void drawCursor(Canvas canvas, List<RectF> boxRectFs) {
+        if (!isFocused()) return;
         if (mDrawCursor) {
             mPaint.setColor(mCursorColor);
             mPaint.setStyle(Paint.Style.FILL);

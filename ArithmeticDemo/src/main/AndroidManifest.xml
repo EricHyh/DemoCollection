@@ -20,19 +20,20 @@
         </activity>
 
         <activity android:name=".activity.ComputeActivity">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
 
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
         </activity>
 
         <activity
             android:name=".rx.RxUseActivity"
             android:screenOrientation="portrait">
+        </activity>
 
+        <activity android:name=".tree_node.TreeNodeActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
 
-
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
         </activity>
     </application>
 
