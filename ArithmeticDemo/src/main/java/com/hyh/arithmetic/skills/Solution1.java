@@ -1,10 +1,11 @@
 package com.hyh.arithmetic.skills;
 
-import java.lang.reflect.Array;
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * 规划了一份需求的技能清单 req_skills，并打算从备选人员名单 people 中选出些人组成一个「必要团队」
@@ -26,24 +27,104 @@ import java.util.Map;
 public class Solution1 {
 
     public int[] smallestSufficientTeam(String[] req_skills, List<List<String>> people) {
+        Map<String, List<String>> lastCache = null;
         Map<String, List<String>> mergeCache = new HashMap<>();
+        int count = 1;
+        do {
+            int[] res = merge(req_skills, people, count, lastCache, mergeCache);
+            if (res != null) return res;
+            lastCache = mergeCache;
+            count++;
+        } while (people.size() - 1 >= count);
 
-
+        return null;
     }
 
-    public boolean merge(String[] req_skills, List<List<String>> people, int count, Map<String, List<String>> mergeCache) {
+    private int[] merge(String[] req_skills,
+                        List<List<String>> people,
+                        int count,
+                        Map<String, List<String>> lastCache,
+                        Map<String, List<String>> mergeCache) {
         if (count == 1) {
-            for (int i = 0; i < people.size(); i++) {
-                List<String> strings = people.get(i);
+            Iterator<List<String>> iterator = people.iterator();
+            int index = 0;
+            while (iterator.hasNext()) {
+                List<String> strings = iterator.next();
+                if (contains(strings, req_skills)) {
+                    return new int[]{index};
+                } else {
+                    //Collection<List<String>> values = mergeCache.values();
+                    Set<Map.Entry<String, List<String>>> entrySet = mergeCache.entrySet();
+
+                    boolean contains = false;
+                    for (Map.Entry<String, List<String>> entry : entrySet) {
+                        if (contains(entry.getValue(), strings)) {
+                            contains = true;
+                            break;
+                        }
+                    }
+                    if (contains) {
+                        iterator.remove();
+                    } else {
+                        mergeCache.put(String.valueOf(index), strings);
+                        index++;
+                    }
+                }
             }
+        } else {
+            Index index = new Index(count, people.size() - 1);
+            boolean looper = true;
+            do {
+                String prefix = index.getPrefix();
+                int lastIndex = index.lastIndex();
+                List<String> strings = lastCache.get(prefix);
+                List<String> person = people.get(lastIndex);
+                List<String> mergeList = new ArrayList<>(strings);
+                mergeList.addAll(person);
+
+                //Collection<List<String>> values = mergeCache.values();
+                Set<Map.Entry<String, List<String>>> entrySet = mergeCache.entrySet();
+                boolean contains = false;
+                for (Map.Entry<String, List<String>> entry : entrySet) {
+                    if (contains(entry.getValue(), mergeList)) {
+                        contains = true;
+                        break;
+                    }
+                }
+                if (contains) {
+                    people.remove(lastIndex);
+                    if (lastIndex == people.size()) break;
+                    int newMax = people.size() - 1;
+                    if (newMax <= count) break;
+                    index.setMax(newMax);
+                } else {
+                    if (contains(mergeList, req_skills)) {
+                        return index.indexes;
+                    } else {
+                        mergeCache.put(index.toString(), mergeList);
+                    }
+                    looper = index.increase();
+                }
+            } while (looper);
         }
-        return false;
+        return null;
     }
 
-    public boolean contains(List<String> strings, String[] req_skills) {
-        return false;
+    private boolean contains(List<String> strings, String[] req_skills) {
+        if (strings.size() < req_skills.length) return false;
+        for (String req_skill : req_skills) {
+            if (!strings.contains(req_skill)) return false;
+        }
+        return true;
     }
 
+    private boolean contains(List<String> strings1, List<String> strings2) {
+        if (strings1.size() < strings2.size()) return false;
+        for (String string : strings2) {
+            if (!strings1.contains(string)) return false;
+        }
+        return true;
+    }
 
     private static class Index {
 
@@ -57,37 +138,67 @@ public class Solution1 {
             this.indexes = new int[count];
             this.size = count;
             this.max = max;
+            for (int i = 0; i < count; i++) {
+                indexes[i] = count - 1 - i;
+            }
         }
 
-        public void increase() {
+        public boolean increase() {
+            if (size > max) return false;
+            boolean increase = false;
             int i = 0;
             int max = this.max;
-
-            int index = indexes[i];
-            index++;
-            if(index>){
-
-            }
-
-
-
-            if (index <= max) {
-                indexes[i] = index;
-                int j = i - 1;
-                while (j >= 0) {
-                    index++;
-
-                    int lastIndex = indexes[j];
-                    if (lastIndex < index) {
-                        indexes[j] = index;
-                        j--;
-                    } else {
-                        break;
-                    }
+            while (i < size) {
+                int index = indexes[i];
+                if (max == index) {
+                    i++;
+                    max--;
+                    continue;
                 }
-            } else {
-
+                increase = true;
+                index++;
+                indexes[i] = index;
+                i--;
+                while (i >= 0) {
+                    index++;
+                    indexes[i] = index;
+                    i--;
+                }
+                break;
             }
+            return increase;
+        }
+
+        public String getPrefix() {
+            StringBuilder sb = new StringBuilder();
+            for (int i = size - 1; i >= 1; i--) {
+                sb.append(indexes[i]);
+                if (i > 1) {
+                    sb.append("-");
+                }
+            }
+            return sb.toString();
+        }
+
+        public int lastIndex() {
+            return indexes[0];
+        }
+
+
+        @Override
+        public String toString() {
+            StringBuilder sb = new StringBuilder();
+            for (int i = size - 1; i >= 0; i--) {
+                sb.append(indexes[i]);
+                if (i > 0) {
+                    sb.append("-");
+                }
+            }
+            return sb.toString();
+        }
+
+        public void setMax(int max) {
+            this.max = max;
         }
     }
 }
