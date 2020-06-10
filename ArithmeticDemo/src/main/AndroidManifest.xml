@@ -25,10 +25,15 @@
 
         <activity
             android:name=".rx.RxUseActivity"
-            android:screenOrientation="portrait">
-        </activity>
+            android:screenOrientation="portrait"/>
 
         <activity android:name=".tree_node.TreeNodeActivity">
+
+        </activity>
+        <activity android:name=".words_search.WordsSearchActivity">
+
+        </activity>
+        <activity android:name=".tree_sum.TreeSumActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
