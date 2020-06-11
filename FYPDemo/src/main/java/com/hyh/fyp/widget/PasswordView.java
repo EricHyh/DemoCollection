@@ -137,6 +137,8 @@ public class PasswordView extends EditText implements TextWatcher {
 
         InputFilter[] filters = {new InputFilter.LengthFilter(mPasswordLength)};
         setFilters(filters);
+
+        setLongClickable(false);
     }
 
 
@@ -160,7 +162,6 @@ public class PasswordView extends EditText implements TextWatcher {
     public void setPasswordListener(PasswordListener passwordListener) {
         mPasswordListener = passwordListener;
     }
-
 
 
     @Override
