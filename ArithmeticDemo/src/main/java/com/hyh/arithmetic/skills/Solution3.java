@@ -23,7 +23,7 @@ import java.util.Set;
  * people = [["algorithms","math","java"],["algorithms","math","reactjs"],["java","csharp","aws"],["reactjs","csharp"],["csharp","math"],["aws","java"]]
  * 输出：[1,2]
  */
-public class Solution1 {
+public class Solution3 {
 
     public int[] smallestSufficientTeam(String[] req_skills, List<List<String>> people) {
         Map<String, List<String>> lastCache = null;
