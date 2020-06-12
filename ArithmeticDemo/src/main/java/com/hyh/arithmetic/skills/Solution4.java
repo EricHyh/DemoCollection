@@ -30,7 +30,7 @@ import java.util.List;
  * req_skills[i][j], people[i][j][k] 都由小写英文字母组成
  * 本题保证「必要团队」一定存在
  */
-public class Solution3 {
+public class Solution4 {
 
     @SuppressLint("UseSparseArrays")
     public int[] smallestSufficientTeam(String[] req_skills, List<List<String>> people) {
@@ -61,15 +61,33 @@ public class Solution3 {
                 }
             }
         }
-        List<Integer> list = xxx(req_skills_code, people_code);
-        int size = list == null ? 0 : list.size();
-        int[] result = new int[size];
-        if (list != null) {
-            for (int index = 0; index < list.size(); index++) {
-                result[index] = people_code.indexOf(list.get(index));
+
+        Object[] preResult = new Object[req_skills.length];
+        Object[] result = new Object[req_skills.length];
+
+        Integer person_code = people_code.get(0);
+        for (int i = 0; i < req_skills.length; i++) {
+            int skills_code = (int) (Math.pow(2, i + 1) - 1);
+            if ((person_code | skills_code) == person_code) {
+                preResult[i] = new int[]{0};
+            } else {
+                break;
             }
         }
-        return result;
+
+        /*for (int i = 0; i < req_skills.length; i++) {
+            int skills_code = (int) (Math.pow(2, i + 1) - 1);
+            int people_code_temp = 0;
+            for (int j = 0; j < people_code.size(); j++) {
+                people_code_temp |= people_code.get(j);
+                if () {
+
+                }
+            }
+            preResult = result;
+        }*/
+
+        return null;
     }
 
     private int indexOf(String[] req_skills, String skill) {
@@ -78,44 +96,5 @@ public class Solution3 {
             if (req_skill.equals(skill)) return index;
         }
         return -1;
-    }
-
-    private List<Integer> xxx(int req_skills_code, List<Integer> people_code) {
-        if (req_skills_code == 0) return new ArrayList<>();
-        if (people_code.size() == 0) {
-            return null;
-        }
-        if (people_code.size() == 1) {
-            Integer personCode = people_code.get(0);
-            if ((personCode | req_skills_code) == personCode) {
-                return new ArrayList<>(people_code);
-            }
-            return null;
-        }
-
-        Integer lastPersonCode = people_code.remove(people_code.size() - 1);
-
-        List<Integer> res1 = xxx(req_skills_code, people_code);
-
-        req_skills_code = req_skills_code & ~lastPersonCode;
-
-        List<Integer> res2 = xxx(req_skills_code, people_code);
-        if (res2 != null) {
-            res2.add(lastPersonCode);
-        }
-
-        people_code.add(lastPersonCode);
-
-        List<Integer> result;
-        if (res1 == null) {
-            result = res2;
-        } else if (res2 == null) {
-            result = res1;
-        } else {
-            int size1 = res1.size();
-            int size2 = res2.size();
-            result = size1 < size2 ? res1 : res2;
-        }
-        return result;
     }
 }

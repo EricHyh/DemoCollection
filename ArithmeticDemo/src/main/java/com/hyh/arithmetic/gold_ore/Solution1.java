@@ -22,6 +22,7 @@ public class Solution1 {
         //f(x, y) = g(0)        (x == 1, y >= p(0))
         //f(x, y) = f(x-1, y)    (x > 1, y < p(x-1))
         //f(x, y) = max(f(x-1, y), f(x-1, (y - p(x-1))) + g(x-1))
+        return null;
     }
 
     public static class GoldOre {

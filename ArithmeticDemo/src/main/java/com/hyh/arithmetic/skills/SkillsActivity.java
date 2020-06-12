@@ -32,7 +32,7 @@ public class SkillsActivity extends Activity {
                 people1.add(Collections.singletonList("nodejs"));
                 people1.add(Arrays.asList("nodejs", "reactjs"));
 
-                //int[] ints1 = new Solution1().smallestSufficientTeam(req_skills1, people1);
+                int[] ints1 = new Solution3().smallestSufficientTeam(req_skills1, people1);
                 /**
                  * ["algorithms","math","java","reactjs","csharp","aws"]
                  * [["algorithms","math","java"],
@@ -43,28 +43,28 @@ public class SkillsActivity extends Activity {
                  * ["aws","java"]]
                  */
 
-                /*String[] req_skills2 = {"algorithms", "math", "java", "reactjs", "csharp", "aws"};
+                String[] req_skills2 = {"algorithms", "math", "java", "reactjs", "csharp", "aws"};
                 List<List<String>> people2 = new ArrayList<>();
                 people2.add(Arrays.asList("algorithms", "math", "java"));
                 people2.add(Arrays.asList("algorithms", "math", "reactjs"));
                 people2.add(Arrays.asList("java", "csharp", "aws"));
                 people2.add(Arrays.asList("reactjs", "csharp"));
                 people2.add(Arrays.asList("csharp", "math"));
-                people2.add(Arrays.asList("aws", "java"));*/
+                people2.add(Arrays.asList("aws", "java"));
 
 
-                String[] req_skills2 = {"mmcmnwacnhhdd","vza","mrxyc"};
+                /*String[] req_skills2 = {"mmcmnwacnhhdd","vza","mrxyc"};
                 List<List<String>> people2 = new ArrayList<>();
                 people2.add(Collections.singletonList("mmcmnwacnhhdd"));
                 people2.add(new ArrayList<>());
                 people2.add(new ArrayList<>());
-                people2.add(Arrays.asList("vza", "mrxyc"));
+                people2.add(Arrays.asList("vza", "mrxyc"));*/
 
                 /**
                  * ["mmcmnwacnhhdd","vza","mrxyc"]
                  * [["mmcmnwacnhhdd"],[],[],["vza","mrxyc"]]
                  */
-                int[] ints2 = new Solution1().smallestSufficientTeam(req_skills2, people2);
+                int[] ints2 = new Solution3().smallestSufficientTeam(req_skills2, people2);
                 Log.d(TAG, "onClick: ");
             }
         });
