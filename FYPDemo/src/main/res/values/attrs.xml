@@ -31,8 +31,10 @@
         <attr name="boxMargin" format="dimension" />
         <attr name="boxBorderSize" format="dimension" />
         <attr name="outBorderSize" format="dimension" />
-        <attr name="boxCornerRadius" format="dimension" />
+
         <attr name="mergeRectBoxEnabled" format="boolean" />
+        <attr name="boxCornerRadius" format="dimension" />
+
 
         <attr name="cursorEnabled" format="boolean" />
         <attr name="cursorWidth" format="dimension" />

@@ -13,6 +13,9 @@ import android.text.Editable;
 import android.text.InputFilter;
 import android.text.TextWatcher;
 import android.util.AttributeSet;
+import android.view.ActionMode;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.widget.EditText;
 
 import com.hyh.fyp.R;
@@ -138,7 +141,29 @@ public class PasswordView extends EditText implements TextWatcher {
         InputFilter[] filters = {new InputFilter.LengthFilter(mPasswordLength)};
         setFilters(filters);
 
+        setCustomSelectionActionModeCallback(new ActionMode.Callback() {
+            @Override
+            public boolean onCreateActionMode(ActionMode mode, Menu menu) {
+                return false;
+            }
+
+            @Override
+            public boolean onPrepareActionMode(ActionMode mode, Menu menu) {
+                return false;
+            }
+
+            @Override
+            public boolean onActionItemClicked(ActionMode mode, MenuItem item) {
+                return false;
+            }
+
+            @Override
+            public void onDestroyActionMode(ActionMode mode) {
+
+            }
+        });
         setLongClickable(false);
+        setCursorVisible(false);
     }
 
 
@@ -448,7 +473,7 @@ public class PasswordView extends EditText implements TextWatcher {
 
     @Override
     protected void onDraw(Canvas canvas) {
-        //super.onDraw(canvas);
+        //super.onDraw(canvas);不绘制EditText本身的文字
         canvas.save();
         float dx = (getMeasuredWidth() - mMeasureContentWidth) * 0.5f + getPaddingLeft();
         float dy = (getMeasuredHeight() - mMeasureContentHeight) * 0.5f + getPaddingTop();
