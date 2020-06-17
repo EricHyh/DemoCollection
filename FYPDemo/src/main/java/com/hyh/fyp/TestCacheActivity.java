@@ -74,11 +74,6 @@ public class TestCacheActivity extends AppCompatActivity {
     }
 
     public void getCache(View view) {
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
 
-            }
-        }).start();
     }
 }
