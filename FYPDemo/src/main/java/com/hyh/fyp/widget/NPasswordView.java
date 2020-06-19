@@ -6,6 +6,7 @@ import android.content.res.TypedArray;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.Path;
 import android.graphics.RectF;
 import android.os.Handler;
 import android.support.annotation.Nullable;
@@ -24,7 +25,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @SuppressLint("AppCompatCustomView")
-public class PasswordView extends EditText implements TextWatcher {
+public class NPasswordView extends EditText implements TextWatcher {
 
     private static final String TAG = "PasswordView_";
 
@@ -81,23 +82,26 @@ public class PasswordView extends EditText implements TextWatcher {
 
     private RectF mRectF = new RectF();
 
+    private Path mBoxBackgroundPath = new Path();
+    private float[] mBoxRadii = new float[8];
+
     private Paint mPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
 
     private List<RectF> mBoxRectFs = new ArrayList<>();
 
     private PasswordListener mPasswordListener;
 
-    public PasswordView(Context context) {
+    public NPasswordView(Context context) {
         super(context);
         init(null);
     }
 
-    public PasswordView(Context context, @Nullable AttributeSet attrs) {
+    public NPasswordView(Context context, @Nullable AttributeSet attrs) {
         super(context, attrs);
         init(attrs);
     }
 
-    public PasswordView(Context context, @Nullable AttributeSet attrs, int defStyleAttr) {
+    public NPasswordView(Context context, @Nullable AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
         init(attrs);
     }
@@ -189,7 +193,6 @@ public class PasswordView extends EditText implements TextWatcher {
     public void setPasswordListener(PasswordListener passwordListener) {
         mPasswordListener = passwordListener;
     }
-
 
     @Override
     protected void onAttachedToWindow() {
@@ -516,9 +519,9 @@ public class PasswordView extends EditText implements TextWatcher {
             float right = mMeasureContentWidth - (getPaddingLeft() + getPaddingRight()) - mOutBorderSize * 0.5f;
             float bottom = mMeasureContentHeight - (getPaddingTop() + getPaddingBottom()) - mOutBorderSize * 0.5f;
             mRectF.set(left, top, right, bottom);
+
             canvas.drawRoundRect(mRectF, mBoxCornerRadius, mBoxCornerRadius, mPaint);
 
-            mPaint.setStrokeWidth(mBoxBorderSize);
             RectF lastBoxRectF = null;
             for (int index = 0; index < mPasswordLength; index++) {
                 if (index == 0) {
@@ -541,12 +544,39 @@ public class PasswordView extends EditText implements TextWatcher {
                 }
                 boxRectF.set(left, top, right, bottom);
                 lastBoxRectF = boxRectF;
-                if (index < mPasswordLength - 1) {
-                    float startX = boxRectF.right + mBoxBorderSize * 0.5f;
-                    float startY = boxRectF.top;
-                    float stopX = startX;
-                    float stopY = boxRectF.bottom;
-                    canvas.drawLine(startX, startY, stopX, stopY, mPaint);
+                if (mBoxBorderSize > 0) {
+                    if (index < mPasswordLength - 1) {
+                        float startX = boxRectF.right + mBoxBorderSize * 0.5f;
+                        float startY = boxRectF.top;
+                        float stopX = startX;
+                        float stopY = boxRectF.bottom;
+
+                        mPaint.setStrokeWidth(mBoxBorderSize);
+                        mPaint.setColor(mBoxBorderColor);
+                        mPaint.setStyle(Paint.Style.STROKE);
+                        canvas.drawLine(startX, startY, stopX, stopY, mPaint);
+                    }
+
+                    mBoxBackgroundPath.reset();
+                    if (index == 0) {
+                        mBoxRadii[0] = mBoxCornerRadius;
+                        mBoxRadii[1] = mBoxCornerRadius;
+
+                        mBoxRadii[2] = 0;
+                        mBoxRadii[3] = 0;
+
+                        mBoxRadii[4] = 0;
+                        mBoxRadii[5] = 0;
+
+                        mBoxRadii[6] = mBoxCornerRadius;
+                        mBoxRadii[7] = mBoxCornerRadius;
+
+                        mBoxBackgroundPath.addRoundRect(boxRectF, mBoxRadii, Path.Direction.CW);
+                    } else if (index == mPasswordLength - 1) {
+
+                    } else {
+
+                    }
                 }
             }
 

@@ -20,7 +20,7 @@
             <enum name="free" value="2" />
         </attr>
 
-        <attr name="boxColor" format="color|reference" />
+        <attr name="boxBackground" format="color|reference" />
         <attr name="boxBordColor" format="color|reference" />
         <attr name="boxType" format="enum">
             <enum name="rect" value="0" />
