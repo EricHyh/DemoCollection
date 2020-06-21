@@ -65,7 +65,7 @@ public class Solution4 {
         Object[] preResult = new Object[req_skills.length];
         Object[] result = new Object[req_skills.length];
 
-        Integer person_code = people_code.get(0);
+        /*Integer person_code = people_code.get(0);
         for (int i = 0; i < req_skills.length; i++) {
             int skills_code = (int) (Math.pow(2, i + 1) - 1);
             if ((person_code | skills_code) == person_code) {
@@ -73,7 +73,23 @@ public class Solution4 {
             } else {
                 break;
             }
+        }*/
+
+        int person_code = 0;
+        for (int i = 0; i < people_code.size(); i++) {
+            person_code |= people_code.get(i);
+            for (int j = 0; j < req_skills.length; j++) {
+                int skills_code = (int) (Math.pow(2, j + 1) - 1);
+                if ((person_code | skills_code) == person_code) {
+                    //result[i] = new int[]{0};
+                } else {
+
+                }
+            }
         }
+
+
+
 
         /*for (int i = 0; i < req_skills.length; i++) {
             int skills_code = (int) (Math.pow(2, i + 1) - 1);

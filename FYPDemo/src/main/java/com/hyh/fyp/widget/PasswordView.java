@@ -6,6 +6,9 @@ import android.content.res.TypedArray;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.Path;
+import android.graphics.PorterDuff;
+import android.graphics.PorterDuffXfermode;
 import android.graphics.RectF;
 import android.os.Handler;
 import android.support.annotation.Nullable;
@@ -16,6 +19,7 @@ import android.util.AttributeSet;
 import android.view.ActionMode;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
 import android.widget.EditText;
 
 import com.hyh.fyp.R;
@@ -53,14 +57,14 @@ public class PasswordView extends EditText implements TextWatcher {
     private float mBoxHeightRatio = 1.0f;
 
     private int mBoxType = BOX_TYPE_RECT;
-    private int mBoxBackground;
+    private int mBoxBackgroundColor;
     private int mBoxBorderColor;
-    private float mOutBorderSize;
     private float mBoxBorderSize;
     private float mBoxMargin;
     private boolean mMergeRectBoxEnabled = true;
+    private float mMergedRectBoxDividerWidth;
 
-    private float mBoxCornerRadius;
+    private float mRectBoxRadius;
 
     private float mCursorWidth;
 
@@ -79,11 +83,19 @@ public class PasswordView extends EditText implements TextWatcher {
 
     private boolean mDrawCursor;
 
-    private RectF mRectF = new RectF();
+    private final Paint mBoxBoardPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint mBoxBackgroundPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint mTextPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint mCursorPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final PorterDuffXfermode mXfermode = new PorterDuffXfermode(PorterDuff.Mode.DST_OVER);
 
-    private Paint mPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-
+    private RectF mTempRectF = new RectF();
+    private Path mTempPath = new Path();
+    private float[] mBoxRadii = new float[8];
     private List<RectF> mBoxRectFs = new ArrayList<>();
+
+    private float mDensity;
+
 
     private PasswordListener mPasswordListener;
 
@@ -103,7 +115,7 @@ public class PasswordView extends EditText implements TextWatcher {
     }
 
     private void init(AttributeSet attrs) {
-        float density = getResources().getDisplayMetrics().density;
+        mDensity = getResources().getDisplayMetrics().density;
         if (attrs != null) {
             TypedArray typedArray = getContext().obtainStyledAttributes(attrs, R.styleable.PasswordView);
             mPasswordLength = typedArray.getInteger(R.styleable.PasswordView_passwordLength, 6);
@@ -114,28 +126,29 @@ public class PasswordView extends EditText implements TextWatcher {
             mBoxHeight = typedArray.getDimension(R.styleable.PasswordView_boxHeight, 0);
             mBoxWidthPercent = typedArray.getFloat(R.styleable.PasswordView_boxWidthPercent, 0);
             mBoxHeightRatio = typedArray.getFloat(R.styleable.PasswordView_boxHeightRatio, 1.0f);
-            mBoxBackground = typedArray.getColor(R.styleable.PasswordView_boxBackground, Color.TRANSPARENT);
+            mBoxBackgroundColor = typedArray.getColor(R.styleable.PasswordView_boxBackgroundColor, Color.TRANSPARENT);
             mBoxBorderColor = typedArray.getColor(R.styleable.PasswordView_boxBordColor, Color.BLACK);
             mBoxType = typedArray.getInt(R.styleable.PasswordView_boxType, BOX_TYPE_RECT);
 
-            mOutBorderSize = typedArray.getDimension(R.styleable.PasswordView_outBorderSize, density * 2);
-            mBoxBorderSize = typedArray.getDimension(R.styleable.PasswordView_boxBorderSize, density * 1);
+            mBoxBorderSize = typedArray.getDimension(R.styleable.PasswordView_boxBorderSize, mDensity * 1);
             mBoxMargin = typedArray.getDimension(R.styleable.PasswordView_boxMargin, 0);
             mMergeRectBoxEnabled = typedArray.getBoolean(R.styleable.PasswordView_mergeRectBoxEnabled, true);
-            mBoxCornerRadius = typedArray.getDimension(R.styleable.PasswordView_boxCornerRadius, 0);
+            mMergedRectBoxDividerWidth = typedArray.getDimension(R.styleable.PasswordView_mergedRectBoxDividerWidth, mDensity * 1);
 
-            mCursorWidth = typedArray.getDimension(R.styleable.PasswordView_cursorWidth, density * 2);
-            mCursorMarginTop = typedArray.getDimension(R.styleable.PasswordView_cursorMarginTop, density * 8);
-            mCursorMarginBottom = typedArray.getDimension(R.styleable.PasswordView_cursorMarginBottom, density * 8);
+            mRectBoxRadius = typedArray.getDimension(R.styleable.PasswordView_rectBoxRadius, 0);
+
+            mCursorWidth = typedArray.getDimension(R.styleable.PasswordView_cursorWidth, mDensity * 2);
+            mCursorMarginTop = typedArray.getDimension(R.styleable.PasswordView_cursorMarginTop, mDensity * 8);
+            mCursorMarginBottom = typedArray.getDimension(R.styleable.PasswordView_cursorMarginBottom, mDensity * 8);
             mCursorColor = typedArray.getColor(R.styleable.PasswordView_cursorColor, Color.BLACK);
             mCursorEnabled = typedArray.getBoolean(R.styleable.PasswordView_cursorEnabled, true);
 
             typedArray.recycle();
         } else {
-            mOutBorderSize = density * 2;
-            mBoxBorderSize = density * 1;
-            mCursorWidth = density * 2;
-            mCursorMarginTop = mCursorMarginBottom = density * 8;
+            mBoxBorderSize = mDensity * 1;
+            mCursorWidth = mDensity * 2;
+            mMergedRectBoxDividerWidth = mDensity * 1;
+            mCursorMarginTop = mCursorMarginBottom = mDensity * 8;
 
             setBackground(null);
         }
@@ -166,6 +179,7 @@ public class PasswordView extends EditText implements TextWatcher {
         });
         setLongClickable(false);
         setCursorVisible(false);
+        setLayerType(View.LAYER_TYPE_SOFTWARE, null);
     }
 
 
@@ -189,7 +203,6 @@ public class PasswordView extends EditText implements TextWatcher {
     public void setPasswordListener(PasswordListener passwordListener) {
         mPasswordListener = passwordListener;
     }
-
 
     @Override
     protected void onAttachedToWindow() {
@@ -234,7 +247,7 @@ public class PasswordView extends EditText implements TextWatcher {
                 }
                 width = expectedBoxWidth * mPasswordLength
                         + mBoxBorderSize * 2 * mPasswordLength
-                        + (mergeRectBox ? (mOutBorderSize - mBoxBorderSize) * 2 - mBoxBorderSize * (mPasswordLength - 1) : 0)
+                        + (mergeRectBox ? (mMergedRectBoxDividerWidth - 2 * mBoxBorderSize) * (mPasswordLength - 1) : 0)
                         + mBoxMargin * (mPasswordLength - 1)
                         + getPaddingLeft() + getPaddingRight();
                 width = Math.max(0, width);
@@ -247,7 +260,7 @@ public class PasswordView extends EditText implements TextWatcher {
                     case BOX_MEASURE_MODE_FILL: {
                         float measureBoxWidth = (width
                                 - mBoxBorderSize * 2 * mPasswordLength
-                                - (mergeRectBox ? (mOutBorderSize - mBoxBorderSize) * 2 - mBoxBorderSize * (mPasswordLength - 1) : 0)
+                                - (mergeRectBox ? (mMergedRectBoxDividerWidth - 2 * mBoxBorderSize) * (mPasswordLength - 1) : 0)
                                 - mBoxMargin * (mPasswordLength - 1)
                                 - (getPaddingLeft() + getPaddingRight()))
                                 / mPasswordLength;
@@ -257,7 +270,7 @@ public class PasswordView extends EditText implements TextWatcher {
                     case BOX_MEASURE_MODE_BOUND: {
                         float measureBoxWidth = mMeasureBoxWidth = (width
                                 - mBoxBorderSize * 2 * mPasswordLength
-                                - (mergeRectBox ? (mOutBorderSize - mBoxBorderSize) * 2 - mBoxBorderSize * (mPasswordLength - 1) : 0)
+                                - (mergeRectBox ? (mMergedRectBoxDividerWidth - 2 * mBoxBorderSize) * (mPasswordLength - 1) : 0)
                                 - mBoxMargin * (mPasswordLength - 1)
                                 - (getPaddingLeft() + getPaddingRight()))
                                 / mPasswordLength;
@@ -288,7 +301,7 @@ public class PasswordView extends EditText implements TextWatcher {
                     case BOX_MEASURE_MODE_FILL: {
                         float measureBoxWidth = (maxWidth
                                 - mBoxBorderSize * 2 * mPasswordLength
-                                - (mergeRectBox ? (mOutBorderSize - mBoxBorderSize) * 2 - mBoxBorderSize * (mPasswordLength - 1) : 0)
+                                - (mergeRectBox ? (mMergedRectBoxDividerWidth - 2 * mBoxBorderSize) * (mPasswordLength - 1) : 0)
                                 - mBoxMargin * (mPasswordLength - 1)
                                 - (getPaddingLeft() + getPaddingRight()))
                                 / mPasswordLength;
@@ -299,7 +312,7 @@ public class PasswordView extends EditText implements TextWatcher {
                     case BOX_MEASURE_MODE_BOUND: {
                         float maxBoxWidth = (maxWidth
                                 - mBoxBorderSize * 2 * mPasswordLength
-                                - (mergeRectBox ? (mOutBorderSize - mBoxBorderSize) * 2 - mBoxBorderSize * (mPasswordLength - 1) : 0)
+                                - (mergeRectBox ? (mMergedRectBoxDividerWidth - 2 * mBoxBorderSize) * (mPasswordLength - 1) : 0)
                                 - mBoxMargin * (mPasswordLength - 1)
                                 - (getPaddingLeft() + getPaddingRight()))
                                 / mPasswordLength;
@@ -317,7 +330,7 @@ public class PasswordView extends EditText implements TextWatcher {
                             width = getPaddingLeft() + getPaddingRight()
                                     + mMeasureBoxWidth * mPasswordLength
                                     + mBoxBorderSize * 2 * mPasswordLength
-                                    + (mergeRectBox ? (mOutBorderSize - mBoxBorderSize) * 2 - mBoxBorderSize * (mPasswordLength - 1) : 0)
+                                    + (mergeRectBox ? (mMergedRectBoxDividerWidth - 2 * mBoxBorderSize) * (mPasswordLength - 1) : 0)
                                     + mBoxMargin * (mPasswordLength - 1);
                         }
                         break;
@@ -332,7 +345,7 @@ public class PasswordView extends EditText implements TextWatcher {
                         float expectedWidth = getPaddingLeft() + getPaddingRight()
                                 + mMeasureBoxWidth * mPasswordLength
                                 + mBoxBorderSize * 2 * mPasswordLength
-                                + (mergeRectBox ? (mOutBorderSize - mBoxBorderSize) * 2 - mBoxBorderSize * (mPasswordLength - 1) : 0)
+                                + (mergeRectBox ? (mMergedRectBoxDividerWidth - 2 * mBoxBorderSize) * (mPasswordLength - 1) : 0)
                                 + mBoxMargin * (mPasswordLength - 1);
 
                         width = Math.min(expectedWidth, maxWidth);
@@ -351,8 +364,7 @@ public class PasswordView extends EditText implements TextWatcher {
                 }
                 height = getPaddingTop() + getPaddingBottom()
                         + expectedBoxHeight
-                        + 2 * mBoxBorderSize
-                        + (mergeRectBox ? (mOutBorderSize - mBoxBorderSize) * 2 : 0);
+                        + 2 * mBoxBorderSize;
                 mMeasureBoxHeight = expectedBoxHeight;
                 break;
             }
@@ -362,8 +374,7 @@ public class PasswordView extends EditText implements TextWatcher {
                     case BOX_MEASURE_MODE_FILL: {
                         float maxBoxHeight = height
                                 - getPaddingTop() - getPaddingBottom()
-                                - 2 * mBoxBorderSize
-                                - (mergeRectBox ? (mOutBorderSize - mBoxBorderSize) * 2 : 0);
+                                - 2 * mBoxBorderSize;
                         maxBoxHeight = Math.max(0, maxBoxHeight);
 
                         float expectedBoxHeight = mBoxHeight;
@@ -376,8 +387,7 @@ public class PasswordView extends EditText implements TextWatcher {
                     case BOX_MEASURE_MODE_BOUND: {
                         float measureBoxHeight = height
                                 - getPaddingTop() - getPaddingBottom()
-                                - 2 * mBoxBorderSize
-                                - (mergeRectBox ? (mOutBorderSize - mBoxBorderSize) * 2 : 0);
+                                - 2 * mBoxBorderSize;
                         measureBoxHeight = Math.max(0, measureBoxHeight);
 
                         float expectedBoxHeight = mBoxHeight;
@@ -404,8 +414,7 @@ public class PasswordView extends EditText implements TextWatcher {
                     case BOX_MEASURE_MODE_FILL: {
                         float maxBoxHeight = maxHeight
                                 - getPaddingTop() - getPaddingBottom()
-                                - 2 * mBoxBorderSize
-                                - (mergeRectBox ? (mOutBorderSize - mBoxBorderSize) * 2 : 0);
+                                - 2 * mBoxBorderSize;
 
                         float expectedBoxHeight = mBoxHeight;
                         if (mBoxHeightRatio > 0) {
@@ -414,15 +423,13 @@ public class PasswordView extends EditText implements TextWatcher {
                         mMeasureBoxHeight = Math.min(maxBoxHeight, expectedBoxHeight);
                         height = getPaddingTop() + getPaddingBottom()
                                 + mMeasureBoxHeight
-                                + 2 * mBoxBorderSize
-                                + (mergeRectBox ? (mOutBorderSize - mBoxBorderSize) * 2 : 0);
+                                + 2 * mBoxBorderSize;
                         break;
                     }
                     case BOX_MEASURE_MODE_BOUND: {
                         float maxBoxHeight = maxHeight
                                 - getPaddingTop() - getPaddingBottom()
-                                - 2 * mBoxBorderSize
-                                - (mergeRectBox ? (mOutBorderSize - mBoxBorderSize) * 2 : 0);
+                                - 2 * mBoxBorderSize;
                         if (maxBoxHeight <= 0) {
                             mMeasureBoxHeight = 0;
                             height = maxHeight;
@@ -434,8 +441,7 @@ public class PasswordView extends EditText implements TextWatcher {
                             mMeasureBoxHeight = Math.min(maxBoxHeight, expectedBoxHeight);
                             height = getPaddingTop() + getPaddingBottom()
                                     + mMeasureBoxHeight
-                                    + 2 * mBoxBorderSize
-                                    + (mergeRectBox ? (mOutBorderSize - mBoxBorderSize) * 2 : 0);
+                                    + 2 * mBoxBorderSize;
                         }
                         break;
                     }
@@ -448,8 +454,7 @@ public class PasswordView extends EditText implements TextWatcher {
 
                         float expectedHeight = getPaddingTop() + getPaddingBottom()
                                 + mMeasureBoxHeight
-                                + 2 * mBoxBorderSize
-                                + (mergeRectBox ? (mOutBorderSize - mBoxBorderSize) * 2 : 0);
+                                + 2 * mBoxBorderSize;
                         height = Math.min(maxHeight, expectedHeight);
 
                         break;
@@ -459,16 +464,16 @@ public class PasswordView extends EditText implements TextWatcher {
             }
         }
 
+
         mMeasureContentWidth = getPaddingLeft() + getPaddingRight()
                 + mMeasureBoxWidth * mPasswordLength
                 + mBoxBorderSize * 2 * mPasswordLength
-                + (mergeRectBox ? (mOutBorderSize - mBoxBorderSize) * 2 - mBoxBorderSize * (mPasswordLength - 1) : 0)
+                + (mergeRectBox ? (mMergedRectBoxDividerWidth - 2 * mBoxBorderSize) * (mPasswordLength - 1) : 0)
                 + mBoxMargin * (mPasswordLength - 1);
 
         mMeasureContentHeight = getPaddingTop() + getPaddingBottom()
                 + mMeasureBoxHeight
-                + 2 * mBoxBorderSize
-                + (mergeRectBox ? (mOutBorderSize - mBoxBorderSize) * 2 : 0);
+                + 2 * mBoxBorderSize;
 
         setMeasuredDimension(Math.round(width), Math.round(height));
     }
@@ -503,32 +508,40 @@ public class PasswordView extends EditText implements TextWatcher {
     }
 
     private List<RectF> drawRectBox(Canvas canvas) {
+        mBoxBoardPaint.setColor(mBoxBorderColor);
+        mBoxBoardPaint.setStyle(Paint.Style.STROKE);
 
-        boolean mergeRectBox = mMergeRectBoxEnabled && mBoxMargin == 0;
+        mBoxBackgroundPaint.setColor(mBoxBackgroundColor);
+        mBoxBackgroundPaint.setStyle(Paint.Style.FILL);
 
-        if (mergeRectBox) {
-            mPaint.setColor(mBoxBorderColor);
-            mPaint.setStyle(Paint.Style.STROKE);
-            mPaint.setStrokeWidth(mOutBorderSize);
 
-            float left = mOutBorderSize * 0.5f;
-            float top = mOutBorderSize * 0.5f;
-            float right = mMeasureContentWidth - (getPaddingLeft() + getPaddingRight()) - mOutBorderSize * 0.5f;
-            float bottom = mMeasureContentHeight - (getPaddingTop() + getPaddingBottom()) - mOutBorderSize * 0.5f;
-            mRectF.set(left, top, right, bottom);
-            canvas.drawRoundRect(mRectF, mBoxCornerRadius, mBoxCornerRadius, mPaint);
+        boolean mergedRectBox = mMergeRectBoxEnabled && mBoxMargin == 0;
 
-            mPaint.setStrokeWidth(mBoxBorderSize);
+        if (mergedRectBox) {
+            mBoxBoardPaint.setStrokeWidth(mBoxBorderSize);
+
+            float left = mBoxBorderSize * 0.5f;
+            float top = mBoxBorderSize * 0.5f;
+            float right = mMeasureContentWidth - (getPaddingLeft() + getPaddingRight()) - mBoxBorderSize * 0.5f;
+            float bottom = mMeasureContentHeight - (getPaddingTop() + getPaddingBottom()) - mBoxBorderSize * 0.5f;
+            mTempRectF.set(left, top, right, bottom);
+
+            canvas.drawRoundRect(mTempRectF, mRectBoxRadius, mRectBoxRadius, mBoxBoardPaint);
+
             RectF lastBoxRectF = null;
+
+            mBoxBoardPaint.setStrokeWidth(mMergedRectBoxDividerWidth);
+            mBoxBoardPaint.setColor(mBoxBorderColor);
+            mBoxBoardPaint.setStyle(Paint.Style.STROKE);
             for (int index = 0; index < mPasswordLength; index++) {
                 if (index == 0) {
-                    left = mOutBorderSize;
-                    top = mOutBorderSize;
+                    left = mBoxBorderSize;
+                    top = mBoxBorderSize;
                     right = left + mMeasureBoxWidth;
                     bottom = top + mMeasureBoxHeight;
                 } else {
-                    left = lastBoxRectF.right + mBoxBorderSize;
-                    top = mOutBorderSize;
+                    left = lastBoxRectF.right + mMergedRectBoxDividerWidth;
+                    top = mBoxBorderSize;
                     right = left + mMeasureBoxWidth;
                     bottom = top + mMeasureBoxHeight;
                 }
@@ -541,19 +554,23 @@ public class PasswordView extends EditText implements TextWatcher {
                 }
                 boxRectF.set(left, top, right, bottom);
                 lastBoxRectF = boxRectF;
-                if (index < mPasswordLength - 1) {
-                    float startX = boxRectF.right + mBoxBorderSize * 0.5f;
-                    float startY = boxRectF.top;
-                    float stopX = startX;
-                    float stopY = boxRectF.bottom;
-                    canvas.drawLine(startX, startY, stopX, stopY, mPaint);
+
+                if (mBoxBorderSize > 0) {
+                    if (index < mPasswordLength - 1) {
+                        float startX = boxRectF.right + mMergedRectBoxDividerWidth * 0.5f;
+                        float startY = boxRectF.top;
+                        float stopX = startX;
+                        float stopY = boxRectF.bottom;
+
+                        canvas.drawLine(startX, startY, stopX, stopY, mBoxBoardPaint);
+                    }
                 }
+
+                drawMergedRectBoxBackground(canvas, index, boxRectF);
             }
 
         } else {
-            mPaint.setColor(mBoxBorderColor);
-            mPaint.setStyle(Paint.Style.STROKE);
-            mPaint.setStrokeWidth(mBoxBorderSize);
+            mBoxBoardPaint.setStrokeWidth(mBoxBorderSize);
 
             for (int index = 0; index < mPasswordLength; index++) {
 
@@ -562,8 +579,11 @@ public class PasswordView extends EditText implements TextWatcher {
                 float right = left + mMeasureBoxWidth + mBoxBorderSize;
                 float bottom = top + mMeasureBoxHeight + mBoxBorderSize;
 
-                mRectF.set(left, top, right, bottom);
-                canvas.drawRoundRect(mRectF, mBoxCornerRadius, mBoxCornerRadius, mPaint);
+                mTempRectF.set(left, top, right, bottom);
+
+                canvas.save();
+
+                canvas.drawRoundRect(mTempRectF, mRectBoxRadius, mRectBoxRadius, mBoxBoardPaint);
 
                 RectF boxRectF;
                 if (mBoxRectFs.size() > index) {
@@ -577,16 +597,82 @@ public class PasswordView extends EditText implements TextWatcher {
                 right -= mBoxBorderSize * 0.5f;
                 bottom -= mBoxBorderSize * 0.5f;
                 boxRectF.set(left, top, right, bottom);
+
+
+                mBoxBackgroundPaint.setXfermode(mXfermode);
+                canvas.drawRoundRect(mTempRectF, mRectBoxRadius, mRectBoxRadius, mBoxBackgroundPaint);
+                mBoxBackgroundPaint.setXfermode(null);
+
+                canvas.restore();
             }
         }
 
         return mBoxRectFs;
     }
 
+    private void drawMergedRectBoxBackground(Canvas canvas, int index, RectF boxRectF) {
+        float boxBackgroundRadius = getBoxBackgroundRadius();
+        mTempPath.reset();
+        if (index == 0) {
+            mBoxRadii[0] = boxBackgroundRadius;
+            mBoxRadii[1] = boxBackgroundRadius;
+
+            mBoxRadii[2] = 0;
+            mBoxRadii[3] = 0;
+
+            mBoxRadii[4] = 0;
+            mBoxRadii[5] = 0;
+
+            mBoxRadii[6] = boxBackgroundRadius;
+            mBoxRadii[7] = boxBackgroundRadius;
+
+            mTempPath.addRoundRect(boxRectF, mBoxRadii, Path.Direction.CW);
+        } else if (index == mPasswordLength - 1) {
+            mBoxRadii[0] = 0;
+            mBoxRadii[1] = 0;
+
+            mBoxRadii[2] = boxBackgroundRadius;
+            mBoxRadii[3] = boxBackgroundRadius;
+
+            mBoxRadii[4] = boxBackgroundRadius;
+            mBoxRadii[5] = boxBackgroundRadius;
+
+            mBoxRadii[6] = 0;
+            mBoxRadii[7] = 0;
+
+            mTempPath.addRoundRect(boxRectF, mBoxRadii, Path.Direction.CW);
+        } else {
+            mBoxRadii[0] = 0;
+            mBoxRadii[1] = 0;
+
+            mBoxRadii[2] = 0;
+            mBoxRadii[3] = 0;
+
+            mBoxRadii[4] = 0;
+            mBoxRadii[5] = 0;
+
+            mBoxRadii[6] = 0;
+            mBoxRadii[7] = 0;
+
+            mTempPath.addRoundRect(boxRectF, mBoxRadii, Path.Direction.CW);
+        }
+        canvas.drawPath(mTempPath, mBoxBackgroundPaint);
+    }
+
+    private float getBoxBackgroundRadius() {
+        if (mRectBoxRadius == 0) return 0;
+        if (mBoxBorderSize == 0) return 0;
+        float radius = 1.5f * (mBoxBorderSize / mDensity - 1) + 0.5f;
+        return mRectBoxRadius - Math.max(0, radius);
+    }
+
     private List<RectF> drawOvalBox(Canvas canvas) {
-        mPaint.setColor(mBoxBorderColor);
-        mPaint.setStyle(Paint.Style.STROKE);
-        mPaint.setStrokeWidth(mBoxBorderSize);
+        mBoxBoardPaint.setColor(mBoxBorderColor);
+        mBoxBoardPaint.setStyle(Paint.Style.STROKE);
+        mBoxBoardPaint.setStrokeWidth(mBoxBorderSize);
+
+        mBoxBackgroundPaint.setColor(mBoxBackgroundColor);
+        mBoxBackgroundPaint.setStyle(Paint.Style.FILL);
 
         for (int index = 0; index < mPasswordLength; index++) {
 
@@ -595,10 +681,11 @@ public class PasswordView extends EditText implements TextWatcher {
             float right = left + mMeasureBoxWidth + mBoxBorderSize;
             float bottom = top + mMeasureBoxHeight + mBoxBorderSize;
 
-            mRectF.set(left, top, right, bottom);
+            mTempRectF.set(left, top, right, bottom);
 
-            canvas.drawOval(mRectF, mPaint);
+            canvas.save();
 
+            canvas.drawOval(mTempRectF, mBoxBoardPaint);
 
             RectF boxRect;
             if (mBoxRectFs.size() > index) {
@@ -612,15 +699,24 @@ public class PasswordView extends EditText implements TextWatcher {
             right -= mBoxBorderSize * 0.5f;
             bottom -= mBoxBorderSize * 0.5f;
             boxRect.set(left, top, right, bottom);
+
+            mBoxBackgroundPaint.setXfermode(mXfermode);
+            canvas.drawOval(mTempRectF, mBoxBackgroundPaint);
+            mBoxBackgroundPaint.setXfermode(null);
+
+            canvas.restore();
         }
 
         return mBoxRectFs;
     }
 
     private List<RectF> drawUnderlineBox(Canvas canvas) {
-        mPaint.setColor(mBoxBorderColor);
-        mPaint.setStyle(Paint.Style.FILL);
-        mPaint.setStrokeWidth(mBoxBorderSize);
+        mBoxBoardPaint.setColor(mBoxBorderColor);
+        mBoxBoardPaint.setStyle(Paint.Style.FILL);
+        mBoxBoardPaint.setStrokeWidth(mBoxBorderSize);
+
+        mBoxBackgroundPaint.setColor(mBoxBackgroundColor);
+        mBoxBackgroundPaint.setStyle(Paint.Style.FILL);
 
         for (int index = 0; index < mPasswordLength; index++) {
 
@@ -629,7 +725,7 @@ public class PasswordView extends EditText implements TextWatcher {
             float stopX = startX + mMeasureBoxWidth + mBoxBorderSize * 2;
             float stopY = startY;
 
-            canvas.drawLine(startX, startY, stopX, stopY, mPaint);
+            canvas.drawLine(startX, startY, stopX, stopY, mBoxBoardPaint);
 
             RectF boxRect;
             if (mBoxRectFs.size() > index) {
@@ -639,12 +735,14 @@ public class PasswordView extends EditText implements TextWatcher {
                 mBoxRectFs.add(boxRect);
             }
 
-            float left = mMeasureBoxWidth * index + mBoxBorderSize * 2 * index + mBoxMargin * index + mBoxBorderSize;
+            float left = mMeasureBoxWidth * index + mBoxBorderSize * 2 * index + mBoxMargin * index;
             float top = mBoxBorderSize;
-            float right = left + mMeasureBoxWidth;
+            float right = left + mMeasureBoxWidth + mBoxBorderSize * 2;
             float bottom = top + mMeasureBoxHeight;
 
             boxRect.set(left, top, right, bottom);
+
+            canvas.drawRect(boxRect, mBoxBackgroundPaint);
         }
 
         return mBoxRectFs;
@@ -653,9 +751,9 @@ public class PasswordView extends EditText implements TextWatcher {
     private void drawCursor(Canvas canvas, List<RectF> boxRectFs) {
         if (!isFocused()) return;
         if (mDrawCursor) {
-            mPaint.setColor(mCursorColor);
-            mPaint.setStyle(Paint.Style.FILL);
-            mPaint.setStrokeWidth(mCursorWidth);
+            mCursorPaint.setColor(mCursorColor);
+            mCursorPaint.setStyle(Paint.Style.FILL);
+            mCursorPaint.setStrokeWidth(mCursorWidth);
 
             Editable text = getText();
             int textLength = text == null ? 0 : text.length();
@@ -669,7 +767,7 @@ public class PasswordView extends EditText implements TextWatcher {
             float stopX = startX;
             float stopY = rectF.bottom - mCursorMarginBottom;
 
-            canvas.drawLine(startX, startY, stopX, stopY, mPaint);
+            canvas.drawLine(startX, startY, stopX, stopY, mCursorPaint);
         }
     }
 
@@ -686,29 +784,29 @@ public class PasswordView extends EditText implements TextWatcher {
 
         if (mPasswordType == PASSWORD_TYPE_STARS) textSize *= 1.5f;
 
-        mPaint.setTextSize(textSize);
-        mPaint.setColor(textColor);
-        mPaint.setStyle(Paint.Style.FILL);
-        mPaint.setTextAlign(Paint.Align.CENTER);
+        mTextPaint.setTextSize(textSize);
+        mTextPaint.setColor(textColor);
+        mTextPaint.setStyle(Paint.Style.FILL);
+        mTextPaint.setTextAlign(Paint.Align.CENTER);
 
-        Paint.FontMetrics fontMetrics = mPaint.getFontMetrics();
+        Paint.FontMetrics fontMetrics = mTextPaint.getFontMetrics();
 
         for (int index = 0; index < textLength; index++) {
             RectF rectF = boxRectFs.get(index);
             switch (mPasswordType) {
                 case PASSWORD_TYPE_STARS: {
-                    float fontWidth = mPaint.measureText("*");
+                    float fontWidth = mTextPaint.measureText("*");
                     float baseX = rectF.centerX();
                     float baseY = (rectF.bottom + rectF.top - fontMetrics.bottom - fontMetrics.top) * 0.5f;
                     baseY += fontWidth * 0.26f;
-                    canvas.drawText("*", baseX, baseY, mPaint);
+                    canvas.drawText("*", baseX, baseY, mTextPaint);
                     break;
                 }
                 case PASSWORD_TYPE_CIRCLE: {
                     float cx = rectF.centerX();
                     float cy = rectF.centerY();
                     float radius = textSize * 0.5f;
-                    canvas.drawCircle(cx, cy, radius, mPaint);
+                    canvas.drawCircle(cx, cy, radius, mTextPaint);
                     break;
                 }
                 case PASSWORD_TYPE_TEXT: {
@@ -716,7 +814,7 @@ public class PasswordView extends EditText implements TextWatcher {
                     String strAt = String.valueOf(charAt);
                     float baseX = rectF.centerX();
                     float baseY = (rectF.bottom + rectF.top - fontMetrics.bottom - fontMetrics.top) * 0.5f;
-                    canvas.drawText(strAt, baseX, baseY, mPaint);
+                    canvas.drawText(strAt, baseX, baseY, mTextPaint);
                     break;
                 }
             }
