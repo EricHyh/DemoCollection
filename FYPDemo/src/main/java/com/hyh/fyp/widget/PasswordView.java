@@ -1122,12 +1122,32 @@ public class PasswordView extends EditText implements TextWatcher {
             measureHeight(passwordView, measureInfo, result);
         }
 
+
+        private float xxx(MeasureInfo info) {
+            float boxWidth = info.boxWidth;
+            float boxWidthPercent = info.boxWidthPercent;
+
+            float boxSpace = info.boxSpace;
+            float boxSpacePercent = info.boxSpacePercent;
+
+
+
+        }
+
+
         private void measureWidth(PasswordView view, MeasureInfo info, MeasureResult result) {
             int widthMode = MeasureSpec.getMode(info.widthMeasureSpec);
             int horizontalPadding = view.getPaddingLeft() + view.getPaddingRight();
 
             switch (widthMode) {
                 case MeasureSpec.UNSPECIFIED: {
+                    float defaultWidth = getDefaultSize(view.getSuggestedMinimumWidth(), info.widthMeasureSpec);
+                    if (info.boxWidthPercent <= 0) {
+                        float boxWidth = info.boxWidth;
+
+                    } else {
+
+                    }
                     break;
                 }
                 case MeasureSpec.EXACTLY: {
@@ -1165,12 +1185,6 @@ public class PasswordView extends EditText implements TextWatcher {
                         expectedBoxWidth = maxWidth * info.boxWidthPercent;
                     }
 
-
-
-                    /*float expectedBoxWidth = info.boxWidth;
-                    if (info.boxWidthPercent > 0) {
-                        expectedBoxWidth = maxWidth * info.boxWidthPercent;
-                    }
                     measureBoxChainAtMost(maxWidth, expectedBoxWidth, horizontalPadding, info, result);
 
                     boolean mergeRectBox = info.mergeRectBoxEnabled
@@ -1187,9 +1201,18 @@ public class PasswordView extends EditText implements TextWatcher {
                             - result.measureBoxChainMargin * 2)
                             / info.passwordLength;
 
-                    result.measureBoxWidth = Math.min(expectedBoxWidth, maxBoxWidth);*/
+                    maxBoxWidth = Math.max(0, maxBoxWidth);
 
+                    result.measureBoxWidth = Math.min(maxBoxWidth, expectedBoxWidth);
 
+                    float expectedWidth = result.measureBoxWidth * info.passwordLength
+                            + info.boxBorderSize * 2 * info.passwordLength
+                            + (mergeRectBox ? (info.mergedRectBoxDividerWidth - 2 * info.boxBorderSize) * (info.passwordLength - 1) : 0)
+                            + result.measureBoxSpace * (info.passwordLength - 1)
+                            + horizontalPadding
+                            + result.measureBoxChainMargin * 2;
+
+                    result.measureWidth = Math.min(expectedWidth, maxWidth);
                     break;
                 }
             }
@@ -1307,7 +1330,6 @@ public class PasswordView extends EditText implements TextWatcher {
                     break;
                 }
                 case BOX_CHAIN_STYLE_SPREAD_INSIDE: {
-
                     if (info.passwordLength <= 1) {
                         result.measureBoxSpace = result.measureBoxChainMargin = 0;
                     } else {
@@ -1334,6 +1356,7 @@ public class PasswordView extends EditText implements TextWatcher {
                         result.measureBoxSpace = 0;
                         result.measureBoxChainMargin = surplusWidth / 2;
                     }
+                    break;
                 }
             }
         }
