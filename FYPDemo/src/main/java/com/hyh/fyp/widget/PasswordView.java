@@ -1123,15 +1123,24 @@ public class PasswordView extends EditText implements TextWatcher {
         }
 
 
-        private float xxx(MeasureInfo info) {
+        private float xxx(MeasureInfo info, int horizontalPadding) {
             float boxWidth = info.boxWidth;
             float boxWidthPercent = info.boxWidthPercent;
 
             float boxSpace = info.boxSpace;
             float boxSpacePercent = info.boxSpacePercent;
 
+            boolean mergeRectBox = info.mergeRectBoxEnabled
+                    && info.boxType == BOX_TYPE_RECT
+                    && boxSpace == 0
+                    && boxSpacePercent == 0;
 
-
+            return (horizontalPadding
+                    + (boxWidthPercent == 0 ? boxWidth : 0) * info.passwordLength
+                    + info.boxBorderSize * info.passwordLength * 2
+                    + (mergeRectBox ? (info.mergedRectBoxDividerWidth - 2 * info.boxBorderSize) * (info.passwordLength - 1) : 0)
+                    + (boxSpacePercent == 0 ? boxSpace : 0) * (info.passwordLength - 1))
+                    / (1 - boxWidthPercent * info.passwordLength - boxSpacePercent * (info.passwordLength - 1));
         }
 
 
@@ -1141,13 +1150,9 @@ public class PasswordView extends EditText implements TextWatcher {
 
             switch (widthMode) {
                 case MeasureSpec.UNSPECIFIED: {
-                    float defaultWidth = getDefaultSize(view.getSuggestedMinimumWidth(), info.widthMeasureSpec);
-                    if (info.boxWidthPercent <= 0) {
-                        float boxWidth = info.boxWidth;
+                    //float defaultWidth = getDefaultSize(view.getSuggestedMinimumWidth(), info.widthMeasureSpec);
 
-                    } else {
 
-                    }
                     break;
                 }
                 case MeasureSpec.EXACTLY: {
