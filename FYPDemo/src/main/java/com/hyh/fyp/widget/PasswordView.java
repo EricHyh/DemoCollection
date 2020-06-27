@@ -1043,8 +1043,12 @@ public class PasswordView extends EditText implements TextWatcher {
                     break;
                 }
                 case BOX_CHAIN_STYLE_PACKET: {
+                    float boxSpace = info.boxSpace;
+                    if (info.boxSpacePercent > 0) {
+                        boxSpace = width * info.boxSpacePercent;
+                    }
                     result.measureBoxSpace = 0;
-                    result.measureBoxChainMargin = 0;
+                    result.measureBoxChainMargin = boxSpace;
                     break;
                 }
             }
@@ -1122,8 +1126,234 @@ public class PasswordView extends EditText implements TextWatcher {
             measureHeight(passwordView, measureInfo, result);
         }
 
+        private void measureWidth(PasswordView view, MeasureInfo info, MeasureResult result) {
+            int widthMode = MeasureSpec.getMode(info.widthMeasureSpec);
+            int horizontalPadding = view.getPaddingLeft() + view.getPaddingRight();
 
-        private float xxx(MeasureInfo info, int horizontalPadding) {
+            switch (widthMode) {
+                case MeasureSpec.UNSPECIFIED: {
+                    float defaultWidth = getDefaultSize(view.getSuggestedMinimumWidth(), info.widthMeasureSpec);
+                    if (info.boxChainStyle == BOX_CHAIN_STYLE_FREE) {
+                        float width = computeFreeChainWidth(info, horizontalPadding);
+                        result.measureWidth = width;
+                        float boxSpace = info.boxSpace;
+                        if (info.boxSpacePercent > 0) {
+                            boxSpace = width * info.boxSpacePercent;
+                        }
+
+                        boolean mergeRectBox = info.mergeRectBoxEnabled
+                                && info.boxType == BOX_TYPE_RECT
+                                && result.measureBoxSpace == 0;
+
+                        float boxWidth = info.boxWidth;
+                        if (info.boxWidthPercent > 0) {
+                            boxWidth = width * info.boxWidthPercent;
+                        }
+
+                        result.measureBoxSpace = boxSpace;
+                        result.measureBoxChainMargin = 0;
+                        result.mergeRectBox = mergeRectBox;
+                        result.measureBoxWidth = boxWidth;
+                    } else {
+                        result.measureWidth = defaultWidth;
+
+                        float expectedBoxWidth = info.boxWidth;
+                        if (info.boxWidthPercent > 0) {
+                            expectedBoxWidth = result.measureWidth * info.boxWidthPercent;
+                        }
+
+                        measureBoxChainExactly(result.measureWidth, expectedBoxWidth, horizontalPadding, info, result);
+                        boolean mergeRectBox = result.mergeRectBox;
+
+                        float maxBoxWidth = (result.measureWidth
+                                - info.boxBorderSize * 2 * info.passwordLength
+                                - (mergeRectBox ? (info.mergedRectBoxDividerWidth - 2 * info.boxBorderSize) * (info.passwordLength - 1) : 0)
+                                - result.measureBoxSpace * (info.passwordLength - 1)
+                                - horizontalPadding
+                                - result.measureBoxChainMargin * 2)
+                                / info.passwordLength;
+
+                        result.measureBoxWidth = Math.min(expectedBoxWidth, maxBoxWidth);
+                    }
+                    break;
+                }
+                case MeasureSpec.EXACTLY: {
+                    float width = getDefaultSize(view.getSuggestedMinimumWidth(), info.widthMeasureSpec);
+                    result.measureWidth = width;
+                    float expectedBoxWidth = info.boxWidth;
+                    if (info.boxWidthPercent > 0) {
+                        expectedBoxWidth = width * info.boxWidthPercent;
+                    }
+
+                    measureBoxChainExactly(width, expectedBoxWidth, horizontalPadding, info, result);
+
+                    boolean mergeRectBox = result.mergeRectBox;
+
+                    float maxBoxWidth = (width
+                            - info.boxBorderSize * 2 * info.passwordLength
+                            - (mergeRectBox ? (info.mergedRectBoxDividerWidth - 2 * info.boxBorderSize) * (info.passwordLength - 1) : 0)
+                            - result.measureBoxSpace * (info.passwordLength - 1)
+                            - horizontalPadding
+                            - result.measureBoxChainMargin * 2)
+                            / info.passwordLength;
+
+                    result.measureBoxWidth = Math.min(expectedBoxWidth, maxBoxWidth);
+
+                    break;
+                }
+                case MeasureSpec.AT_MOST: {
+                    float maxWidth = getDefaultSize(view.getSuggestedMinimumWidth(), info.widthMeasureSpec);
+                    if (info.boxChainStyle == BOX_CHAIN_STYLE_FREE) {
+                        float width = computeFreeChainWidth(info, horizontalPadding);
+                        width = Math.min(maxWidth, width);
+
+                        result.measureWidth = width;
+
+                        float boxSpace = info.boxSpace;
+                        if (info.boxSpacePercent > 0) {
+                            boxSpace = width * info.boxSpacePercent;
+                        }
+
+                        boolean mergeRectBox = info.mergeRectBoxEnabled
+                                && info.boxType == BOX_TYPE_RECT
+                                && result.measureBoxSpace == 0;
+
+                        float maxBoxWidth = (maxWidth
+                                - info.boxBorderSize * 2 * info.passwordLength
+                                - (mergeRectBox ? (info.mergedRectBoxDividerWidth - 2 * info.boxBorderSize) * (info.passwordLength - 1) : 0)
+                                - result.measureBoxSpace * (info.passwordLength - 1)
+                                - horizontalPadding
+                                - result.measureBoxChainMargin * 2)
+                                / info.passwordLength;
+                        maxBoxWidth = Math.max(0, maxBoxWidth);
+
+                        float boxWidth = info.boxWidth;
+                        if (info.boxWidthPercent > 0) {
+                            boxWidth = width * info.boxWidthPercent;
+                        }
+                        boxWidth = Math.min(maxBoxWidth, boxWidth);
+
+                        result.measureBoxSpace = boxSpace;
+                        result.measureBoxChainMargin = 0;
+                        result.mergeRectBox = mergeRectBox;
+                        result.measureBoxWidth = boxWidth;
+                    } else {
+                        result.measureWidth = maxWidth;
+
+                        float expectedBoxWidth = info.boxWidth;
+                        if (info.boxWidthPercent > 0) {
+                            expectedBoxWidth = result.measureWidth * info.boxWidthPercent;
+                        }
+
+                        measureBoxChainExactly(result.measureWidth, expectedBoxWidth, horizontalPadding, info, result);
+                        boolean mergeRectBox = result.mergeRectBox;
+
+                        float maxBoxWidth = (result.measureWidth
+                                - info.boxBorderSize * 2 * info.passwordLength
+                                - (mergeRectBox ? (info.mergedRectBoxDividerWidth - 2 * info.boxBorderSize) * (info.passwordLength - 1) : 0)
+                                - result.measureBoxSpace * (info.passwordLength - 1)
+                                - horizontalPadding
+                                - result.measureBoxChainMargin * 2)
+                                / info.passwordLength;
+
+                        result.measureBoxWidth = Math.min(expectedBoxWidth, maxBoxWidth);
+                    }
+                    break;
+                }
+            }
+        }
+
+        private void measureBoxChainExactly(float width, float expectedBoxWidth, int horizontalPadding, MeasureInfo info, MeasureResult result) {
+            switch (info.boxChainStyle) {
+                case BOX_CHAIN_STYLE_FREE: {
+                    float boxSpace = info.boxSpace;
+                    if (info.boxSpacePercent > 0) {
+                        boxSpace = width * info.boxSpacePercent;
+                    }
+                    result.measureBoxSpace = boxSpace;
+                    result.measureBoxChainMargin = 0;
+                    result.mergeRectBox = info.mergeRectBoxEnabled
+                            && info.boxType == BOX_TYPE_RECT
+                            && result.measureBoxSpace == 0;
+                    break;
+                }
+                case BOX_CHAIN_STYLE_SPREAD: {
+                    float surplusWidth = width
+                            - horizontalPadding
+                            - expectedBoxWidth * info.passwordLength
+                            - info.boxBorderSize * 2 * info.passwordLength;
+                    if (surplusWidth <= 0) {
+                        result.measureBoxSpace = result.measureBoxChainMargin = 0;
+                        if (info.passwordLength > 1) {
+                            boolean mergeRectBox = info.mergeRectBoxEnabled && info.boxType == BOX_TYPE_RECT;
+                            if (mergeRectBox) {
+                                surplusWidth += (2 * info.boxBorderSize - info.mergedRectBoxDividerWidth) * (info.passwordLength - 1);
+                                if (surplusWidth > 0) {
+                                    result.measureBoxChainMargin = surplusWidth / 2;
+                                }
+                            }
+                        }
+                    } else {
+                        if (info.passwordLength <= 1) {
+                            result.measureBoxSpace = 0;
+                            result.measureBoxChainMargin = surplusWidth / 2;
+                        } else {
+                            result.measureBoxSpace = result.measureBoxChainMargin = surplusWidth / (info.passwordLength + 1);
+                        }
+                    }
+                    result.mergeRectBox = info.mergeRectBoxEnabled
+                            && info.boxType == BOX_TYPE_RECT
+                            && result.measureBoxSpace == 0;
+                    break;
+                }
+                case BOX_CHAIN_STYLE_SPREAD_INSIDE: {
+                    if (info.passwordLength <= 1) {
+                        result.measureBoxSpace = result.measureBoxChainMargin = 0;
+                        result.mergeRectBox = info.mergeRectBoxEnabled && info.boxType == BOX_TYPE_RECT;
+                    } else {
+                        float surplusWidth = width
+                                - horizontalPadding
+                                - expectedBoxWidth * info.passwordLength
+                                - info.boxBorderSize * 2 * info.passwordLength;
+                        if (surplusWidth <= 0) {
+                            result.measureBoxSpace = result.measureBoxChainMargin = 0;
+                            boolean mergeRectBox = info.mergeRectBoxEnabled && info.boxType == BOX_TYPE_RECT;
+                            if (mergeRectBox) {
+                                surplusWidth += (2 * info.boxBorderSize - info.mergedRectBoxDividerWidth) * (info.passwordLength - 1);
+                                if (surplusWidth > 0) {
+                                    mergeRectBox = false;
+                                }
+                            }
+                            result.mergeRectBox = mergeRectBox;
+                        } else {
+                            result.measureBoxSpace = surplusWidth / (info.passwordLength - 1);
+                            result.measureBoxChainMargin = 0;
+                            result.mergeRectBox = info.mergeRectBoxEnabled
+                                    && info.boxType == BOX_TYPE_RECT
+                                    && result.measureBoxSpace == 0;
+                        }
+                    }
+                    break;
+                }
+                case BOX_CHAIN_STYLE_PACKET: {
+                    boolean mergeRectBox = info.mergeRectBoxEnabled && info.boxType == BOX_TYPE_RECT;
+                    result.mergeRectBox = mergeRectBox;
+                    float surplusWidth = width
+                            - horizontalPadding
+                            - expectedBoxWidth * info.passwordLength
+                            - info.boxBorderSize * 2 * info.passwordLength
+                            - (mergeRectBox ? (info.mergedRectBoxDividerWidth - 2 * info.boxBorderSize) * (info.passwordLength - 1) : 0);
+                    if (surplusWidth <= 0) {
+                        result.measureBoxSpace = result.measureBoxChainMargin = 0;
+                    } else {
+                        result.measureBoxSpace = 0;
+                        result.measureBoxChainMargin = surplusWidth / 2;
+                    }
+                }
+            }
+        }
+
+        private float computeFreeChainWidth(MeasureInfo info, int horizontalPadding) {
             float boxWidth = info.boxWidth;
             float boxWidthPercent = info.boxWidthPercent;
 
@@ -1141,229 +1371,6 @@ public class PasswordView extends EditText implements TextWatcher {
                     + (mergeRectBox ? (info.mergedRectBoxDividerWidth - 2 * info.boxBorderSize) * (info.passwordLength - 1) : 0)
                     + (boxSpacePercent == 0 ? boxSpace : 0) * (info.passwordLength - 1))
                     / (1 - boxWidthPercent * info.passwordLength - boxSpacePercent * (info.passwordLength - 1));
-        }
-
-
-        private void measureWidth(PasswordView view, MeasureInfo info, MeasureResult result) {
-            int widthMode = MeasureSpec.getMode(info.widthMeasureSpec);
-            int horizontalPadding = view.getPaddingLeft() + view.getPaddingRight();
-
-            switch (widthMode) {
-                case MeasureSpec.UNSPECIFIED: {
-                    //float defaultWidth = getDefaultSize(view.getSuggestedMinimumWidth(), info.widthMeasureSpec);
-
-
-                    break;
-                }
-                case MeasureSpec.EXACTLY: {
-                    float width = getDefaultSize(view.getSuggestedMinimumWidth(), info.widthMeasureSpec);
-                    result.measureWidth = width;
-                    float expectedBoxWidth = info.boxWidth;
-                    if (info.boxWidthPercent > 0) {
-                        expectedBoxWidth = width * info.boxWidthPercent;
-                    }
-                    measureBoxChainExactly(width, expectedBoxWidth, horizontalPadding, info, result);
-
-                    boolean mergeRectBox = info.mergeRectBoxEnabled
-                            && info.boxType == BOX_TYPE_RECT
-                            && result.measureBoxSpace == 0;
-
-                    result.mergeRectBox = mergeRectBox;
-
-                    float maxBoxWidth = (width
-                            - info.boxBorderSize * 2 * info.passwordLength
-                            - (mergeRectBox ? (info.mergedRectBoxDividerWidth - 2 * info.boxBorderSize) * (info.passwordLength - 1) : 0)
-                            - result.measureBoxSpace * (info.passwordLength - 1)
-                            - horizontalPadding
-                            - result.measureBoxChainMargin * 2)
-                            / info.passwordLength;
-
-                    result.measureBoxWidth = Math.min(expectedBoxWidth, maxBoxWidth);
-
-                    break;
-                }
-                case MeasureSpec.AT_MOST: {
-                    float maxWidth = getDefaultSize(view.getSuggestedMinimumWidth(), info.widthMeasureSpec);
-
-                    float expectedBoxWidth = info.boxWidth;
-                    if (info.boxWidthPercent > 0) {
-                        expectedBoxWidth = maxWidth * info.boxWidthPercent;
-                    }
-
-                    measureBoxChainAtMost(maxWidth, expectedBoxWidth, horizontalPadding, info, result);
-
-                    boolean mergeRectBox = info.mergeRectBoxEnabled
-                            && info.boxType == BOX_TYPE_RECT
-                            && result.measureBoxSpace == 0;
-
-                    result.mergeRectBox = mergeRectBox;
-
-                    float maxBoxWidth = (maxWidth
-                            - info.boxBorderSize * 2 * info.passwordLength
-                            - (mergeRectBox ? (info.mergedRectBoxDividerWidth - 2 * info.boxBorderSize) * (info.passwordLength - 1) : 0)
-                            - result.measureBoxSpace * (info.passwordLength - 1)
-                            - horizontalPadding
-                            - result.measureBoxChainMargin * 2)
-                            / info.passwordLength;
-
-                    maxBoxWidth = Math.max(0, maxBoxWidth);
-
-                    result.measureBoxWidth = Math.min(maxBoxWidth, expectedBoxWidth);
-
-                    float expectedWidth = result.measureBoxWidth * info.passwordLength
-                            + info.boxBorderSize * 2 * info.passwordLength
-                            + (mergeRectBox ? (info.mergedRectBoxDividerWidth - 2 * info.boxBorderSize) * (info.passwordLength - 1) : 0)
-                            + result.measureBoxSpace * (info.passwordLength - 1)
-                            + horizontalPadding
-                            + result.measureBoxChainMargin * 2;
-
-                    result.measureWidth = Math.min(expectedWidth, maxWidth);
-                    break;
-                }
-            }
-        }
-
-        private void measureBoxChainExactly(float width, float expectedBoxWidth, int horizontalPadding, MeasureInfo info, MeasureResult result) {
-            switch (info.boxChainStyle) {
-                case BOX_CHAIN_STYLE_FREE: {
-                    float boxSpace = info.boxSpace;
-                    if (info.boxSpacePercent > 0) {
-                        boxSpace = width * info.boxSpacePercent;
-                    }
-                    result.measureBoxSpace = boxSpace;
-                    result.measureBoxChainMargin = 0;
-                    break;
-                }
-                case BOX_CHAIN_STYLE_SPREAD: {
-                    float surplusWidth = width
-                            - horizontalPadding
-                            - expectedBoxWidth * info.passwordLength
-                            - info.boxBorderSize * 2 * info.passwordLength;
-                    if (surplusWidth <= 0) {
-                        result.measureBoxSpace = result.measureBoxChainMargin = 0;
-                        boolean mergeRectBox = info.mergeRectBoxEnabled && info.boxType == BOX_TYPE_RECT;
-                        if (mergeRectBox) {
-                            surplusWidth += (2 * info.boxBorderSize + info.mergedRectBoxDividerWidth) * (info.passwordLength - 1);
-                            if (surplusWidth > 0) {
-                                result.measureBoxChainMargin = surplusWidth / 2;
-                            }
-                        }
-                    } else {
-                        result.measureBoxSpace = result.measureBoxChainMargin = surplusWidth / (info.passwordLength + 1);
-                    }
-                    break;
-                }
-                case BOX_CHAIN_STYLE_SPREAD_INSIDE: {
-                    if (info.passwordLength <= 1) {
-                        result.measureBoxSpace = result.measureBoxChainMargin = 0;
-                    } else {
-                        float surplusWidth = width
-                                - horizontalPadding
-                                - expectedBoxWidth * info.passwordLength
-                                - info.boxBorderSize * 2 * info.passwordLength;
-                        if (surplusWidth <= 0) {
-                            result.measureBoxSpace = result.measureBoxChainMargin = 0;
-                        } else {
-                            result.measureBoxSpace = surplusWidth / (info.passwordLength - 1);
-                        }
-                    }
-                    break;
-                }
-                case BOX_CHAIN_STYLE_PACKET: {
-                    float surplusWidth = width
-                            - horizontalPadding
-                            - expectedBoxWidth * info.passwordLength
-                            - info.boxBorderSize * 2 * info.passwordLength;
-                    if (surplusWidth <= 0) {
-                        result.measureBoxSpace = result.measureBoxChainMargin = 0;
-                    } else {
-                        result.measureBoxSpace = 0;
-                        result.measureBoxChainMargin = surplusWidth / 2;
-                    }
-                }
-            }
-        }
-
-        private void measureBoxChainAtMost(float maxWidth, float expectedBoxWidth, int horizontalPadding, MeasureInfo info, MeasureResult result) {
-            switch (info.boxChainStyle) {
-                case BOX_CHAIN_STYLE_FREE: {
-                    if (info.passwordLength <= 1) {
-                        result.measureBoxSpace = result.measureBoxChainMargin = 0;
-                        break;
-                    }
-                    float boxSpace = info.boxSpace;
-                    float boxSpacePercent = info.boxSpacePercent;
-                    if (boxSpacePercent <= 0) {
-                        result.measureBoxSpace = boxSpace;
-                        result.measureBoxChainMargin = 0;
-                    } else {
-                        if (boxSpacePercent >= 1.0f / (info.passwordLength - 1)) {
-                            result.measureBoxSpace = maxWidth * boxSpacePercent;
-                            result.measureBoxChainMargin = 0;
-                        } else {
-                            float expectedWidth = (horizontalPadding
-                                    + expectedBoxWidth * info.passwordLength
-                                    + info.boxBorderSize * info.passwordLength * 2)
-                                    / (1 - boxSpacePercent * (info.passwordLength - 1));
-                            expectedWidth = Math.max(expectedWidth, 0);
-
-                            float width = Math.min(expectedWidth, maxWidth);
-
-                            result.measureBoxSpace = width * boxSpacePercent;
-                            result.measureBoxChainMargin = 0;
-                        }
-                    }
-                    break;
-                }
-                case BOX_CHAIN_STYLE_SPREAD: {
-                    float surplusWidth = maxWidth
-                            - horizontalPadding
-                            - expectedBoxWidth * info.passwordLength
-                            - info.boxBorderSize * 2 * info.passwordLength;
-                    if (surplusWidth <= 0) {
-                        result.measureBoxSpace = result.measureBoxChainMargin = 0;
-                        boolean mergeRectBox = info.mergeRectBoxEnabled && info.boxType == BOX_TYPE_RECT;
-                        if (mergeRectBox) {
-                            surplusWidth += (2 * info.boxBorderSize + info.mergedRectBoxDividerWidth) * (info.passwordLength - 1);
-                            if (surplusWidth > 0) {
-                                result.measureBoxChainMargin = surplusWidth / 2;
-                            }
-                        }
-                    } else {
-                        result.measureBoxSpace = result.measureBoxChainMargin = surplusWidth / (info.passwordLength + 1);
-                    }
-                    break;
-                }
-                case BOX_CHAIN_STYLE_SPREAD_INSIDE: {
-                    if (info.passwordLength <= 1) {
-                        result.measureBoxSpace = result.measureBoxChainMargin = 0;
-                    } else {
-                        float surplusWidth = maxWidth
-                                - horizontalPadding
-                                - expectedBoxWidth * info.passwordLength
-                                - info.boxBorderSize * 2 * info.passwordLength;
-                        if (surplusWidth <= 0) {
-                            result.measureBoxSpace = result.measureBoxChainMargin = 0;
-                        } else {
-                            result.measureBoxSpace = surplusWidth / (info.passwordLength - 1);
-                        }
-                    }
-                    break;
-                }
-                case BOX_CHAIN_STYLE_PACKET: {
-                    float surplusWidth = maxWidth
-                            - horizontalPadding
-                            - expectedBoxWidth * info.passwordLength
-                            - info.boxBorderSize * 2 * info.passwordLength;
-                    if (surplusWidth <= 0) {
-                        result.measureBoxSpace = result.measureBoxChainMargin = 0;
-                    } else {
-                        result.measureBoxSpace = 0;
-                        result.measureBoxChainMargin = surplusWidth / 2;
-                    }
-                    break;
-                }
-            }
         }
 
         private void measureHeight(PasswordView view, MeasureInfo info, MeasureResult result) {
