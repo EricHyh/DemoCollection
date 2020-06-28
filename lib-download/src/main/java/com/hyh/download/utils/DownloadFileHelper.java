@@ -271,7 +271,6 @@ public class DownloadFileHelper {
         }
     }
 
-
     public static String fixFileExists(String fileDir, String fileName) {
         if (TextUtils.isEmpty(fileDir) || TextUtils.isEmpty(fileName)) {
             return fileName;
@@ -306,7 +305,7 @@ public class DownloadFileHelper {
             toSuffix = "";
         } else {
             toPrefix = fileName.substring(0, index);
-            toSuffix = fileName.substring(index, fileName.length());
+            toSuffix = fileName.substring(index);
         }
         File directory = file.getParentFile();
         ensureCreated(directory);

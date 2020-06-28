@@ -14,9 +14,9 @@
         <attr name="boxHeight" format="dimension" />
         <attr name="boxWidthPercent" format="float" />
         <attr name="boxHeightRatio" format="float" />
-        <attr name="boxMeasureType" format="enum">
-            <enum name="fill" value="0" />
-            <enum name="bound" value="1" />
+        <attr name="boxMeasureMode" format="enum">
+            <enum name="bound" value="0" />
+            <enum name="fill" value="1" />
             <enum name="free" value="2" />
         </attr>
         <attr name="boxChainStyle" format="enum">
