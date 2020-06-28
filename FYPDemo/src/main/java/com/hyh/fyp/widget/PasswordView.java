@@ -371,7 +371,7 @@ public class PasswordView extends EditText implements TextWatcher {
                         float stopX = startX;
                         float stopY = boxRectF.bottom;
 
-                        canvas.drawLine(startX, startY, stopX, stopY, mBoxBoardPaint);
+                        //canvas.drawLine(startX, startY, stopX, stopY, mBoxBoardPaint);
                     }
                 }
 
@@ -836,16 +836,13 @@ public class PasswordView extends EditText implements TextWatcher {
             } else {
                 float width = getDefaultSize(view.getSuggestedMinimumWidth(), info.widthMeasureSpec);
                 result.measureWidth = width;
-                ChainHelper.measureBoxChainExactly(width, info, result);
+                float boxWidth = info.boxWidth;
+                if (info.boxWidthPercent > 0) {
+                    boxWidth = width * info.boxWidthPercent;
+                }
+                result.measureBoxWidth = boxWidth;
 
-                float measureBoxWidth = (width
-                        - info.boxBorderSize * 2 * info.passwordLength
-                        - (result.mergedRectBox ? (info.mergedRectBoxDividerWidth - 2 * info.boxBorderSize) * (info.passwordLength - 1) : 0)
-                        - result.measureBoxSpace * (info.passwordLength - 1)
-                        - horizontalPadding
-                        - result.measureBoxChainMargin * 2)
-                        / info.passwordLength;
-                result.measureBoxWidth = Math.max(0, measureBoxWidth);
+                ChainHelper.measureBoxChainExactly(width, boxWidth, horizontalPadding, info, result);
             }
         }
 
@@ -1105,7 +1102,7 @@ public class PasswordView extends EditText implements TextWatcher {
                     }
                     result.measureBoxWidth = boxWidth;
 
-                    ChainHelper.measureBoxChainExactly(width, info, result);
+                    ChainHelper.measureBoxChainExactly(result.measureWidth, boxWidth, horizontalPadding, info, result);
                     break;
                 }
                 case MeasureSpec.EXACTLY: {
@@ -1117,7 +1114,7 @@ public class PasswordView extends EditText implements TextWatcher {
                     }
                     result.measureBoxWidth = boxWidth;
 
-                    ChainHelper.measureBoxChainExactly(width, info, result);
+                    ChainHelper.measureBoxChainExactly(result.measureWidth, boxWidth, horizontalPadding, info, result);
                     break;
                 }
                 case MeasureSpec.AT_MOST: {
@@ -1133,7 +1130,7 @@ public class PasswordView extends EditText implements TextWatcher {
 
                         boolean mergeRectBox = info.mergeRectBoxEnabled
                                 && info.boxType == BOX_TYPE_RECT
-                                && result.measureBoxSpace == 0;
+                                && boxSpace == 0;
 
                         float boxWidth = info.boxWidth;
                         if (info.boxWidthPercent > 0) {
@@ -1153,7 +1150,7 @@ public class PasswordView extends EditText implements TextWatcher {
                         }
                         result.measureBoxWidth = boxWidth;
 
-                        ChainHelper.measureBoxChainExactly(result.measureWidth, info, result);
+                        ChainHelper.measureBoxChainExactly(result.measureWidth, boxWidth, horizontalPadding, info, result);
                     }
                     break;
                 }
@@ -1296,7 +1293,7 @@ public class PasswordView extends EditText implements TextWatcher {
                     / (1 - boxWidthPercent * info.passwordLength - boxSpacePercent * 2);
         }
 
-        static void measureBoxChainExactly(float width, MeasureInfo info, MeasureResult result) {
+        /*static void measureBoxChainExactly(float width, MeasureInfo info, MeasureResult result) {
             switch (info.boxChainStyle) {
                 case BOX_CHAIN_STYLE_FREE:
                 case BOX_CHAIN_STYLE_SPREAD_INSIDE: {
@@ -1330,7 +1327,7 @@ public class PasswordView extends EditText implements TextWatcher {
             result.mergedRectBox = info.mergeRectBoxEnabled
                     && info.boxType == BOX_TYPE_RECT
                     && result.measureBoxSpace == 0;
-        }
+        }*/
 
         static void measureBoxChainExactly(float width, float expectedBoxWidth, int horizontalPadding, MeasureInfo info, MeasureResult result) {
             switch (info.boxChainStyle) {
