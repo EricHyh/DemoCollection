@@ -57,27 +57,20 @@ public class PasswordView extends EditText implements TextWatcher {
 
     private int mBoxBackgroundColor;
     private int mBoxBorderColor;
-
     private float mRectBoxRadius;
 
     private float mCursorWidth;
-
     private float mCursorMarginTop;
-
     private float mCursorMarginBottom;
-
     private int mCursorColor = Color.BLUE;
-
     private boolean mCursorEnabled = true;
-
-    private float mMeasureContentWidth, mMeasureContentHeight;
 
     private boolean mDrawCursor;
 
     private IMeasurer mMeasurer = new BoundMeasurer();
     private final MeasureInfo mMeasureInfo = new MeasureInfo();
     private final MeasureResult mMeasuring = new MeasureResult();
-    private final MeasureResult mResult = new MeasureResult();
+    private final MeasureResult mMeasured = new MeasureResult();
 
 
     private final Paint mBoxBoardPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -92,7 +85,6 @@ public class PasswordView extends EditText implements TextWatcher {
     private final List<RectF> mBoxRectFs = new ArrayList<>();
 
     private float mDensity;
-
 
     private PasswordListener mPasswordListener;
 
@@ -246,38 +238,35 @@ public class PasswordView extends EditText implements TextWatcher {
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
         //super.onMeasure(widthMeasureSpec, heightMeasureSpec);
-
         mMeasuring.clear();
         IMeasurer measurer = mMeasurer;
         if (measurer == null) {
             setMeasuredDimension(0, 0);
-            mResult.clear();
+            mMeasured.clear();
             return;
         }
 
-        mMeasureInfo.widthMeasureSpec = widthMeasureSpec;
-        mMeasureInfo.heightMeasureSpec = heightMeasureSpec;
-
-        measurer.measure(this, mMeasureInfo, mMeasuring);
-        mResult.copy(mMeasuring);
+        measurer.measure(this, widthMeasureSpec, heightMeasureSpec, mMeasureInfo, mMeasuring);
 
         int horizontalPadding = getPaddingLeft() + getPaddingRight();
         int verticalPadding = getPaddingTop() + getPaddingBottom();
-
         int passwordLength = mMeasureInfo.passwordLength;
 
-        mMeasureContentWidth = horizontalPadding
-                + mResult.measureBoxWidth * passwordLength
+        mMeasuring.measureContentWidth = horizontalPadding
+                + mMeasured.measureBoxWidth * passwordLength
                 + mMeasureInfo.boxBorderSize * 2 * passwordLength
-                + (mResult.mergedRectBox ? (mMeasureInfo.mergedRectBoxDividerWidth - 2 * mMeasureInfo.boxBorderSize) * (passwordLength - 1) : 0)
-                + mResult.measureBoxSpace * (passwordLength - 1)
-                + mResult.measureBoxChainMargin * 2;
+                + (mMeasured.mergedRectBox ? (mMeasureInfo.mergedRectBoxDividerWidth - 2 * mMeasureInfo.boxBorderSize) * (passwordLength - 1) : 0)
+                + mMeasured.measureBoxSpace * (passwordLength - 1)
+                + mMeasured.measureBoxChainMargin * 2;
 
-        mMeasureContentHeight = verticalPadding
-                + mResult.measureBoxHeight
+        mMeasuring.measureContentHeight = verticalPadding
+                + mMeasured.measureBoxHeight
                 + 2 * mMeasureInfo.boxBorderSize;
 
-        setMeasuredDimension(Math.round(mResult.measureWidth), Math.round(mResult.measureHeight));
+
+        mMeasured.copy(mMeasuring);
+
+        setMeasuredDimension(Math.round(mMeasured.measureWidth), Math.round(mMeasured.measureHeight));
     }
 
     @Override
@@ -285,8 +274,8 @@ public class PasswordView extends EditText implements TextWatcher {
         //super.onDraw(canvas);不绘制EditText本身的文字
         canvas.save();
 
-        float dx = (getMeasuredWidth() - mMeasureContentWidth) * 0.5f + getPaddingLeft() + mResult.measureBoxChainMargin;
-        float dy = (getMeasuredHeight() - mMeasureContentHeight) * 0.5f + getPaddingTop();
+        float dx = (getMeasuredWidth() - mMeasured.measureContentWidth) * 0.5f + getPaddingLeft() + mMeasured.measureBoxChainMargin;
+        float dy = (getMeasuredHeight() - mMeasured.measureContentHeight) * 0.5f + getPaddingTop();
         canvas.translate(dx, dy);
         List<RectF> boxRectFs = drawBox(canvas);
         if (boxRectFs == null) return;
@@ -320,10 +309,10 @@ public class PasswordView extends EditText implements TextWatcher {
         int passwordLength = mMeasureInfo.passwordLength;
         float boxBorderSize = mMeasureInfo.boxBorderSize;
 
-        float measureBoxWidth = mResult.measureBoxWidth;
-        float measureBoxHeight = mResult.measureBoxHeight;
-        float measureBoxSpace = mResult.measureBoxSpace;
-        boolean mergedRectBox = mResult.mergedRectBox;
+        float measureBoxWidth = mMeasured.measureBoxWidth;
+        float measureBoxHeight = mMeasured.measureBoxHeight;
+        float measureBoxSpace = mMeasured.measureBoxSpace;
+        boolean mergedRectBox = mMeasured.mergedRectBox;
 
         if (mergedRectBox) {
 
@@ -331,8 +320,8 @@ public class PasswordView extends EditText implements TextWatcher {
 
             float left = boxBorderSize * 0.5f;
             float top = boxBorderSize * 0.5f;
-            float right = mMeasureContentWidth - mResult.measureBoxChainMargin * 2 - (getPaddingLeft() + getPaddingRight()) - boxBorderSize * 0.5f;
-            float bottom = mMeasureContentHeight - (getPaddingTop() + getPaddingBottom()) - boxBorderSize * 0.5f;
+            float right = mMeasured.measureContentWidth - mMeasured.measureBoxChainMargin * 2 - (getPaddingLeft() + getPaddingRight()) - boxBorderSize * 0.5f;
+            float bottom = mMeasured.measureContentHeight - (getPaddingTop() + getPaddingBottom()) - boxBorderSize * 0.5f;
             mTempRectF.set(left, top, right, bottom);
 
             canvas.drawRoundRect(mTempRectF, mRectBoxRadius, mRectBoxRadius, mBoxBoardPaint);
@@ -370,11 +359,9 @@ public class PasswordView extends EditText implements TextWatcher {
                         float startY = boxRectF.top;
                         float stopX = startX;
                         float stopY = boxRectF.bottom;
-
-                        //canvas.drawLine(startX, startY, stopX, stopY, mBoxBoardPaint);
+                        canvas.drawLine(startX, startY, stopX, stopY, mBoxBoardPaint);
                     }
                 }
-
                 drawMergedRectBoxBackground(canvas, index, boxRectF);
             }
 
@@ -500,9 +487,9 @@ public class PasswordView extends EditText implements TextWatcher {
         int passwordLength = mMeasureInfo.passwordLength;
         float boxBorderSize = mMeasureInfo.boxBorderSize;
 
-        float measureBoxWidth = mResult.measureBoxWidth;
-        float measureBoxHeight = mResult.measureBoxHeight;
-        float measureBoxSpace = mResult.measureBoxSpace;
+        float measureBoxWidth = mMeasured.measureBoxWidth;
+        float measureBoxHeight = mMeasured.measureBoxHeight;
+        float measureBoxSpace = mMeasured.measureBoxSpace;
 
 
         mBoxBoardPaint.setColor(mBoxBorderColor);
@@ -572,9 +559,9 @@ public class PasswordView extends EditText implements TextWatcher {
         int passwordLength = mMeasureInfo.passwordLength;
         float boxBorderSize = mMeasureInfo.boxBorderSize;
 
-        float measureBoxWidth = mResult.measureBoxWidth;
-        float measureBoxHeight = mResult.measureBoxHeight;
-        float measureBoxSpace = mResult.measureBoxSpace;
+        float measureBoxWidth = mMeasured.measureBoxWidth;
+        float measureBoxHeight = mMeasured.measureBoxHeight;
+        float measureBoxSpace = mMeasured.measureBoxSpace;
 
 
         mBoxBoardPaint.setColor(mBoxBorderColor);
@@ -733,13 +720,14 @@ public class PasswordView extends EditText implements TextWatcher {
 
     public interface IMeasurer {
 
-        void measure(PasswordView passwordView, MeasureInfo measureInfo, MeasureResult result);
+        void measure(PasswordView passwordView,
+                     int widthMeasureSpec, int heightMeasureSpec,
+                     MeasureInfo measureInfo,
+                     MeasureResult result);
 
     }
 
     public static class MeasureInfo implements Cloneable {
-
-        public int widthMeasureSpec, heightMeasureSpec;
 
         public int passwordLength = 6;
 
@@ -765,8 +753,6 @@ public class PasswordView extends EditText implements TextWatcher {
                 e.printStackTrace();
             }
             MeasureInfo measureInfo = new MeasureInfo();
-            measureInfo.widthMeasureSpec = this.widthMeasureSpec;
-            measureInfo.heightMeasureSpec = this.heightMeasureSpec;
             measureInfo.passwordLength = this.passwordLength;
             measureInfo.boxType = this.boxType;
             measureInfo.boxChainStyle = this.boxChainStyle;
@@ -786,6 +772,8 @@ public class PasswordView extends EditText implements TextWatcher {
     public static class MeasureResult {
 
         public float measureWidth, measureHeight;
+        public float measureContentWidth, measureContentHeight;
+
         public float measureBoxWidth, measureBoxHeight;
         public float measureBoxSpace;
         public float measureBoxChainMargin;
@@ -794,6 +782,7 @@ public class PasswordView extends EditText implements TextWatcher {
 
         public void clear() {
             measureWidth = measureBoxHeight = 0.0f;
+            measureContentWidth = measureContentHeight = 0.0f;
             measureBoxWidth = measureBoxHeight = 0.0f;
             measureBoxSpace = measureBoxChainMargin = 0.0f;
             mergedRectBox = false;
@@ -802,6 +791,8 @@ public class PasswordView extends EditText implements TextWatcher {
         public void copy(MeasureResult result) {
             this.measureWidth = result.measureWidth;
             this.measureHeight = result.measureHeight;
+            this.measureContentWidth = result.measureContentWidth;
+            this.measureContentHeight = result.measureContentHeight;
             this.measureBoxWidth = result.measureBoxWidth;
             this.measureBoxHeight = result.measureBoxHeight;
             this.measureBoxSpace = result.measureBoxSpace;
@@ -813,13 +804,19 @@ public class PasswordView extends EditText implements TextWatcher {
     public static class FillMeasurer implements IMeasurer {
 
         @Override
-        public void measure(PasswordView passwordView, MeasureInfo measureInfo, MeasureResult result) {
-            measureWidth(passwordView, measureInfo, result);
-            measureHeight(passwordView, measureInfo, result);
+        public void measure(PasswordView passwordView,
+                            int widthMeasureSpec, int heightMeasureSpec,
+                            MeasureInfo measureInfo,
+                            MeasureResult result) {
+            measureWidth(passwordView, widthMeasureSpec, measureInfo, result);
+            measureHeight(passwordView, heightMeasureSpec, measureInfo, result);
         }
 
-        private void measureWidth(PasswordView view, MeasureInfo info, MeasureResult result) {
-            int widthMode = MeasureSpec.getMode(info.widthMeasureSpec);
+        private void measureWidth(PasswordView view,
+                                  int widthMeasureSpec,
+                                  MeasureInfo info,
+                                  MeasureResult result) {
+            int widthMode = MeasureSpec.getMode(widthMeasureSpec);
             int horizontalPadding = view.getPaddingLeft() + view.getPaddingRight();
 
             if (widthMode == MeasureSpec.UNSPECIFIED) {
@@ -834,7 +831,7 @@ public class PasswordView extends EditText implements TextWatcher {
 
                 ChainHelper.measureBoxChainExactly(width, boxWidth, horizontalPadding, info, result);
             } else {
-                float width = getDefaultSize(view.getSuggestedMinimumWidth(), info.widthMeasureSpec);
+                float width = getDefaultSize(view.getSuggestedMinimumWidth(), widthMeasureSpec);
                 result.measureWidth = width;
                 float boxWidth = info.boxWidth;
                 if (info.boxWidthPercent > 0) {
@@ -846,8 +843,8 @@ public class PasswordView extends EditText implements TextWatcher {
             }
         }
 
-        private void measureHeight(PasswordView view, MeasureInfo info, MeasureResult result) {
-            int heightMode = MeasureSpec.getMode(info.heightMeasureSpec);
+        private void measureHeight(PasswordView view, int heightMeasureSpec, MeasureInfo info, MeasureResult result) {
+            int heightMode = MeasureSpec.getMode(heightMeasureSpec);
             int verticalPadding = view.getPaddingTop() + view.getPaddingBottom();
             switch (heightMode) {
                 case MeasureSpec.UNSPECIFIED: {
@@ -856,7 +853,7 @@ public class PasswordView extends EditText implements TextWatcher {
                         boxHeight = result.measureBoxWidth * info.boxHeightRatio;
                     }
                     if (boxHeight == 0) {
-                        float height = getDefaultSize(view.getSuggestedMinimumHeight(), info.heightMeasureSpec);
+                        float height = getDefaultSize(view.getSuggestedMinimumHeight(), heightMeasureSpec);
                         boxHeight = height
                                 - verticalPadding
                                 - 2 * info.boxBorderSize;
@@ -867,7 +864,7 @@ public class PasswordView extends EditText implements TextWatcher {
                     break;
                 }
                 case MeasureSpec.EXACTLY: {
-                    float height = getDefaultSize(view.getSuggestedMinimumHeight(), info.heightMeasureSpec);
+                    float height = getDefaultSize(view.getSuggestedMinimumHeight(), heightMeasureSpec);
                     result.measureHeight = height;
                     float maxBoxHeight = height
                             - verticalPadding
@@ -887,7 +884,7 @@ public class PasswordView extends EditText implements TextWatcher {
                     break;
                 }
                 case MeasureSpec.AT_MOST: {
-                    float maxHeight = getDefaultSize(view.getSuggestedMinimumHeight(), info.heightMeasureSpec);
+                    float maxHeight = getDefaultSize(view.getSuggestedMinimumHeight(), heightMeasureSpec);
                     float maxBoxHeight = maxHeight
                             - verticalPadding
                             - 2 * info.boxBorderSize;
@@ -913,13 +910,13 @@ public class PasswordView extends EditText implements TextWatcher {
     public static class BoundMeasurer implements IMeasurer {
 
         @Override
-        public void measure(PasswordView passwordView, MeasureInfo measureInfo, MeasureResult result) {
-            measureWidth(passwordView, measureInfo, result);
-            measureHeight(passwordView, measureInfo, result);
+        public void measure(PasswordView passwordView, int widthMeasureSpec, int heightMeasureSpec, MeasureInfo measureInfo, MeasureResult result) {
+            measureWidth(passwordView, widthMeasureSpec, measureInfo, result);
+            measureHeight(passwordView, heightMeasureSpec, measureInfo, result);
         }
 
-        private void measureWidth(PasswordView view, MeasureInfo info, MeasureResult result) {
-            int widthMode = MeasureSpec.getMode(info.widthMeasureSpec);
+        private void measureWidth(PasswordView view, int widthMeasureSpec, MeasureInfo info, MeasureResult result) {
+            int widthMode = MeasureSpec.getMode(widthMeasureSpec);
             int horizontalPadding = view.getPaddingLeft() + view.getPaddingRight();
 
             switch (widthMode) {
@@ -937,7 +934,7 @@ public class PasswordView extends EditText implements TextWatcher {
                     break;
                 }
                 case MeasureSpec.EXACTLY: {
-                    float width = getDefaultSize(view.getSuggestedMinimumWidth(), info.widthMeasureSpec);
+                    float width = getDefaultSize(view.getSuggestedMinimumWidth(), widthMeasureSpec);
                     result.measureWidth = width;
                     float expectedBoxWidth = info.boxWidth;
                     if (info.boxWidthPercent > 0) {
@@ -961,7 +958,7 @@ public class PasswordView extends EditText implements TextWatcher {
                     break;
                 }
                 case MeasureSpec.AT_MOST: {
-                    float maxWidth = getDefaultSize(view.getSuggestedMinimumWidth(), info.widthMeasureSpec);
+                    float maxWidth = getDefaultSize(view.getSuggestedMinimumWidth(), widthMeasureSpec);
                     if (info.boxChainStyle == BOX_CHAIN_STYLE_FREE) {
                         float width = ChainHelper.computeFreeChainWidth(info, horizontalPadding);
                         width = Math.min(maxWidth, width);
@@ -1022,8 +1019,8 @@ public class PasswordView extends EditText implements TextWatcher {
             }
         }
 
-        private void measureHeight(PasswordView view, MeasureInfo info, MeasureResult result) {
-            int heightMode = MeasureSpec.getMode(info.heightMeasureSpec);
+        private void measureHeight(PasswordView view, int heightMeasureSpec, MeasureInfo info, MeasureResult result) {
+            int heightMode = MeasureSpec.getMode(heightMeasureSpec);
             int verticalPadding = view.getPaddingTop() + view.getPaddingBottom();
             switch (heightMode) {
                 case MeasureSpec.UNSPECIFIED: {
@@ -1036,7 +1033,7 @@ public class PasswordView extends EditText implements TextWatcher {
                     break;
                 }
                 case MeasureSpec.EXACTLY: {
-                    float height = getDefaultSize(view.getSuggestedMinimumHeight(), info.heightMeasureSpec);
+                    float height = getDefaultSize(view.getSuggestedMinimumHeight(), heightMeasureSpec);
                     result.measureHeight = height;
                     float maxBoxHeight = height
                             - verticalPadding
@@ -1056,7 +1053,7 @@ public class PasswordView extends EditText implements TextWatcher {
                     break;
                 }
                 case MeasureSpec.AT_MOST: {
-                    float maxHeight = getDefaultSize(view.getSuggestedMinimumHeight(), info.heightMeasureSpec);
+                    float maxHeight = getDefaultSize(view.getSuggestedMinimumHeight(), heightMeasureSpec);
                     float maxBoxHeight = maxHeight
                             - verticalPadding
                             - 2 * info.boxBorderSize;
@@ -1082,13 +1079,13 @@ public class PasswordView extends EditText implements TextWatcher {
     public static class FreeMeasurer implements IMeasurer {
 
         @Override
-        public void measure(PasswordView passwordView, MeasureInfo measureInfo, MeasureResult result) {
-            measureWidth(passwordView, measureInfo, result);
-            measureHeight(passwordView, measureInfo, result);
+        public void measure(PasswordView passwordView, int widthMeasureSpec, int heightMeasureSpec, MeasureInfo measureInfo, MeasureResult result) {
+            measureWidth(passwordView, widthMeasureSpec, measureInfo, result);
+            measureHeight(passwordView, heightMeasureSpec, measureInfo, result);
         }
 
-        private void measureWidth(PasswordView view, MeasureInfo info, MeasureResult result) {
-            int widthMode = MeasureSpec.getMode(info.widthMeasureSpec);
+        private void measureWidth(PasswordView view, int widthMeasureSpec, MeasureInfo info, MeasureResult result) {
+            int widthMode = MeasureSpec.getMode(widthMeasureSpec);
             int horizontalPadding = view.getPaddingLeft() + view.getPaddingRight();
 
             switch (widthMode) {
@@ -1106,7 +1103,7 @@ public class PasswordView extends EditText implements TextWatcher {
                     break;
                 }
                 case MeasureSpec.EXACTLY: {
-                    float width = getDefaultSize(view.getSuggestedMinimumWidth(), info.widthMeasureSpec);
+                    float width = getDefaultSize(view.getSuggestedMinimumWidth(), widthMeasureSpec);
                     result.measureWidth = width;
                     float boxWidth = info.boxWidth;
                     if (info.boxWidthPercent > 0) {
@@ -1142,7 +1139,7 @@ public class PasswordView extends EditText implements TextWatcher {
                         result.mergedRectBox = mergeRectBox;
                         result.measureBoxWidth = boxWidth;
                     } else {
-                        result.measureWidth = getDefaultSize(view.getSuggestedMinimumWidth(), info.widthMeasureSpec);
+                        result.measureWidth = getDefaultSize(view.getSuggestedMinimumWidth(), widthMeasureSpec);
 
                         float boxWidth = info.boxWidth;
                         if (info.boxWidthPercent > 0) {
@@ -1157,8 +1154,8 @@ public class PasswordView extends EditText implements TextWatcher {
             }
         }
 
-        private void measureHeight(PasswordView view, MeasureInfo info, MeasureResult result) {
-            int heightMode = MeasureSpec.getMode(info.heightMeasureSpec);
+        private void measureHeight(PasswordView view, int heightMeasureSpec, MeasureInfo info, MeasureResult result) {
+            int heightMode = MeasureSpec.getMode(heightMeasureSpec);
             int verticalPadding = view.getPaddingTop() + view.getPaddingBottom();
             switch (heightMode) {
                 case MeasureSpec.UNSPECIFIED: {
@@ -1171,7 +1168,7 @@ public class PasswordView extends EditText implements TextWatcher {
                     break;
                 }
                 case MeasureSpec.EXACTLY: {
-                    result.measureHeight = getDefaultSize(view.getSuggestedMinimumHeight(), info.heightMeasureSpec);
+                    result.measureHeight = getDefaultSize(view.getSuggestedMinimumHeight(), heightMeasureSpec);
 
                     float boxHeight = info.boxHeight;
                     if (info.boxHeightRatio > 0) {
@@ -1183,7 +1180,7 @@ public class PasswordView extends EditText implements TextWatcher {
                     break;
                 }
                 case MeasureSpec.AT_MOST: {
-                    float maxHeight = getDefaultSize(view.getSuggestedMinimumHeight(), info.heightMeasureSpec);
+                    float maxHeight = getDefaultSize(view.getSuggestedMinimumHeight(), heightMeasureSpec);
 
                     float boxHeight = info.boxHeight;
                     if (info.boxHeightRatio > 0) {
