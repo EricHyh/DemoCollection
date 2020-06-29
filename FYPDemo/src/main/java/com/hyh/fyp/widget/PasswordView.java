@@ -159,7 +159,7 @@ public class PasswordView extends EditText implements TextWatcher {
             mMeasureInfo.mergedRectBoxDividerWidth = mDensity * 1;
             mCursorMarginTop = mCursorMarginBottom = mDensity * 8;
 
-            setBackground(null);
+            setBackgroundDrawable(null);
         }
 
         InputFilter[] filters = {new InputFilter.LengthFilter(mMeasureInfo.passwordLength)};
