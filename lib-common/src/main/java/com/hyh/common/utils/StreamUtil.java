@@ -80,7 +80,13 @@ public class StreamUtil {
         }
     }
 
+    @Deprecated
     public static boolean copyFileToTargetPath(InputStream inputStream, String targetPath) {
+        return streamToFile(inputStream, targetPath);
+    }
+
+
+    public static boolean streamToFile(InputStream inputStream, String targetPath) {
         BufferedInputStream bis = null;
         BufferedOutputStream bos = null;
         try {
@@ -99,6 +105,23 @@ public class StreamUtil {
             StreamUtil.close(bos, bis);
         }
         return false;
+    }
+
+    public static void streamToFileWithError(InputStream inputStream, String targetPath) throws IOException {
+        BufferedInputStream bis = null;
+        BufferedOutputStream bos = null;
+        try {
+            bis = new BufferedInputStream(inputStream);
+            bos = new BufferedOutputStream(new FileOutputStream(targetPath, false));
+            byte[] buffer = new byte[32 * 1024];
+            int len;
+            while ((len = bis.read(buffer)) != -1) {
+                bos.write(buffer, 0, len);
+            }
+            bos.flush();
+        } finally {
+            StreamUtil.close(bos, bis);
+        }
     }
 
     /**

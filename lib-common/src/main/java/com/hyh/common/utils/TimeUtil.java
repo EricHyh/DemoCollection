@@ -50,6 +50,18 @@ public class TimeUtil {
         }
     }
 
+    public static boolean isInIntervalDaysAbsolutely(long timeMillis1, long timeMillis2, int days) {
+        if (days <= 0) {
+            return true;
+        }
+
+        if (timeMillis1 > 0 && timeMillis2 > 0) {
+            return Math.abs(timeMillis1 - timeMillis2) <= days * 24 * 60 * 60 * 1000;
+        } else {
+            return false;
+        }
+    }
+
     public static long hourToMillionSecond(float hour) {
         return (long) (hour * 60 * 60 * 1000);
     }

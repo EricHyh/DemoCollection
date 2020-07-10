@@ -21,7 +21,6 @@ import java.lang.ref.WeakReference;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
-
 /**
  * @author Administrator
  * @description
@@ -75,9 +74,7 @@ public class ViewTreeListener implements View.OnAttachStateChangeListener,
     @Override
     public void onViewDetachedFromWindow(View v) {
         ScreenReceiver.getInstance(v.getContext()).removeListener(this);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
-            v.getViewTreeObserver().removeOnGlobalLayoutListener(this);
-        }
+        v.getViewTreeObserver().removeOnGlobalLayoutListener(this);
         //v.getViewTreeObserver().removeOnPreDrawListener(this);
         v.getViewTreeObserver().removeOnScrollChangedListener(this);
 

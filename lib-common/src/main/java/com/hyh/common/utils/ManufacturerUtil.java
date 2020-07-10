@@ -116,4 +116,19 @@ public class ManufacturerUtil {
         Logger.d("aliyun_version:" + aliyun_version);
         return !TextUtils.isEmpty(aliyun_version);
     }
+
+    public static boolean isVIVO(Context context) {
+        String vivoVersion = PackageUtil.getSystemProperties("ro.vivo.os.version");
+        return !TextUtils.isEmpty(vivoVersion);
+    }
+
+    public static boolean isOPPO(Context context) {
+        String opporomVersion = PackageUtil.getSystemProperties("ro.build.version.opporom");
+        return !TextUtils.isEmpty(opporomVersion);
+    }
+
+    public static boolean isLetv(Context context) {
+        String letvVersion = PackageUtil.getSystemProperties("ro.letv.release.version");
+        return !TextUtils.isEmpty(letvVersion);
+    }
 }

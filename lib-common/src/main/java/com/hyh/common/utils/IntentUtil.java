@@ -32,11 +32,9 @@ public class IntentUtil {
                 String dataString = intent.getDataString();
                 Logger.d("IN isSysInstallerIntent : intent is " + intent);
                 Logger.v("IN isSysInstallerIntent : type is : " + type + " , dataString is : " + dataString);
-                if (!TextUtils.isEmpty(type)
+                return !TextUtils.isEmpty(type)
                         && type.equals("application/vnd.android.package-archive")
-                        && !TextUtils.isEmpty(dataString)) {
-                    return true;
-                }
+                        && !TextUtils.isEmpty(dataString);
             }
             return false;
         } catch (Exception e) {

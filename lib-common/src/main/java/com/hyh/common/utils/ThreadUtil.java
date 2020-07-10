@@ -95,7 +95,7 @@ public class ThreadUtil {
         synchronized (ThreadUtil.class) {
             if (sExecutorService == null) {
                 sExecutorService = new ThreadPoolExecutor(0, Integer.MAX_VALUE, 60, TimeUnit.SECONDS,
-                        new SynchronousQueue<Runnable>(), createThreadFactory());
+                        new SynchronousQueue<>(), createThreadFactory());
             }
             return sExecutorService;
         }
@@ -107,13 +107,10 @@ public class ThreadUtil {
 
 
     private static ThreadFactory createThreadFactory() {
-        return new ThreadFactory() {
-            @Override
-            public Thread newThread(Runnable runnable) {
-                Thread result = new Thread(runnable, "ThreadUtil");
-                result.setDaemon(true);
-                return result;
-            }
+        return runnable -> {
+            Thread result = new Thread(runnable, "ThreadUtil");
+            result.setDaemon(true);
+            return result;
         };
     }
 

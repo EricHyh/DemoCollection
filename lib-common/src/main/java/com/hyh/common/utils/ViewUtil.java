@@ -102,7 +102,8 @@ public class ViewUtil {
     public static float getHorizontalVisibleScale(View view) {
         if (!isViewInScreen(view)) return 0.0f;
         Rect rect = new Rect();
-        if (!view.getGlobalVisibleRect(rect)) return 0.0f;
+        boolean visibleRect = view.getGlobalVisibleRect(rect);
+        if (!visibleRect) return 0.0f;
         return rect.width() * 1.0f / view.getWidth();
     }
 
