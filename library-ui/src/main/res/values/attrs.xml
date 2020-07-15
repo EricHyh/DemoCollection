@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <declare-styleable name="ProgressButton">
+
+        <attr name="foregroundColor" format="color"/>
+        　　
+        <attr name="backgroundColor" format="color"/>
+        　　
+        <attr name="foregroundTextColor" format="color"/>
+
+        <attr name="backgroundTextColor" format="color"/>
+
+        <attr name="max" format="integer"/>
+        　　
+        <attr name="progress" format="integer"/>
+        　　
+        <attr name="textSize" format="dimension"/>
+        　　
+        <attr name="text" format="string|reference"/>
+
+        <attr name="corner" format="dimension"/>
+
+    </declare-styleable>
+
+    <declare-styleable name="NonScrollViewPager">
+        <attr name="scrollEnabled" format="boolean" />
+    </declare-styleable>
+</resources>

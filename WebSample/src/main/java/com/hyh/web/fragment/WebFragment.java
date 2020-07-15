@@ -93,8 +93,8 @@ public class WebFragment extends Fragment {
     @Override
     public void onViewCreated(View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        //mWebClient.loadUrl("https://jumpluna.58.com/i/LZYBeQ6a1luDubj");
-        mWebClient.loadUrl("http://www.baidu.com");
+        mWebClient.loadUrl("https://jumpluna.58.com/i/LZYBeQ6a1luDubj");
+        //mWebClient.loadUrl("http://www.baidu.com");
     }
 
     @Override

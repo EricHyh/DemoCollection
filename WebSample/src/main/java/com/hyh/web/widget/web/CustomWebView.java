@@ -36,4 +36,9 @@ public class CustomWebView extends WebView {
         if (mWebTouchListener != null) mWebTouchListener.onTouch(this, ev);
         return super.dispatchTouchEvent(ev);
     }
+
+    @Override
+    public boolean onInterceptTouchEvent(MotionEvent ev) {
+        return super.onInterceptTouchEvent(ev);
+    }
 }

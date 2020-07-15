@@ -18,7 +18,7 @@ import com.hyh.web.widget.ViewMoreDrawable;
  * Created by Eric_He on 2019/8/25.
  */
 
-public class ViewMoreWebView extends NewNestedScrollWebView {
+public class ViewMoreWebView extends NestedScrollWebView {
 
     private static final String TAG = "ViewMoreWebView";
 

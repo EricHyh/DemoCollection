@@ -1,0 +1,427 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8"/>
+    <title>纯js removeChild() 方法</title>
+
+    <script>
+        function removeTags(tagName,tagClass){
+            var tagElements = document.getElementsByTagName( tagName );
+            for( var m = 0 ; m < tagElements.length ; m++ ){
+                if( tagElements[m].className == tagClass ){
+                    tagElements[m].parentNode.removeChild( tagElements[m] );
+                }
+            }
+        }
+        window.onload = function(){
+            removeTags("div","test");
+        }
+
+
+
+
+
+
+
+
+
+    </script>
+
+</head>
+
+<body>
+
+
+<script>
+
+    function insertDiv(tagName, tagClass, height, id){
+
+        var tagElements = document.getElementsByTagName( tagName );
+
+        var newElement = document.createElement("div");
+        newElement.id = id;
+        newElement.style.height = height;
+
+        for( var m = 0 ; m < tagElements.length ; m++ ){
+            if( tagElements[m].className == tagClass ){
+                var targetElement = tagElements[m];
+
+                var parent = targetElement.parentNode;
+
+                if( parent.lastChild == targetElement ){
+                    parent.appendChild( newElement, targetElement );
+                }else{
+                    parent.insertBefore( newElement, targetElement.nextSibling );
+                };
+
+               break;
+            }
+        }
+    }
+
+
+    function insertImage(tagName, tagClass, height, id, url){
+
+        var tagElements = document.getElementsByTagName( tagName );
+
+        var newElement = document.createElement("img");
+        newElement.style.height = height;
+        newElement.src = url;
+
+        for( var m = 0 ; m < tagElements.length ; m++ ){
+            if( tagElements[m].className == tagClass ){
+                var targetElement = tagElements[m];
+
+                var parent = targetElement.parentNode;
+
+                if( parent.lastChild == targetElement ){
+                    parent.appendChild( newElement, targetElement );
+                }else{
+                    parent.insertBefore( newElement, targetElement.nextSibling );
+                };
+
+               break;
+            }
+        }
+    }
+
+
+    function insertImage(tagName, tagClass, id){
+
+        window.offsetYListener.onTest("insImage");
+
+        var tagElements = document.getElementsByTagName( tagName );
+
+        var newElement = document.createElement("img");
+        newElement.id = id;
+        newElement.src = 'https://goss.veer.com/creative/vcg/veer/1600water/veer-302386254.jpg'
+
+        for( var m = 0 ; m < tagElements.length ; m++ ){
+            if( tagElements[m].className == tagClass ){
+                var targetElement = tagElements[m];
+
+                var parent = targetElement.parentNode;
+
+                if( parent.lastChild == targetElement ){
+                    parent.appendChild( newElement, targetElement );
+                }else{
+                    parent.insertBefore( newElement, targetElement.nextSibling );
+                };
+
+               break;
+            }
+        }
+    }
+</script>
+
+
+<script>
+
+    function removeImageClick(tagName, tagClass){
+        var tagElements = document.getElementsByTagName( tagName );
+    }
+
+</script>
+
+
+<script>
+
+    function getHeight(tagName, tagId){
+        var element = document.querySelector("#" + tagId);
+        return element.style.height;
+    }
+
+    function getHeight(tagName, tagId){
+        var element = document.querySelector("#" + tagId);
+        return element.style.height;
+    }
+
+
+    function getOffsetY(tagId){
+        var element = document.querySelector("#" + tagId);
+
+        var actualTop = element.offsetTop;
+        var current = element.offsetParent;
+        while (current !== null){
+            actualTop += (current.offsetTop+current.clientTop);
+            current = current.offsetParent;
+        }
+
+        return actualTop;
+    }
+
+
+    function setHeightById(tagName, tagId, height){
+        var element = document.querySelector("#" + tagId);
+        element.style.height = height;
+    }
+
+
+    function getElementPagePosition(element){
+      //计算x坐标
+      var actualLeft = element.offsetLeft;
+      var current = element.offsetParent;
+      while (current !== null){
+        actualLeft += current.offsetLeft;
+        current = current.offsetParent;
+      }
+      //计算y坐标
+      var actualTop = element.offsetTop;
+      var current = element.offsetParent;
+      while (current !== null){
+        actualTop += (current.offsetTop+current.clientTop);
+        current = current.offsetParent;
+      }
+      //返回结果
+      return {x: actualLeft, y: actualTop}
+    }
+
+
+    function listenerOffsetY(tagId){
+        window.listenerY.onOffsetYChanged(getOffsetY(tagId))
+        var element = document.querySelector("#" + tagId);
+        var observer = new MutationObserver(function(mutations)){
+            mutations.forEach(function(mutation)){
+                window.listenerY.onOffsetYChanged(getOffsetY(tagId))
+            }
+        }
+        observer.observe(document.body, {
+            attributes: true, childList: true, subtree: true
+        });
+    }
+
+
+    <!--function listenerHeight(){
+        var MutationObserver = window.MutationObserver || window.WebKitMutationObserver || window.MozMutationObserver;
+        var element = document.querySelector('#test_element');
+        var observer = new MutationObserver(function(mutations) {
+          mutations.forEach(function(mutation) {
+            if (mutation.type == "attributes") {
+              if(mutation.target.dataset.height !== mutation.target.style.height){
+                mutation.target.dataset.height = element.style.height;
+                //console.log("height changed to", mutation.target.style.height)
+                window.listenerHeight.onHeightChanged("height changed to: " + mutation.target.style.height)
+              }
+            }
+          });
+        });
+
+        observer.observe(element, {
+          attributes: true,
+          attributeFilter: ['style']
+        });
+
+        element.style.left = Math.random()* 10  + 'px';
+        element.style.top = Math.random()* 10  + 'px';
+        element.class = Math.random()* 10
+
+    }-->
+
+
+</script>
+
+
+
+
+
+<script>
+        function removeTags(tagName,tagClass){
+            var tagElements = document.getElementsByTagName( tagName );
+            for( var m = 0 ; m < tagElements.length ; m++ ){
+                if( tagElements[m].className == tagClass ){
+                    tagElements[m].parentNode.removeChild( tagElements[m] );
+                    break;
+                }
+            }
+        }
+        window.onload = function(){
+            removeTags("div","test");
+        }
+
+</script>
+
+<script>
+        function add(tagName, tagClass, text){
+            var tagElements = document.getElementsByTagName( tagName );
+            for( var m = 0 ; m < tagElements.length ; m++ ){
+                if( tagElements[m].className == tagClass ){
+                    var element = document.createElement("p");
+                    var node = document.createTextNode("添加新段落");
+                    element.appendChild(node);
+                    tagElements[m].parentNode.appendChild(element);
+                }
+            }
+        }
+
+</script>
+
+
+<script>
+
+    function insert(tagName, tagClass){
+        var tagElements = document.getElementsByTagName( tagName );
+        for( var m = 0 ; m < tagElements.length ; m++ ){
+            if( tagElements[m].className == tagClass ){
+                var targetElement = tagElements[m];
+
+                var parent = targetElement.parentNode;
+
+                var newElement = document.createElement("p");
+                newElement.id = "test_element";
+                var node = document.createTextNode("添加新段落");
+                newElement.appendChild(node);
+
+                if( parent.lastChild == targetElement ){
+                    parent.appendChild( newElement, targetElement );
+                }else{
+                    parent.insertBefore( newElement, targetElement.nextSibling );
+                };
+
+               break;
+            }
+        }
+    }
+
+
+    function insert(tagName, tagClass){
+        var tagElements = document.getElementsByTagName( tagName );
+        for( var m = 0 ; m < tagElements.length ; m++ ){
+            if( tagElements[m].className == tagClass ){
+                var targetElement = tagElements[m];
+
+                var parent = targetElement.parentNode;
+
+                var newElement = document.createElement("p");
+                var node = document.createTextNode("添加新段落");
+                newElement.appendChild(node);
+
+                tagElements[m].parentNode.append(newElement);
+
+            }
+        }
+    }
+
+
+    function insertAfter(tagName, tagClass ){
+
+        var targetElement = find(tagName, tagClass);
+
+        var parent = targetElement.parentNode;
+
+        var newElement = document.createElement("p");
+        var node = document.createTextNode("添加新段落");
+        newElement.id = "test_element";
+        newElement.appendChild(node);
+
+        if( parent.lastChild == targetElement ){
+            parent.appendChild( newElement, targetElement );
+        }else{
+            parent.insertBefore( newElement, targetElement.nextSibling );
+        };
+    };
+
+
+
+
+
+
+</script>
+
+<script>
+        function setHeight(tagName, tagClass, height){
+            var tagElements = document.getElementsByTagName( tagName );
+            for( var m = 0 ; m < tagElements.length ; m++ ){
+                if( tagElements[m].className == tagClass ){
+                    tagElements[m].style.height = height;
+                }
+            }
+        }
+
+
+
+</script>
+
+
+<script>
+        function setHeight2(tagName, tagId, height){
+            var element = document.querySelector("#" + tagId);
+            element.style.height = height;
+        }
+
+</script>
+
+
+<script type="text/javascript">
+
+    function listenerHeight(){
+        var MutationObserver = window.MutationObserver || window.WebKitMutationObserver || window.MozMutationObserver;
+        var element = document.querySelector('#test_element');
+        var observer = new MutationObserver(function(mutations) {
+          mutations.forEach(function(mutation) {
+            if (mutation.type == "attributes") {
+              if(mutation.target.dataset.height !== mutation.target.style.height){
+                mutation.target.dataset.height = element.style.height;
+                //console.log("height changed to", mutation.target.style.height)
+                window.listenerHeight.onHeightChanged("height changed to: " + mutation.target.style.height)
+              }
+            }
+          });
+        });
+
+        observer.observe(element, {
+          attributes: true,
+          attributeFilter: ['style']
+        });
+
+        element.style.left = Math.random()* 10  + 'px';
+        element.style.top = Math.random()* 10  + 'px';
+        element.class = Math.random()* 10
+
+    }
+
+    function listenerHeight(){
+        var element = document.querySelector('#test_element');
+        var observer = new MutationObserver(function(mutations) {
+          mutations.forEach(function(mutation) {
+            if (mutation.type == "attributes") {
+              window.listenerHeight.onHeightChanged("height changed to: " + mutation.target.style.height)
+            }
+          });
+        });
+
+        observer.observe(element, {
+          attributes: true,
+          attributeFilter: ['style']
+        });
+    }
+
+
+    var MutationObserver = window.MutationObserver || window.WebKitMutationObserver || window.MozMutationObserver;
+    var element = document.querySelector('#test_element');
+    var observer = new MutationObserver(function(mutations) {
+      mutations.forEach(function(mutation) {
+        if (mutation.type == "attributes") {
+          if(mutation.target.dataset.height !== mutation.target.style.height){
+            mutation.target.dataset.height = element.style.height;
+            //console.log("height changed to", mutation.target.style.height)
+            window.android.onHeightChanged("height changed to: " + mutation.target.style.height)
+          }
+        }
+      });
+    });
+
+    observer.observe(element, {
+      attributes: true,
+      attributeFilter: ['style']
+    });
+
+    function clickMe(){
+      element.style.left = Math.random()* 10  + 'px';
+      element.style.top = Math.random()* 10  + 'px';
+      element.class = Math.random()* 10
+    }
+
+
+
+</script>
+
