@@ -11,6 +11,8 @@ interface TypeAdapter<T> {
 
     T read(JSONObject in, String key);
 
+
+
     void write(JSONObject out, String key, T value);
 
 }

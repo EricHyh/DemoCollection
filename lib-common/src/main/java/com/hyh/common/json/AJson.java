@@ -31,4 +31,8 @@ public class AJson {
     public String toJson(Object src) {
         return null;
     }
+
+    /*public static Type getType() {
+
+    }*/
 }
