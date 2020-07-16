@@ -2,6 +2,9 @@ package com.hyh.tools.download.paser;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken;
+
+import java.util.List;
 
 /**
  * @author Administrator
@@ -20,6 +23,8 @@ public class GsonPaser implements TagParser {
 
     @Override
     public <T> T fromString(String str, Class<T> classOfT) {
+        new TypeToken<List<Integer> >(){}.getType();
+
         return gson.fromJson(str, classOfT);
     }
 

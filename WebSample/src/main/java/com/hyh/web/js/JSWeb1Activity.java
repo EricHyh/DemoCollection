@@ -4,17 +4,12 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
-import android.graphics.Color;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.util.Log;
-import android.view.MotionEvent;
 import android.view.View;
-import android.view.ViewGroup;
 import android.webkit.JavascriptInterface;
-import android.webkit.ValueCallback;
 import android.webkit.WebView;
-import android.widget.Toast;
 
 import com.hyh.web.R;
 import com.hyh.web.widget.web.BaseWebViewClient;
@@ -82,11 +77,6 @@ public class JSWeb1Activity extends Activity {
                         "    }";
 
 
-
-
-
-
-
                 String insertImgFun = "function insertImage(tagName, tagClass, id){\n" +
                         "\n" +
                         "        window.offsetYListener.onTest(\"insertImage\");\n" +
@@ -149,23 +139,64 @@ public class JSWeb1Activity extends Activity {
                         "    }";
 
 
+                String findElementsFun = "function findElements(tagName, className){\n" +
+                        /*"        if(document.getElementsByClassName){\n" +
+                        "            return document.getElementsByClassName(classname);\n" +
+                        "        }else{\n" +
+                        "            var results = new Array();\n" +
+                        "            var elements = document.getElementsByTagName(tagName);\n" +
+                        "            if(elements){\n" +
+                        "                for(var i = 0; i < elements.length; i++){\n" +
+                        "                    if(elements[i].className == className){\n" +
+                        "                        results[results.length] = elements[i];\n" +
+                        "                    }\n" +
+                        "                }\n" +
+                        "            }\n" +
+                        "            return results;\n" +
+                        "        }\n" +*/
+                        "    }";
+
+
+                String listenerElementFun = "function listenerElement(){\n" +
+                        "        window.offsetYListener.onTest(\"1\");\n" +
+                        "        var observer = new MutationObserver(function(mutations){\n" +
+                        "            mutations.forEach(function(mutation){\n" +
+                        "                window.offsetYListener.onTest(\"2\");\n" +
+                        "                var elements = findElements(\"div\", \"news-layout news-wrapper recommend-layout\")\n" +
+                       /* "                if(elements.length > 0){\n" +
+                        "                    window.offsetYListener.onElement(elements.length);\n" +
+                        "                }\n" +*/
+                        "            });\n" +
+                        "        });\n" +
+                        "    }";
+
+
                 mWebView.loadUrl("javascript:" + insertDivFun);
                 mWebView.loadUrl("javascript:" + insertImgFun);
                 mWebView.loadUrl("javascript:" + setHeightByIdFun);
                 mWebView.loadUrl("javascript:" + getOffsetYFun);
                 mWebView.loadUrl("javascript:" + listenerFun);
+
+                mWebView.loadUrl("javascript:" + findElementsFun);
+                mWebView.loadUrl("javascript:" + listenerElementFun);
+                mWebView.postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+
+                    }
+                },100);
             }
 
             @Override
             public void onPageFinished(WebView view, String url) {
                 super.onPageFinished(view, url);
-
+                mWebView.loadUrl("javascript:listenerElement()");
 
                 //String imgUrl = "https://goss.veer.com/creative/vcg/veer/1600water/veer-302386254.jpg";
                 String imgUrl = "https://publish-pic-cpu.baidu.com/e640b3b6-9295-419b-8565-e322007cdc1d.jpeg@f_webp|q_90";
 
 
-                mWebView.loadUrl("javascript:insertDiv(\"div\",\"page-info container\",\"120px\",\"test_div_top\")");
+                //mWebView.loadUrl("javascript:insertDiv(\"div\",\"page-info container\",\"120px\",\"test_div_top\")");
 
                 /*mWebView.evaluateJavascript("javascript:insertImage(\"div\",\"page-info container\",\"test_div_top\")", new ValueCallback<String>() {
                     @Override
@@ -182,7 +213,7 @@ public class JSWeb1Activity extends Activity {
                     }
                 });
 */
-                mWebView.evaluateJavascript("javascript:insertDiv(\"div\",\"module-header-default container top-border bottom-border\",\"120px\"," +
+                /*mWebView.evaluateJavascript("javascript:insertDiv(\"div\",\"module-header-default container top-border bottom-border\",\"120px\"," +
                         "\"test_div_bottom\")", new ValueCallback<String>() {
                     @Override
                     public void onReceiveValue(String value) {
@@ -227,7 +258,7 @@ public class JSWeb1Activity extends Activity {
 
 
                     }
-                });
+                });*/
             }
         });
 
@@ -277,6 +308,11 @@ public class JSWeb1Activity extends Activity {
         @JavascriptInterface
         public void onTest(String s) {
             Log.d(TAG, "onTest: " + s);
+        }
+
+        @JavascriptInterface
+        public void onElement(int count) {
+            Log.d(TAG, "onElement: " + count);
         }
     }
 }

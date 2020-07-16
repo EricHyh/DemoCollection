@@ -1,0 +1,74 @@
+f (document.getElementsByClassName) {
+//使用现有方法
+return document.getElementsByClassName(classname);
+}else{
+//定义一个数组放classname
+var results = new Array();
+//获取所有节点元素
+var elem = document.getElementsByTagName("*");
+for (var i = 0; i < elem.length; i++) {
+if (elem[i].className.indexOf(classname) != -1) {
+results[results.length] = elem[i];
+}
+}
+return results;
+
+
+<script>
+
+    function findElements(tagName, className){
+        if(document.getElementsByClassName){
+            return document.getElementsByClassName(classname);
+        }else{
+            var results = new Array();
+            var elements = document.getElementsByTagName(tagName);
+            if(elements){
+                for(var i = 0; i < elements.length; i++){
+                    if(elements[i].className == className){
+                        results[results.length] = elements[i];
+                    }
+                }
+            }
+            return results;
+        }
+    }
+
+
+    function listenerElement(){
+        var observer = new MutationObserver(function(mutations){
+            mutations.forEach(function(mutation){
+                var elements = findElements("div", "news-layout news-wrapper recommend-layout")
+                if(elements & elements.length > 0){
+                    window.offsetYListener.onElement(elements.length);
+                }
+            });
+        });
+    }
+
+
+
+
+//attributes: true, childList: true, subtree: true
+    <!--function listenerHeight(){
+        var MutationObserver = window.MutationObserver || window.WebKitMutationObserver || window.MozMutationObserver;
+        var element = document.querySelector('#test_element');
+        var observer = new MutationObserver(function(mutations) {
+          mutations.forEach(function(mutation) {
+            if (mutation.type == "attributes") {
+              if(mutation.target.dataset.height !== mutation.target.style.height){
+                mutation.target.dataset.height = element.style.height;
+                //console.log("height changed to", mutation.target.style.height)
+                window.listenerHeight.onHeightChanged("height changed to: " + mutation.target.style.height)
+              }
+            }
+          });
+        });
+
+        observer.observe(element, {
+          attributes: true,
+        });
+
+    }-->
+
+
+</script>
