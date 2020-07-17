@@ -8,6 +8,7 @@ import android.net.http.SslError;
 import android.os.Build;
 import android.os.Message;
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.KeyEvent;
@@ -24,6 +25,7 @@ import android.webkit.SslErrorHandler;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
+import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
@@ -43,6 +45,8 @@ import java.lang.ref.WeakReference;
  */
 
 public class WebClient {
+
+    private static final String TAG = "WebClient";
 
     private static final String APP_CACHE_DIRNAME = "webCache";
 
@@ -449,6 +453,13 @@ public class WebClient {
         @Override
         public void onSafeBrowsingHit(WebView view, WebResourceRequest request, int threatType, SafeBrowsingResponse callback) {
             super.onSafeBrowsingHit(view, request, threatType, callback);
+        }
+
+        @Nullable
+        @Override
+        public WebResourceResponse shouldInterceptRequest(WebView view, String url) {
+            Log.d(TAG, "shouldInterceptRequest: " + url);
+            return super.shouldInterceptRequest(view, url);
         }
     }
 

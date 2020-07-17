@@ -140,7 +140,7 @@ public class JSWeb1Activity extends Activity {
 
 
                 String findElementsFun = "function findElements(tagName, className){\n" +
-                        /*"        if(document.getElementsByClassName){\n" +
+                        "        if(document.getElementsByClassName){\n" +
                         "            return document.getElementsByClassName(classname);\n" +
                         "        }else{\n" +
                         "            var results = new Array();\n" +
@@ -153,20 +153,26 @@ public class JSWeb1Activity extends Activity {
                         "                }\n" +
                         "            }\n" +
                         "            return results;\n" +
-                        "        }\n" +*/
+                        "        }\n" +
                         "    }";
 
 
                 String listenerElementFun = "function listenerElement(){\n" +
-                        "        window.offsetYListener.onTest(\"1\");\n" +
+                        "        window.offsetYListener.onElement(1);\n" +
                         "        var observer = new MutationObserver(function(mutations){\n" +
+                        "            window.offsetYListener.onElement(100);\n" +
                         "            mutations.forEach(function(mutation){\n" +
-                        "                window.offsetYListener.onTest(\"2\");\n" +
-                        "                var elements = findElements(\"div\", \"news-layout news-wrapper recommend-layout\")\n" +
-                       /* "                if(elements.length > 0){\n" +
+                        "                window.offsetYListener.onElement(101);\n" +
+                        "                var elements = findElements(\"div\", \"recommend-layout\");\n" +
+                        "                if(elements && elements.length > 0){\n" +
                         "                    window.offsetYListener.onElement(elements.length);\n" +
-                        "                }\n" +*/
+                        "                }else{" +
+                        "                    window.offsetYListener.onElement(0);\n" +
+                        "                }\n" +
                         "            });\n" +
+                        "        });\n" +
+                        "        observer.observe(document.body, {\n" +
+                        "            attributes: true, childList: true, subtree: true\n" +
                         "        });\n" +
                         "    }";
 
@@ -179,18 +185,66 @@ public class JSWeb1Activity extends Activity {
 
                 mWebView.loadUrl("javascript:" + findElementsFun);
                 mWebView.loadUrl("javascript:" + listenerElementFun);
-                mWebView.postDelayed(new Runnable() {
+
+
+
+
+                String script1 = "<script>\n" +
+                        "        var style = document.createElement(\"style\");\n" +
+                        "        style.type = \"text/css\";\n" +
+                        "        try{\n" +
+                        "            style.appendChild(document.createTextNode(\"div.news-layout.news-wrapper.recommend-layout, div.module-header-default.container.top-border.bottom-border,div.detail-source.container{display: none!important;}\"));\n" +
+                        "        }catch(ex){\n" +
+                        "            style.styleSheet.cssText=\"div.news-layout.news-wrapper.recommend-layout, div.module-header-default.container.top-border.bottom-border,div.detail-source.container{display: none!important;}\";//针对IE\n" +
+                        "        }\n" +
+                        "        var head = document.getElementsByTagName(\"head\")[0];\n" +
+                        "        head.appendChild(style);\n" +
+                        "</script>";
+
+                //mWebView.loadDataWithBaseURL(null, script, "text/html", "utf-8", null);
+
+
+                String script2 = "var style = document.createElement(\"style\");\n" +
+                        "        style.type = \"text/css\";\n" +
+                        "        try{\n" +
+                        "            style.appendChild(document.createTextNode(\"div.news-layout.news-wrapper.recommend-layout, div.module-header-default.container.top-border.bottom-border,div.detail-source.container{display: none!important;}\"));\n" +
+                        "        }catch(ex){\n" +
+                        "            style.styleSheet.cssText=\"div.news-layout.news-wrapper.recommend-layout, div.module-header-default.container.top-border.bottom-border,div.detail-source.container{display: none!important;}\";//针对IE\n" +
+                        "        }\n" +
+                        "        var head = document.getElementsByTagName(\"head\")[0];\n" +
+                        "        head.appendChild(style);";
+
+
+
+
+
+                /*mWebView.postDelayed(new Runnable() {
                     @Override
                     public void run() {
+                        String js = "var newscript = document.createElement(\"script\");";
+                        js += "window.offsetYListener.onElement(120);\n" +
+                                "function isHeadNull(){var head=document.getElementsByTagName(\"head\")[0];if(head&&head.firstChild){creatStyle()}else{setTimeout(function(){isHeadNull()},10)}}function creatStyle(){var style=document.createElement(\"style\");style.type=\"text/css\";style.appendChild(document.createTextNode(\"div.news-layout.news-wrapper.recommend-layout,div.module-header-default.container.top-border.bottom-border,div.detail-source.container{display: none!important;}\"));var head=document.getElementsByTagName(\"head\")[0];head.insertBefore(style,head.firstChild)};setTimeout(function(){isHeadNull()},10);\n" +
+                                "window.offsetYListener.onElement(121);";
+                        js += "document.body.appendChild(newscript);";
 
+
+
+                        mWebView.loadUrl("javascript:" + js);
                     }
-                },100);
+                },10);*/
+
+
+
+
+
+
+
             }
 
             @Override
             public void onPageFinished(WebView view, String url) {
                 super.onPageFinished(view, url);
-                mWebView.loadUrl("javascript:listenerElement()");
+                //mWebView.loadUrl("javascript:listenerElement()");
 
                 //String imgUrl = "https://goss.veer.com/creative/vcg/veer/1600water/veer-302386254.jpg";
                 String imgUrl = "https://publish-pic-cpu.baidu.com/e640b3b6-9295-419b-8565-e322007cdc1d.jpeg@f_webp|q_90";
@@ -259,11 +313,81 @@ public class JSWeb1Activity extends Activity {
 
                     }
                 });*/
+
+
+                String js = "var newscript = document.createElement(\"script\");";
+                js += "        var style = document.createElement(\"style\");\n" +
+                        "        style.type = \"text/css\";\n" +
+                        "        try{\n" +
+                        "            style.appendChild(document.createTextNode(\"div.news-layout.news-wrapper.recommend-layout,\n" +
+                        "div.module-header-default.container.top-border.bottom-border,\n" +
+                        "div.playlist-layout.no-gap.news-wrapper.recommend-layout.video-recommend-layout,\n" +
+                        "div.new-video-layout,\n" +
+                        "div.page-widget,\n" +
+                        "div.detail-source.container{\n" +
+                        "    display: none!important;\n" +
+                        "}\"));\n" +
+                        "        }catch(ex){\n" +
+                        "            style.styleSheet.cssText=\"div.news-layout.news-wrapper.recommend-layout,\n" +
+                        "div.module-header-default.container.top-border.bottom-border,\n" +
+                        "div.playlist-layout.no-gap.news-wrapper.recommend-layout.video-recommend-layout,\n" +
+                        "div.new-video-layout,\n" +
+                        "div.page-widget,\n" +
+                        "div.detail-source.container{\n" +
+                        "    display: none!important;\n" +
+                        "}\";\n" +
+                        "        }\n" +
+                        "        var head = document.getElementsByTagName(\"head\")[0];\n" +
+                        "        head.appendChild(style);";
+                js += "document.body.appendChild(newscript);";
+
+
+
+                mWebView.loadUrl("javascript:" + js);
+
             }
         });
 
         //mWebClient.loadUrl("https://jumpluna.58.com/i/LZYBeQ6a1luDubj");
+
+
+
+        String script1 = "<script>\n" +
+                "        window.offsetYListener.onElement(1);\n" +
+                "        var style = document.createElement(\"style\");\n" +
+                "        style.type = \"text/css\";\n" +
+                "        try{\n" +
+                "            style.appendChild(document.createTextNode(\"div.news-layout.news-wrapper.recommend-layout, div.module-header-default.container.top-border.bottom-border,div.detail-source.container{display: none!important;}\"));\n" +
+                "        }catch(ex){\n" +
+                "            style.styleSheet.cssText=\"div.news-layout.news-wrapper.recommend-layout, div.module-header-default.container.top-border.bottom-border,div.detail-source.container{display: none!important;}\";//针对IE\n" +
+                "        }\n" +
+                "        var head = document.getElementsByTagName(\"head\")[0];\n" +
+                "        head.appendChild(style);\n" +
+                "</script>";
+
+
+        String html = "<html><head><script>\n" +
+                "        window.offsetYListener.onElement(1);\n" +
+               /* "        var style = document.createElement(\"style\");\n" +
+                "        style.type = \"text/css\";\n" +
+                "        try{\n" +
+                "            style.appendChild(document.createTextNode(\"div.news-layout.news-wrapper.recommend-layout, div.module-header-default.container.top-border.bottom-border,div.detail-source.container{display: none!important;}\"));\n" +
+                "        }catch(ex){\n" +
+                "            style.styleSheet.cssText=\"div.news-layout.news-wrapper.recommend-layout, div.module-header-default.container.top-border.bottom-border,div.detail-source.container{display: none!important;}\";//针对IE\n" +
+                "        }\n" +
+                "        var head = document.getElementsByTagName(\"head\")[0];\n" +
+                "        head.appendChild(style);\n" +*/
+                "    </script>\n</head></html>";
+
+        //mWebView.loadData(html,"text/html", "utf-8");
+
+
         mWebClient.loadUrl("https://cpu.baidu.com/api/1022/ffa1f96f/detail/42728488720996769/news?aid=uSxcdqPxx93wA9bsZwaJt-A6zmf42iSsAvICnpsUW86DQ9ihHu3AGjJGDQC6EPdBB1UUVUXQe5IN1EwacepypjnvOqQrlHNNJfNx4NNBPPn8BG0OGQeKkooU0JyZVXsyT1bfZC5VBnmYAc_yXzx0sKwUu8VSfHaZk5GOOl2B6AXiO1ui-Cp1aAyYB-Uy0Oy-I8sm63n13o8iVONvbOP0ye5ZlOxHvChggajUyDajhnD1S1MQbo7xKRsNWzyfD5l2GohNQo7w6pB6IQUxL3i6aVTbevao10sqGI5Nph39t8n2P_29apluIJJjOQs4xGwNQ8_uRXBZmaGX2EtADxw-vw&scene=0&log_id=1594634373067a46bc63afbfada03837&exp_infos=20406_20515_20532_20542_20554_20603_20623_20651_20662_20901_20984_21500_21501_22116_22641_25311_26451_29578_29722_20010_8104301_8104903_8800030_7000010_8104204_8300062_8800012_8800022_8200139_8800000_8002400_8190602_8190802_8200142_8104301_8104903_8800030_7000010_8104204_8300062_8800012_8800022_8200139_8800000_8002400_8190602_8190802_8200142_41100_40001_43302_44161_44201_44212_44221_44235_44244_44264_44274_44281_44293_8200139_8190307_8103900_8104301_8104903_8800030_7000010_8104204_8800012_8800022_8200139_8800000_8002400_8190602_8190802_8200142&no_list=1&forward=api&api_version=2&cds_session_id=70da31002836469aba4fa84af8af7faa&last_pv_id=API1594634373067a46bc63afbfada03837&cpu_union_id=ADID_ef98a1ccbb761a257a1bda9f357426b4&uls=&rt=12&rts=4096");
+
+
+
+
+
     }
 
     @Override

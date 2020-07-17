@@ -1,4 +1,4 @@
-package com.hyh.common.json;
+package com.hyh.common.json.internal;
 
 import org.json.JSONObject;
 
