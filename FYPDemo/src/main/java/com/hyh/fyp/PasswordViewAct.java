@@ -10,6 +10,9 @@ import com.google.gson.Gson;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.lang.reflect.Method;
+import java.lang.reflect.Type;
+import java.util.List;
 import java.util.TreeMap;
 
 /**
@@ -51,8 +54,27 @@ public class PasswordViewAct extends Activity {
             e.printStackTrace();
         }
 
+        //TreeMap<String, String> smap = new Gson().fromJson(s,new TypeToken<TreeMap<String, String>>(){}.getType());
         F f = new Gson().fromJson(s, F.class);
+
+        Method method = Test.class.getDeclaredMethods()[0];
+        // public void com.test.Test.show(java.util.List[],java.lang.Object[],java.util.List,java.lang.String[],int[])
+        System.out.println(method);
+
+        Type[] types = method.getGenericParameterTypes();  // 这是 Method 中的方法
+        for (Type type : types) {
+            Log.d(TAG, "type: " + type);
+        }
+
+        Class<String[][]> aClass = String[][].class;
+
         Log.d(TAG, "clearPassword: ");
+    }
+
+
+    class Test<T> {
+        public void show(List<String>[][] pTypeArray, String[][] arrays, T[] vTypeArray, List<String> list, String[] strings, int[] ints) {
+        }
     }
 
 

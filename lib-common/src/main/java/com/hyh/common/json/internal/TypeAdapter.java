@@ -1,7 +1,5 @@
 package com.hyh.common.json.internal;
 
-import org.json.JSONObject;
-
 /**
  * @author Administrator
  * @description
@@ -9,10 +7,9 @@ import org.json.JSONObject;
  */
 interface TypeAdapter<T> {
 
-    T read(JSONObject in, String key);
+    T read(JSONElement in);
 
 
-
-    void write(JSONObject out, String key, T value);
+    void write(JSONElement out, T value);
 
 }
