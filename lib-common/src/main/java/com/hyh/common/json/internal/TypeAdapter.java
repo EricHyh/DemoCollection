@@ -5,11 +5,10 @@ package com.hyh.common.json.internal;
  * @description
  * @data 2020/7/15
  */
-interface TypeAdapter<T> {
+public interface TypeAdapter<T> {
 
     T read(JSONElement in);
 
-
-    void write(JSONElement out, T value);
+    JSONElement write(T value);
 
 }

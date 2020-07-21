@@ -19,6 +19,7 @@
 
 
 
+
     </script>
 
 </head>
@@ -106,6 +107,7 @@
             }
         }
     }
+
 </script>
 
 
@@ -114,6 +116,7 @@
     function removeImageClick(tagName, tagClass){
         var tagElements = document.getElementsByTagName( tagName );
     }
+
 
 </script>
 
@@ -212,14 +215,8 @@
     }-->
 
 
+
 </script>
-
-
-
-
-
-
-
 
 
 <script>
@@ -236,6 +233,7 @@
             removeTags("div","test");
         }
 
+
 </script>
 
 <script>
@@ -250,6 +248,7 @@
                 }
             }
         }
+
 
 </script>
 
@@ -323,6 +322,7 @@
 
 
 
+
 </script>
 
 <script>
@@ -337,6 +337,7 @@
 
 
 
+
 </script>
 
 
@@ -345,6 +346,7 @@
             var element = document.querySelector("#" + tagId);
             element.style.height = height;
         }
+
 
 </script>
 
@@ -421,5 +423,154 @@
 
 
 
+
 </script>
 
+
+function pauseVideo(){
+document.getElementsByTagName("video")[0].pause();
+var _videoDiv = document.getElementById("vjs_video_3");
+_videoDiv.classList.remove("vjs-playing");
+_videoDiv.classList.add("vjs-paused");
+}
+
+
+document.getElementsByTagName("video")[0].pause();var
+_videoDiv=document.getElementById("vjs_video_3");_videoDiv.classList.remove("vjs-playing");_videoDiv.classList.add("vjs-paused");
+
+
+<script>
+     function findElement(signature, tag, className){
+        window.bdJavascriptBridge.onReturn("findElement",signature,"100");
+     }
+
+
+     function findElement(signature, tag, className){
+        window.bdJavascriptBridge.onReturn("findElement",signature,"100");
+
+        if(document.getElementsByClassName){
+            window.bdJavascriptBridge.onReturn("findElement",signature,"101");
+        }else{
+             window.bdJavascriptBridge.onReturn("findElement",signature,"102");
+        }
+    }
+
+
+    function findElement(signature, tag, className){
+        window.bdJavascriptBridge.onReturn("findElement",signature,"100");
+
+        if(document.getElementsByClassName){
+            window.bdJavascriptBridge.onReturn("findElement",signature,"101");
+
+            var array = document.getElementsByClassName(classname);
+            if(array != null && array.length > 0){
+                window.bdJavascriptBridge.onReturn("findElement",signature,"1");
+            }else{
+                window.bdJavascriptBridge.onReturn("findElement",signature,"0");
+            }
+        }else{
+             window.bdJavascriptBridge.onReturn("findElement",signature,"102");
+
+            var results = new Array();
+            var elements = document.getElementsByTagName(tag);
+            if(elements != null){
+                for(var i = 0; i < elements.length; i++){
+                    if(elements[i].className == className){
+                        results[results.length] = elements[i];
+                    }
+                }
+            }
+            if(results.length > 0){
+                window.bdJavascriptBridge.onReturn("findElement",signature,"1");
+            }else{
+                window.bdJavascriptBridge.onReturn("findElement",signature,"0");
+            }
+        }
+    }
+
+
+    function findElement(signature, tag, className){
+        if(document.getElementsByClassName){
+            var array = document.getElementsByClassName(className);
+            if(array != null && array.length > 0){
+                window.bdJavascriptBridge.onReturn("findElement",signature,"1");
+            }else{
+                window.bdJavascriptBridge.onReturn("findElement",signature,"0");
+            }
+        }else{
+            var results = new Array();
+            var elements = document.getElementsByTagName(tag);
+            if(elements != null){
+                for(var i = 0; i < elements.length; i++){
+                    if(elements[i].className == className){
+                        results[results.length] = elements[i];
+                    }
+                }
+            }
+            if(results.length > 0){
+                window.bdJavascriptBridge.onReturn("findElement",signature,"1");
+            }else{
+                window.bdJavascriptBridge.onReturn("findElement",signature,"0");
+            }
+        }
+    }
+
+
+    function findElement(signature, tag, className){
+        window.bdJavascriptBridge.onReturn("findElement",signature,"100");
+
+        var results = new Array();
+        var elements = document.getElementsByTagName(tag);
+
+        window.bdJavascriptBridge.onReturn("findElement",signature,"99");
+
+        if(elements && elements.length > 0){
+            window.bdJavascriptBridge.onReturn("findElement",signature,"101");
+            for(var i = 0; i < elements.length; i++){
+                if(elements[i].className == className){
+                    results[results.length] = elements[i];
+                }
+            }
+        }else{
+            window.bdJavascriptBridge.onReturn("findElement",signature,"102");
+        }
+        if(results.length > 0){
+            window.bdJavascriptBridge.onReturn("findElement",signature,"1");
+        }else{
+            window.bdJavascriptBridge.onReturn("findElement",signature,"0");
+        }
+    }
+
+
+     function findElement(signature, tag, className){
+        window.bdJavascriptBridge.onReturn("findElement",signature,"100");
+
+        var results = new Array();
+
+        window.bdJavascriptBridge.onReturn("findElement",signature,"99");
+
+        var elements = document.getElementsByTagName(tag);
+
+        window.bdJavascriptBridge.onReturn("findElement",signature,"98");
+     }
+
+
+</script>
+
+
+
+
+if(document.getElementsByClassName){\n" +
+"            return document.getElementsByClassName(classname);\n" +
+"        }else{\n" +
+"            var results = new Array();\n" +
+"            var elements = document.getElementsByTagName(tagName);\n" +
+"            if(elements){\n" +
+"                for(var i = 0; i < elements.length; i++){\n" +
+"                    if(elements[i].className == className){\n" +
+"                        results[results.length] = elements[i];\n" +
+"                    }\n" +
+"                }\n" +
+"            }\n" +
+"            return results;\n" +
+"        }

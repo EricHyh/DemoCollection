@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.util.Log;
 import android.view.View;
@@ -12,9 +13,13 @@ import android.webkit.JavascriptInterface;
 import android.webkit.WebView;
 
 import com.hyh.web.R;
+import com.hyh.web.widget.web.BaseWebChromeClient;
 import com.hyh.web.widget.web.BaseWebViewClient;
 import com.hyh.web.widget.web.CustomWebView;
 import com.hyh.web.widget.web.WebClient;
+
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * @author Administrator
@@ -22,6 +27,8 @@ import com.hyh.web.widget.web.WebClient;
  * @data 2020/7/13
  */
 public class JSWeb1Activity extends Activity {
+
+    private BDJavascriptBridge mBDJavascriptBridge;
 
     public static void start(Context context) {
         Intent intent = new Intent(context, JSWeb1Activity.class);
@@ -43,13 +50,75 @@ public class JSWeb1Activity extends Activity {
         mWebView = findViewById(R.id.web_view);
         mWebClient = new WebClient(getApplicationContext(), mWebView, null, null, null);
 
-        mWebView.addJavascriptInterface(new ListenerHeight(), "offsetYListener");
+        mBDJavascriptBridge = new BDJavascriptBridge();
+        mWebView.addJavascriptInterface(mBDJavascriptBridge, "bdJavascriptBridge");
 
         mWebClient.setWebViewClient(new BaseWebViewClient() {
 
             @Override
             public void onPageStarted(WebView view, String url, Bitmap favicon) {
                 super.onPageStarted(view, url, favicon);
+
+
+                /*String findFun = "function findElement(signature, tag, className){\n" +
+                        "        window.bdJavascriptBridge.onReturn(\"findElement\",signature,\"100\");\n" +
+                        "\n" +
+                        "        if(document.getElementsByClassName){\n" +
+                        "            window.bdJavascriptBridge.onReturn(\"findElement\",signature,\"101\");\n" +
+                        "\n" +
+                        "            var array = document.getElementsByClassName(className);\n" +
+                        "            window.bdJavascriptBridge.onReturn(\"findElement\",signature,\"1001\");\n" +
+                        "            if(array.length > 0){\n" +
+                        "                window.bdJavascriptBridge.onReturn(\"findElement\",signature,\"1\");\n" +
+                        "            }else{\n" +
+                        "                window.bdJavascriptBridge.onReturn(\"findElement\",signature,\"0\");\n" +
+                        "            }\n" +
+                        "        }else{\n" +
+                        "             window.bdJavascriptBridge.onReturn(\"findElement\",signature,\"102\");\n" +
+                        "\n" +
+                        "            var results = new Array();\n" +
+                        "            var elements = document.getElementsByTagName(tag);\n" +
+                        "            if(elements != null){\n" +
+                        "                for(var i = 0; i < elements.length; i++){\n" +
+                        "                    if(elements[i].className == className){\n" +
+                        "                        results[results.length] = elements[i];\n" +
+                        "                    }\n" +
+                        "                }\n" +
+                        "            }\n" +
+                        "            if(results.length > 0){\n" +
+                        "                window.bdJavascriptBridge.onReturn(\"findElement\",signature,\"1\");\n" +
+                        "            }else{\n" +
+                        "                window.bdJavascriptBridge.onReturn(\"findElement\",signature,\"0\");\n" +
+                        "            }\n" +
+                        "        }\n" +
+                        "    }";*/
+
+                String findFun = "function findElement(signature, tag, className){\n" +
+                        "        if(document.getElementsByClassName){\n" +
+                        "            var array = document.getElementsByClassName(className);\n" +
+                        "            if(array != null && array.length > 0){\n" +
+                        "                window.bdJavascriptBridge.onReturn(\"findElement\",signature,\"1\");\n" +
+                        "            }else{\n" +
+                        "                window.bdJavascriptBridge.onReturn(\"findElement\",signature,\"0\");\n" +
+                        "            }\n" +
+                        "        }else{\n" +
+                        "            var results = new Array();\n" +
+                        "            var elements = document.getElementsByTagName(tag);\n" +
+                        "            if(elements != null){\n" +
+                        "                for(var i = 0; i < elements.length; i++){\n" +
+                        "                    if(elements[i].className == className){\n" +
+                        "                        results[results.length] = elements[i];\n" +
+                        "                    }\n" +
+                        "                }\n" +
+                        "            }\n" +
+                        "            if(results.length > 0){\n" +
+                        "                window.bdJavascriptBridge.onReturn(\"findElement\",signature,\"1\");\n" +
+                        "            }else{\n" +
+                        "                window.bdJavascriptBridge.onReturn(\"findElement\",signature,\"0\");\n" +
+                        "            }\n" +
+                        "        }\n" +
+                        "    }";
+
 
                 String insertDivFun = "function insertDiv(tagName, tagClass, height, id){\n" +
                         "\n" +
@@ -177,17 +246,17 @@ public class JSWeb1Activity extends Activity {
                         "    }";
 
 
-                mWebView.loadUrl("javascript:" + insertDivFun);
+                mWebView.loadUrl("javascript:" + findFun);
+                /*mWebView.loadUrl("javascript:" + insertDivFun);
                 mWebView.loadUrl("javascript:" + insertImgFun);
                 mWebView.loadUrl("javascript:" + setHeightByIdFun);
                 mWebView.loadUrl("javascript:" + getOffsetYFun);
                 mWebView.loadUrl("javascript:" + listenerFun);
 
+
                 mWebView.loadUrl("javascript:" + findElementsFun);
                 mWebView.loadUrl("javascript:" + listenerElementFun);
-
-
-
+*/
 
                 String script1 = "<script>\n" +
                         "        var style = document.createElement(\"style\");\n" +
@@ -232,11 +301,6 @@ public class JSWeb1Activity extends Activity {
                         mWebView.loadUrl("javascript:" + js);
                     }
                 },10);*/
-
-
-
-
-
 
 
             }
@@ -315,7 +379,7 @@ public class JSWeb1Activity extends Activity {
                 });*/
 
 
-                String js = "var newscript = document.createElement(\"script\");";
+                /*String js = "var newscript = document.createElement(\"script\");";
                 js += "        var style = document.createElement(\"style\");\n" +
                         "        style.type = \"text/css\";\n" +
                         "        try{\n" +
@@ -343,13 +407,32 @@ public class JSWeb1Activity extends Activity {
 
 
 
-                mWebView.loadUrl("javascript:" + js);
+                mWebView.loadUrl("javascript:" + js);*/
 
             }
         });
 
         //mWebClient.loadUrl("https://jumpluna.58.com/i/LZYBeQ6a1luDubj");
 
+
+        mWebClient.setWebChromeClient(new BaseWebChromeClient() {
+            @Override
+            public void onProgressChanged(WebView view, int newProgress) {
+                super.onProgressChanged(view, newProgress);
+                mBDJavascriptBridge.findElement(view, "div", "news-layout news-wrapper recommend-layout", new CallBackFunction() {
+                    @Override
+                    public void onCallBack(String data) {
+                        Log.d(TAG, "onCallBack: " + data);
+                    }
+                });
+                /*mBDJavascriptBridge.findElement(view, "div", "recommend-layout", new CallBackFunction() {
+                    @Override
+                    public void onCallBack(String data) {
+                        Log.d(TAG, "onCallBack: " + data);
+                    }
+                });*/
+            }
+        });
 
 
         String script1 = "<script>\n" +
@@ -385,9 +468,6 @@ public class JSWeb1Activity extends Activity {
         mWebClient.loadUrl("https://cpu.baidu.com/api/1022/ffa1f96f/detail/42728488720996769/news?aid=uSxcdqPxx93wA9bsZwaJt-A6zmf42iSsAvICnpsUW86DQ9ihHu3AGjJGDQC6EPdBB1UUVUXQe5IN1EwacepypjnvOqQrlHNNJfNx4NNBPPn8BG0OGQeKkooU0JyZVXsyT1bfZC5VBnmYAc_yXzx0sKwUu8VSfHaZk5GOOl2B6AXiO1ui-Cp1aAyYB-Uy0Oy-I8sm63n13o8iVONvbOP0ye5ZlOxHvChggajUyDajhnD1S1MQbo7xKRsNWzyfD5l2GohNQo7w6pB6IQUxL3i6aVTbevao10sqGI5Nph39t8n2P_29apluIJJjOQs4xGwNQ8_uRXBZmaGX2EtADxw-vw&scene=0&log_id=1594634373067a46bc63afbfada03837&exp_infos=20406_20515_20532_20542_20554_20603_20623_20651_20662_20901_20984_21500_21501_22116_22641_25311_26451_29578_29722_20010_8104301_8104903_8800030_7000010_8104204_8300062_8800012_8800022_8200139_8800000_8002400_8190602_8190802_8200142_8104301_8104903_8800030_7000010_8104204_8300062_8800012_8800022_8200139_8800000_8002400_8190602_8190802_8200142_41100_40001_43302_44161_44201_44212_44221_44235_44244_44264_44274_44281_44293_8200139_8190307_8103900_8104301_8104903_8800030_7000010_8104204_8800012_8800022_8200139_8800000_8002400_8190602_8190802_8200142&no_list=1&forward=api&api_version=2&cds_session_id=70da31002836469aba4fa84af8af7faa&last_pv_id=API1594634373067a46bc63afbfada03837&cpu_union_id=ADID_ef98a1ccbb761a257a1bda9f357426b4&uls=&rt=12&rts=4096");
 
 
-
-
-
     }
 
     @Override
@@ -413,7 +493,22 @@ public class JSWeb1Activity extends Activity {
     }
 
 
-    private class ListenerHeight {
+    private class BDJavascriptBridge {
+
+        private final Map<String, CallBackFunction> mCallBackFunctionMap = new HashMap<>();
+
+        void pauseVideo(WebView webView) {
+            webView.loadUrl("javascript:pauseVideo()");
+        }
+
+        void findElement(WebView webView, String tag, String className, @NonNull CallBackFunction function) {
+            String methodName = "findElement";
+            String signature = String.valueOf(function.hashCode());
+            String jsTemplate = "javascript:%s(\"%s\",\"%s\",\"%s\")";
+            mCallBackFunctionMap.put(methodName + "-" + signature, function);
+            webView.loadUrl(String.format(jsTemplate, methodName, signature, tag, className));
+        }
+
 
         @JavascriptInterface
         public void onHeightChanged(String s) {
@@ -430,6 +525,19 @@ public class JSWeb1Activity extends Activity {
         }
 
         @JavascriptInterface
+        public void onReturn(String methodName, String signature, String value) {
+            switch (methodName) {
+                case "findElement": {
+                    String key = methodName + "-" + signature;
+                    CallBackFunction callBackFunction = mCallBackFunctionMap.get(key);
+                    if (callBackFunction != null) {
+                        callBackFunction.onCallBack(value);
+                    }
+                }
+            }
+        }
+
+        @JavascriptInterface
         public void onTest(String s) {
             Log.d(TAG, "onTest: " + s);
         }
@@ -438,5 +546,11 @@ public class JSWeb1Activity extends Activity {
         public void onElement(int count) {
             Log.d(TAG, "onElement: " + count);
         }
+    }
+
+    public interface CallBackFunction {
+
+        void onCallBack(String data);
+
     }
 }

@@ -1,4 +1,4 @@
-package com.hyh.common.json.internal;
+package com.hyh.common.json.internal.type;
 
 import java.io.Serializable;
 import java.lang.reflect.ParameterizedType;

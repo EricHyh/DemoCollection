@@ -2,18 +2,16 @@ package com.hyh.fyp;
 
 import android.app.Activity;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
 import android.util.Log;
 import android.view.View;
+import android.widget.ImageView;
+import android.widget.Toast;
 
-import com.google.gson.Gson;
+import com.hyh.fyp.widget.DragViewHelper;
+import com.hyh.fyp.widget.GifDrawable;
 
-import org.json.JSONArray;
-import org.json.JSONObject;
-
-import java.lang.reflect.Method;
-import java.lang.reflect.Type;
 import java.util.List;
-import java.util.TreeMap;
 
 /**
  * @author Administrator
@@ -23,22 +21,68 @@ import java.util.TreeMap;
 public class PasswordViewAct extends Activity {
 
     private static final String TAG = "PasswordViewAct_";
+    private GifDrawable mDrawable;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_password_view);
 
+        ImageView imageView = findViewById(R.id.image);
 
+        mDrawable = (GifDrawable) GifDrawable.createFromStream(getResources().openRawResource(R.raw.qq_music_ad), "qq_music_ad");
+        imageView.setImageDrawable(mDrawable);
+
+        imageView.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Toast.makeText(PasswordViewAct.this, "点击", Toast.LENGTH_SHORT).show();
+            }
+        });
+        new DragViewHelper(imageView);
+        imageView.bringToFront();
+
+
+
+        /*new Handler().postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                mDrawable.start();
+            }
+        },1000);
+
+        new Handler().postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                mDrawable.stop();
+            }
+        },8000);*/
     }
 
     public void requestFocus(View view) {
         E<C, D> e = new E<C, D>() {
         };
         Log.d(TAG, "requestFocus: ");
+
+        mDrawable.start();
     }
 
     public void clearPassword(View view) {
+        mDrawable.stop();
+
+        /*TreeMap<D, F> map1 = new TreeMap<>();
+        map1.put(new D("1"), new F(1, "1", false));
+        map1.put(new D("2"), new F(2, "2", true));
+        map1.put(new D("3"), new F(3, "3", false));
+        map1.put(new D("4"), new F(4, "4", true));
+        String s1 = new Gson().toJson(map1);
+        Log.d(TAG, "clearPassword: ");
+
+        Object json = new Gson().fromJson(s1, new TypeToken<TreeMap<D, F>>() {
+        }.getType());
+        Log.d(TAG, "clearPassword: ");
+
+
         TreeMap<String, Object> map = new TreeMap<>();
         map.put("a", 1);
         map.put("b", "2");
@@ -68,7 +112,7 @@ public class PasswordViewAct extends Activity {
 
         Class<String[][]> aClass = String[][].class;
 
-        Log.d(TAG, "clearPassword: ");
+        Log.d(TAG, "clearPassword: ");*/
     }
 
 
@@ -90,11 +134,16 @@ public class PasswordViewAct extends Activity {
         String value;
     }
 
-    private static class D {
+    private static class D implements Comparable<D> {
         String value;
 
         public D(String value) {
             this.value = value;
+        }
+
+        @Override
+        public int compareTo(@NonNull D o) {
+            return value.compareTo(o.value);
         }
     }
 
@@ -111,6 +160,14 @@ public class PasswordViewAct extends Activity {
         boolean c;
         D d;
 
+        public F() {
+        }
+
+        public F(int a, String b, boolean c) {
+            this.a = a;
+            this.b = b;
+            this.c = c;
+        }
     }
 
 }
