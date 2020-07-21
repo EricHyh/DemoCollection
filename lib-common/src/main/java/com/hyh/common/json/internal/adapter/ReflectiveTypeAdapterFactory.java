@@ -10,6 +10,7 @@ import com.hyh.common.json.internal.TypeAdapterFactory;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Type;
+import java.util.Map;
 
 /**
  * @author Administrator
@@ -28,6 +29,10 @@ public class ReflectiveTypeAdapterFactory implements TypeAdapterFactory {
     public <T> TypeAdapter<T> create(AJson aJson, TypeToken<T> type) {
         ObjectConstructor<T> constructor = this.constructor.get(type);
         return new Adapter<>(constructor);
+    }
+
+    private Map<String, BoundField> getBoundField() {
+        return null;
     }
 
     private final static class Adapter<T> implements TypeAdapter<T> {

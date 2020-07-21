@@ -62,6 +62,7 @@ public abstract class RefAccessible<E, T extends RefAccessible<E, T>> {
     void onFailure(E result, Throwable throwable) {
         if (refResult != null) {
             refResult.setResult(result);
+            refResult.setSuccess(false);
             refResult.setThrowable(throwable);
         }
         if (refAction != null) {
