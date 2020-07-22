@@ -2,6 +2,7 @@ package com.hyh.common.json;
 
 import com.hyh.common.json.internal.TypeUtil;
 
+import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 
 /**
@@ -13,45 +14,67 @@ public class TypeToken<T> {
 
     private final Class<? super T> rawType;
     private final Type type;
+    private final int hashCode;
 
-    public TypeToken(Type type) {
-        this.rawType = TypeUtil.getRawType(type);
+    @SuppressWarnings("unchecked")
+    protected TypeToken() {
+        this.type = getSuperclassTypeParameter(getClass());
+        this.rawType = (Class<? super T>) TypeUtil.getRawType(type);
+        this.hashCode = type.hashCode();
+    }
+
+    @SuppressWarnings("unchecked")
+    private TypeToken(Type type) {
+        this.rawType = (Class<? super T>) TypeUtil.getRawType(type);
         this.type = TypeUtil.canonicalize(type);
+        this.hashCode = type.hashCode();
     }
 
     public final Class<? super T> getRawType() {
         return rawType;
     }
 
-
     public final Type getType() {
         return type;
     }
 
-
-    public static TypeToken<?> get(Type type) {
-        return new TypeToken<Object>(type);
+    @Override public final int hashCode() {
+        return this.hashCode;
     }
 
-    /**
-     * Gets type literal for the given {@code Class} instance.
-     */
-    /*public static <T> TypeToken<T> get(Class<T> type) {
+    @Override public final boolean equals(Object o) {
+        return o instanceof TypeToken<?>
+                && TypeUtil.equals(type, ((TypeToken<?>) o).type);
+    }
+
+    @Override public final String toString() {
+        return TypeUtil.typeToString(type);
+    }
+
+    private static Type getSuperclassTypeParameter(Class<?> subclass) {
+        Type superclass = subclass.getGenericSuperclass();
+        if (superclass instanceof Class) {
+            throw new RuntimeException("Missing type parameter.");
+        }
+        ParameterizedType parameterized = (ParameterizedType) superclass;
+        assert parameterized != null;
+        return TypeUtil.canonicalize(parameterized.getActualTypeArguments()[0]);
+    }
+
+    public static TypeToken<?> get(Type type) {
+        return new TypeToken<>(type);
+    }
+
+    public static <T> TypeToken<T> get(Class<T> type) {
         return new TypeToken<T>(type);
     }
 
-    *//**
-     * Gets type literal for the parameterized type represented by applying {@code typeArguments} to
-     * {@code rawType}.
-     *//*
     public static TypeToken<?> getParameterized(Type rawType, Type... typeArguments) {
-        return new TypeToken<Object>($Gson$Types.newParameterizedTypeWithOwner(null, rawType, typeArguments));
+        return new TypeToken<>(TypeUtil.newParameterizedTypeWithOwner(null, rawType, typeArguments));
     }
 
-    *//**
-     * Gets type literal for the array type whose elements are all instances of {@code componentType}.
-     *//*
     public static TypeToken<?> getArray(Type componentType) {
-        return new TypeToken<Object>($Gson$Types.arrayOf(componentType));
-    }*/
+        return new TypeToken<>(TypeUtil.arrayOf(componentType));
+    }
+
 }

@@ -81,10 +81,10 @@ public class ConstructorConstructor {
             }
             return new ObjectConstructor<T>() {
                 @SuppressWarnings("unchecked") // T is the same raw type as is requested
-                @Override public T construct() {
+                @Override
+                public T construct() {
                     try {
-                        Object[] args = null;
-                        return (T) constructor.newInstance(args);
+                        return (T) constructor.newInstance();
                     } catch (InstantiationException e) {
                         // TODO: JsonParseException ?
                         throw new RuntimeException("Failed to invoke " + constructor + " with no args", e);
@@ -118,7 +118,7 @@ public class ConstructorConstructor {
                     if (type instanceof ParameterizedType) {
                         Type elementType = ((ParameterizedType) type).getActualTypeArguments()[0];
                         if (elementType instanceof Class) {
-                            return (T) EnumSet.noneOf((Class)elementType);
+                            return (T) EnumSet.noneOf((Class) elementType);
                         } else {
                             throw new JsonIOException("Invalid EnumSet type: " + type.toString());
                         }
@@ -127,7 +127,7 @@ public class ConstructorConstructor {
                     }
                 };
             } else if (Set.class.isAssignableFrom(rawType)) {
-                return () -> (T) new LinkedHashSet<Object>();
+                return () -> (T) new LinkedHashSet<>();
             } else if (Queue.class.isAssignableFrom(rawType)) {
                 return () -> (T) new ArrayDeque<>();
             } else {
@@ -157,8 +157,10 @@ public class ConstructorConstructor {
             final Type type, final Class<? super T> rawType) {
         return new ObjectConstructor<T>() {
             private final UnsafeAllocator unsafeAllocator = UnsafeAllocator.create();
+
             @SuppressWarnings("unchecked")
-            @Override public T construct() {
+            @Override
+            public T construct() {
                 try {
                     Object newInstance = unsafeAllocator.newInstance(rawType);
                     return (T) newInstance;
@@ -170,8 +172,8 @@ public class ConstructorConstructor {
         };
     }
 
-    @Override public String toString() {
+    @Override
+    public String toString() {
         return instanceCreators.toString();
     }
-
 }

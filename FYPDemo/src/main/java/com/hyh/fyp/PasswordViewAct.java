@@ -8,7 +8,6 @@ import android.view.View;
 import android.widget.ImageView;
 import android.widget.Toast;
 
-import com.hyh.fyp.widget.DragViewHelper;
 import com.hyh.fyp.widget.GifDrawable;
 
 import java.util.List;
@@ -39,8 +38,7 @@ public class PasswordViewAct extends Activity {
                 Toast.makeText(PasswordViewAct.this, "点击", Toast.LENGTH_SHORT).show();
             }
         });
-        new DragViewHelper(imageView);
-        imageView.bringToFront();
+
 
 
 
@@ -62,9 +60,15 @@ public class PasswordViewAct extends Activity {
     public void requestFocus(View view) {
         E<C, D> e = new E<C, D>() {
         };
-        Log.d(TAG, "requestFocus: ");
 
         mDrawable.start();
+
+        int add = add(1, 1);
+        Log.d(TAG, "add after return1: " + add);
+        add = add(1, 2);
+        Log.d(TAG, "add after return2: " + add);
+        add = add(1, 3);
+        Log.d(TAG, "add after return3: " + add);
     }
 
     public void clearPassword(View view) {
@@ -170,4 +174,17 @@ public class PasswordViewAct extends Activity {
         }
     }
 
+    private int add(int a, int b) {
+        try {
+            Log.d(TAG, "add try: ");
+            return readAdd(a, b);
+        } finally {
+            Log.d(TAG, "add finally: " + (a + b));
+        }
+    }
+
+    private int readAdd(int a, int b) {
+        Log.d(TAG, "readAdd: ");
+        return a + b;
+    }
 }

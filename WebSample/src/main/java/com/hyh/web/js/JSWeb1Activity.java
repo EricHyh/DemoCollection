@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.os.Bundle;
+import android.os.Handler;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.util.Log;
@@ -58,6 +59,13 @@ public class JSWeb1Activity extends Activity {
             @Override
             public void onPageStarted(WebView view, String url, Bitmap favicon) {
                 super.onPageStarted(view, url, favicon);
+
+
+                String xxx = "function test(){\n" +
+                        "            window.bdJavascriptBridge.onTest(window.__mp_user_id);\n" +
+                        "        }";
+
+                view.loadUrl("javascript:" + xxx);
 
 
                 /*String findFun = "function findElement(signature, tag, className){\n" +
@@ -306,8 +314,25 @@ public class JSWeb1Activity extends Activity {
             }
 
             @Override
-            public void onPageFinished(WebView view, String url) {
+            public void onPageFinished(final WebView view, String url) {
                 super.onPageFinished(view, url);
+
+                String js = "var newscript = document.createElement(\"script\");";
+                js += "window.__mp_user_id=\"当前用户userid\"";
+                js += "document.body.appendChild(newscript);";
+
+
+                mWebView.loadUrl("javascript:" + js);
+
+                new Handler().postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        view.loadUrl("javascript:test()");
+                    }
+                },1000);
+
+
+
                 //mWebView.loadUrl("javascript:listenerElement()");
 
                 //String imgUrl = "https://goss.veer.com/creative/vcg/veer/1600water/veer-302386254.jpg";
@@ -404,10 +429,9 @@ public class JSWeb1Activity extends Activity {
                         "        var head = document.getElementsByTagName(\"head\")[0];\n" +
                         "        head.appendChild(style);";
                 js += "document.body.appendChild(newscript);";
+*/
 
 
-
-                mWebView.loadUrl("javascript:" + js);*/
 
             }
         });
@@ -465,8 +489,9 @@ public class JSWeb1Activity extends Activity {
         //mWebView.loadData(html,"text/html", "utf-8");
 
 
-        mWebClient.loadUrl("https://cpu.baidu.com/api/1022/ffa1f96f/detail/42728488720996769/news?aid=uSxcdqPxx93wA9bsZwaJt-A6zmf42iSsAvICnpsUW86DQ9ihHu3AGjJGDQC6EPdBB1UUVUXQe5IN1EwacepypjnvOqQrlHNNJfNx4NNBPPn8BG0OGQeKkooU0JyZVXsyT1bfZC5VBnmYAc_yXzx0sKwUu8VSfHaZk5GOOl2B6AXiO1ui-Cp1aAyYB-Uy0Oy-I8sm63n13o8iVONvbOP0ye5ZlOxHvChggajUyDajhnD1S1MQbo7xKRsNWzyfD5l2GohNQo7w6pB6IQUxL3i6aVTbevao10sqGI5Nph39t8n2P_29apluIJJjOQs4xGwNQ8_uRXBZmaGX2EtADxw-vw&scene=0&log_id=1594634373067a46bc63afbfada03837&exp_infos=20406_20515_20532_20542_20554_20603_20623_20651_20662_20901_20984_21500_21501_22116_22641_25311_26451_29578_29722_20010_8104301_8104903_8800030_7000010_8104204_8300062_8800012_8800022_8200139_8800000_8002400_8190602_8190802_8200142_8104301_8104903_8800030_7000010_8104204_8300062_8800012_8800022_8200139_8800000_8002400_8190602_8190802_8200142_41100_40001_43302_44161_44201_44212_44221_44235_44244_44264_44274_44281_44293_8200139_8190307_8103900_8104301_8104903_8800030_7000010_8104204_8800012_8800022_8200139_8800000_8002400_8190602_8190802_8200142&no_list=1&forward=api&api_version=2&cds_session_id=70da31002836469aba4fa84af8af7faa&last_pv_id=API1594634373067a46bc63afbfada03837&cpu_union_id=ADID_ef98a1ccbb761a257a1bda9f357426b4&uls=&rt=12&rts=4096");
+        /*mWebClient.loadUrl("https://cpu.baidu.com/api/1022/ffa1f96f/detail/42728488720996769/news?aid=uSxcdqPxx93wA9bsZwaJt-A6zmf42iSsAvICnpsUW86DQ9ihHu3AGjJGDQC6EPdBB1UUVUXQe5IN1EwacepypjnvOqQrlHNNJfNx4NNBPPn8BG0OGQeKkooU0JyZVXsyT1bfZC5VBnmYAc_yXzx0sKwUu8VSfHaZk5GOOl2B6AXiO1ui-Cp1aAyYB-Uy0Oy-I8sm63n13o8iVONvbOP0ye5ZlOxHvChggajUyDajhnD1S1MQbo7xKRsNWzyfD5l2GohNQo7w6pB6IQUxL3i6aVTbevao10sqGI5Nph39t8n2P_29apluIJJjOQs4xGwNQ8_uRXBZmaGX2EtADxw-vw&scene=0&log_id=1594634373067a46bc63afbfada03837&exp_infos=20406_20515_20532_20542_20554_20603_20623_20651_20662_20901_20984_21500_21501_22116_22641_25311_26451_29578_29722_20010_8104301_8104903_8800030_7000010_8104204_8300062_8800012_8800022_8200139_8800000_8002400_8190602_8190802_8200142_8104301_8104903_8800030_7000010_8104204_8300062_8800012_8800022_8200139_8800000_8002400_8190602_8190802_8200142_41100_40001_43302_44161_44201_44212_44221_44235_44244_44264_44274_44281_44293_8200139_8190307_8103900_8104301_8104903_8800030_7000010_8104204_8800012_8800022_8200139_8800000_8002400_8190602_8190802_8200142&no_list=1&forward=api&api_version=2&cds_session_id=70da31002836469aba4fa84af8af7faa&last_pv_id=API1594634373067a46bc63afbfada03837&cpu_union_id=ADID_ef98a1ccbb761a257a1bda9f357426b4&uls=&rt=12&rts=4096");*/
 
+        mWebClient.loadUrl("https://jdda.jd.com/app/hd/?mp=1#/turntable2?token=cd89e910f5f5492db0191e0d46e00f66&from=txatyly");
 
     }
 

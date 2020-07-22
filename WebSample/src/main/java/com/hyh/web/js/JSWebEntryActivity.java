@@ -10,6 +10,7 @@ import android.view.View;
 import com.hyh.web.R;
 
 import java.util.List;
+import java.util.Set;
 
 /**
  * @author Administrator
@@ -25,14 +26,26 @@ public class JSWebEntryActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_js_web_entry);
 
-        String url = "https://cpu.baidu.com/api/1022/ffa1f96f/detail/76002376401/video?position_id=1";
+
+        String url = "https://jdda.jd.com/app/hd/?mp=1#/turntable2?token=cd89e910f5f5492db0191e0d46e00f66&from=txatyly";
+
+        Uri parse = Uri.parse(url);
+
+        Set<String> queryParameterNames = parse.getQueryParameterNames();
+        for (String queryParameterName : queryParameterNames) {
+            Log.d(TAG, "queryParameterName: " + queryParameterName);
+        }
+
+        String fragment = parse.getFragment();
+        Log.d(TAG, "fragment: " + fragment);
+
+
+
 
         List<String> pathSegments = Uri.parse(url).getPathSegments();
-
         for (String pathSegment : pathSegments) {
             Log.d(TAG, "onCreate: " + pathSegment);
         }
-
     }
 
     public void test1(View view) {
