@@ -34,6 +34,8 @@ public class PageLayout extends ViewGroup {
             topChild.dispatchWindowFocusChanged(hasFocus);
         }
 
+        onAttachedToWindow();
+
         /*final int count = mChildrenCount;
         final View[] children = mChildren;
         for (int i = 0; i < count; i++) {
