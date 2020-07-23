@@ -1,14 +1,13 @@
 package com.hyh.fyp;
 
 import android.app.Activity;
+import android.graphics.Color;
 import android.os.Bundle;
+import android.os.Handler;
 import android.support.annotation.NonNull;
 import android.util.Log;
 import android.view.View;
-import android.widget.ImageView;
-import android.widget.Toast;
-
-import com.hyh.fyp.widget.GifDrawable;
+import android.view.ViewGroup;
 
 import java.util.List;
 
@@ -20,48 +19,49 @@ import java.util.List;
 public class PasswordViewAct extends Activity {
 
     private static final String TAG = "PasswordViewAct_";
-    private GifDrawable mDrawable;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_password_view);
 
-        ImageView imageView = findViewById(R.id.image);
-
-        mDrawable = (GifDrawable) GifDrawable.createFromStream(getResources().openRawResource(R.raw.qq_music_ad), "qq_music_ad");
-        imageView.setImageDrawable(mDrawable);
-
-        imageView.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Toast.makeText(PasswordViewAct.this, "点击", Toast.LENGTH_SHORT).show();
-            }
-        });
-
-
-
-
-        /*new Handler().postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                mDrawable.start();
-            }
-        },1000);
 
         new Handler().postDelayed(new Runnable() {
             @Override
             public void run() {
-                mDrawable.stop();
+                ViewGroup contentView = findViewById(android.R.id.content);
+                View view = new View(getApplicationContext()) {
+                    @Override
+                    public void dispatchWindowFocusChanged(boolean hasFocus) {
+                        super.dispatchWindowFocusChanged(hasFocus);
+                    }
+
+                    @Override
+                    protected void onAttachedToWindow() {
+                        super.onAttachedToWindow();
+                        int[] drawableState = getDrawableState();
+                        boolean hasFocus = false;
+                        for (int state : drawableState) {
+                            if (state == android.R.attr.state_window_focused) {
+                                hasFocus = true;
+                                break;
+                            }
+                        }
+                        Log.d(TAG, "onAttachedToWindow: hasFocus = " + hasFocus);
+                        Log.d(TAG, "onAttachedToWindow: hasWindowFocus = " + hasWindowFocus());
+                    }
+                };
+                view.setLayoutParams(new ViewGroup.LayoutParams(200, 200));
+                view.setBackgroundColor(Color.RED);
+                contentView.addView(view);
             }
-        },8000);*/
+        }, 5000);
     }
 
     public void requestFocus(View view) {
         E<C, D> e = new E<C, D>() {
         };
 
-        mDrawable.start();
 
         int add = add(1, 1);
         Log.d(TAG, "add after return1: " + add);
@@ -72,7 +72,6 @@ public class PasswordViewAct extends Activity {
     }
 
     public void clearPassword(View view) {
-        mDrawable.stop();
 
         /*TreeMap<D, F> map1 = new TreeMap<>();
         map1.put(new D("1"), new F(1, "1", false));
