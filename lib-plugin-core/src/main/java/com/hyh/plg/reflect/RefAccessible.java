@@ -14,9 +14,9 @@ public abstract class RefAccessible<E, T extends RefAccessible<E, T>> {
 
     private Lazy<E> lazyDefaultValue;
 
-    private RefResult<E> refResult;
+    private RefResult<? super E> refResult;
 
-    private RefAction<E> refAction;
+    private RefAction<? super E> refAction;
 
     private boolean printException;
 
@@ -39,12 +39,12 @@ public abstract class RefAccessible<E, T extends RefAccessible<E, T>> {
         return (T) this;
     }
 
-    public T saveResult(RefResult<E> result) {
+    public T saveResult(RefResult<? super E> result) {
         this.refResult = result;
         return (T) this;
     }
 
-    public T resultAction(RefAction<E> action) {
+    public T resultAction(RefAction<? super E> action) {
         this.refAction = action;
         return (T) this;
     }

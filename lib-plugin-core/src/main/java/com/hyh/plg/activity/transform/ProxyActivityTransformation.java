@@ -14,7 +14,7 @@ import com.hyh.plg.activity.IntentCachePool;
 import com.hyh.plg.activity.IntentDataCarrier;
 import com.hyh.plg.activity.LaunchMode;
 import com.hyh.plg.android.BlockApplication;
-import com.hyh.plg.android.BlockEnv;
+import com.hyh.plg.api.BlockEnv;
 import com.hyh.plg.android.ProxyActivityInfo;
 import com.hyh.plg.android.ams.AMSApi;
 import com.hyh.plg.android.ams.ProxyActivityMap;
@@ -32,6 +32,8 @@ import java.util.List;
  */
 
 public class ProxyActivityTransformation implements Transformation {
+
+    public static final String ORIGINAL_INTENT_KEY = "__original_intent__";
 
     private static final String TRANSFORM_FLAG = "__proxy_activity_transformation__";
 

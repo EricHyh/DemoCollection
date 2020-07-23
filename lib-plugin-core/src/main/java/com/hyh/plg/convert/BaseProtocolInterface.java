@@ -1,4 +1,4 @@
-package com.hyh.plg.protocol;
+package com.hyh.plg.convert;
 
 import com.hyh.plg.reflect.Reflect;
 import com.hyh.plg.utils.Logger;
@@ -22,7 +22,7 @@ public class BaseProtocolInterface implements IProtocolInterface {
     private final Map<Class<?>, Map<Method, Method>> mProtocolMethodMap = new HashMap<>();
     private final List<String> mProtocolInterfaceNames;
 
-    BaseProtocolInterface(List<String> protocolInterfaceNames) {
+    public BaseProtocolInterface(List<String> protocolInterfaceNames) {
         this.mProtocolInterfaceNames = protocolInterfaceNames;
     }
 

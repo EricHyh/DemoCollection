@@ -31,7 +31,7 @@ import android.view.WindowManager;
 import com.hyh.plg.activity.transform.TransformIntent;
 import com.hyh.plg.activity.transform.Transformation;
 import com.hyh.plg.android.BlockApplication;
-import com.hyh.plg.android.BlockEnv;
+import com.hyh.plg.api.BlockEnv;
 import com.hyh.plg.hook.instrumentation.ActivityInstrumentation;
 import com.hyh.plg.hook.instrumentation.ApplicationInstrumentation;
 import com.hyh.plg.reflect.Reflect;

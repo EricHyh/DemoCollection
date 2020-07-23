@@ -1,8 +1,6 @@
 package com.hyh.plg.convert;
 
 
-import com.hyh.plg.protocol.IProtocolInterface;
-
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.Collection;

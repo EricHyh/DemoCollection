@@ -1,7 +1,6 @@
 package com.hyh.plg.convert;
 
 
-import com.hyh.plg.protocol.IProtocolInterface;
 import com.hyh.plg.reflect.Reflect;
 
 import java.lang.reflect.Array;

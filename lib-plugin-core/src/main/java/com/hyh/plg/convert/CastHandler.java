@@ -3,7 +3,6 @@ package com.hyh.plg.convert;
 
 import android.text.TextUtils;
 
-import com.hyh.plg.protocol.IProtocolInterface;
 import com.hyh.plg.utils.Logger;
 
 import java.lang.reflect.InvocationHandler;

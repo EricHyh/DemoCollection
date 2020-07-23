@@ -29,7 +29,7 @@ public class RefConstructor<E> extends RefExecutable<E, RefConstructor<E>> {
     }
 
     @Override
-    public RefConstructor<E> saveResult(RefResult<E> result) {
+    public RefConstructor<E> saveResult(RefResult<? super E> result) {
         return super.saveResult(result);
     }
 
@@ -54,7 +54,7 @@ public class RefConstructor<E> extends RefExecutable<E, RefConstructor<E>> {
     }
 
     @Override
-    public  RefConstructor<E> param(Class type, Object param) {
+    public RefConstructor<E> param(Class type, Object param) {
         return super.param(type, param);
     }
 

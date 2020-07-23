@@ -37,4 +37,10 @@ public class RefResult<E> {
     public Throwable getThrowable() {
         return throwable;
     }
+
+    public void clear() {
+        this.result = null;
+        this.isSuccess = false;
+        this.throwable = null;
+    }
 }

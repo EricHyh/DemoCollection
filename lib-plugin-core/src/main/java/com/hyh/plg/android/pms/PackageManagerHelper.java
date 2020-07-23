@@ -11,7 +11,7 @@ import android.os.Bundle;
 import android.text.TextUtils;
 
 import com.hyh.plg.android.BlockApplication;
-import com.hyh.plg.android.BlockEnv;
+import com.hyh.plg.api.BlockEnv;
 import com.hyh.plg.utils.FileUtil;
 import com.hyh.plg.utils.Logger;
 

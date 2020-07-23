@@ -7,6 +7,8 @@ import android.content.res.Configuration;
 import android.text.TextUtils;
 import android.util.DisplayMetrics;
 
+import com.hyh.plg.api.BlockEnv;
+
 /**
  * Created by tangdongwei on 2018/5/28.
  */

@@ -26,6 +26,7 @@ import com.hyh.plg.activity.ActivityProxyImpl;
 import com.hyh.plg.activity.transform.TransformIntent;
 import com.hyh.plg.android.pms.PackageManagerFactory;
 import com.hyh.plg.android.pms.PackageManagerHelper;
+import com.hyh.plg.api.BlockEnv;
 import com.hyh.plg.hook.instrumentation.ApplicationInstrumentation;
 import com.hyh.plg.reflect.Reflect;
 import com.hyh.plg.service.BlockServiceServer;

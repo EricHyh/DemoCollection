@@ -1,13 +1,17 @@
-package com.hyh.plg.android;
+package com.hyh.plg.api;
 
+import android.app.Activity;
 import android.app.Application;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.ActivityInfo;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
+import android.content.res.Resources;
 
 import com.hyh.plg.activity.transform.ProxyActivityTransformation;
 import com.hyh.plg.activity.transform.Transformation;
+import com.hyh.plg.android.ProxyActivityInfo;
 import com.hyh.plg.utils.Logger;
 
 import java.util.List;
@@ -19,6 +23,20 @@ import java.util.concurrent.CopyOnWriteArrayList;
  * Created by tangdongwei on 2018/11/28.
  */
 public class BlockEnv {
+
+    public static Application sHostApplication;
+    public static Resources sHostResources;
+
+    public static ActivityInfo getActivityInfo(Activity activity) {
+        ActivityInfo[] activities = sBlockPackageInfo.activities;
+        for (ActivityInfo activityInfo : activities) {
+            if (activityInfo.name.equals(activity.getClass().getName())) {
+                return activityInfo;
+            }
+        }
+        return null;
+    }
+
 
     public static ProxyActivityInfo sProxyActivityInfo;
 

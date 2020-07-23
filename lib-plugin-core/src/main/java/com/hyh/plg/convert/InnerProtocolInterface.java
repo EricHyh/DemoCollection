@@ -1,4 +1,4 @@
-package com.hyh.plg.protocol;
+package com.hyh.plg.convert;
 
 import android.text.TextUtils;
 
@@ -19,7 +19,7 @@ public class InnerProtocolInterface extends BaseProtocolInterface {
     private final Map<String, String> mBlockProtocolInterfaceMap;
     private final ClassLoader mHostClassLoader;
 
-    InnerProtocolInterface(ClassLoader hostClassLoader, List<String> protocolInterfaceNames, Map<String, String> hostProtocolInterfaceMap) {
+    public InnerProtocolInterface(ClassLoader hostClassLoader, List<String> protocolInterfaceNames, Map<String, String> hostProtocolInterfaceMap) {
         super(protocolInterfaceNames);
         this.mHostClassLoader = hostClassLoader;
         this.mHostProtocolInterfaceMap = hostProtocolInterfaceMap;

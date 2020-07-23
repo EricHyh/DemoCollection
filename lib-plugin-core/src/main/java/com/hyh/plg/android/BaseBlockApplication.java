@@ -11,6 +11,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.util.SparseArray;
 
+import com.hyh.plg.api.BlockEnv;
 import com.yly.mob.activity.ActivityProxyImpl;
 import com.yly.mob.activity.transform.TransformIntent;
 import com.yly.mob.hook.instrumentation.ApplicationInstrumentation;
