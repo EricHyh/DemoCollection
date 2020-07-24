@@ -1,0 +1,17 @@
+java基础
+一、TCP协议
+1.TCP建立连接的流程：
+（1）客户端向服务端发送SYN
+
+2.TCP断开连接流程：
+
+
+3.TCP滑动窗口
+https://blog.csdn.net/wdscq1234/article/details/52444277
+
+4.TCP重连机制
+
+二、java锁机制
+1.synchronized
+2.Lock
+3.公平锁与非公平锁

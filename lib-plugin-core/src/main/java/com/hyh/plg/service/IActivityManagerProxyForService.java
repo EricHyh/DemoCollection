@@ -4,6 +4,7 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 
+import com.hyh.plg.reflect.Reflect;
 import com.hyh.plg.utils.Logger;
 
 import java.lang.reflect.InvocationHandler;
@@ -12,9 +13,6 @@ import java.lang.reflect.Proxy;
 import java.util.HashMap;
 import java.util.Map;
 
-/**
- * Created by tangdongwei on 2018/11/21.
- */
 public class IActivityManagerProxyForService {
 
     //用于保证返回值为基础数据类型时，不返回null
@@ -78,7 +76,7 @@ public class IActivityManagerProxyForService {
                     break;
                 }
             }
-            return mElementaryDefaultValue.get(method.getReturnType());
+            return Reflect.getDefaultValue(method.getReturnType());
         }
     }
 }
