@@ -44,7 +44,7 @@ public class VideoData implements MediaProgressListener {
         Log.d("NativeVideoController", "bindVideoView: use time1 = " + (end - start));
 
         Object tag = mVideo.getTag();
-        if (tag != null && tag instanceof VideoData && tag != this) {
+        if (tag instanceof VideoData && tag != this) {
             VideoData videoData = (VideoData) tag;
             videoData.unBindVideoView(mVideo);
         }
@@ -52,7 +52,7 @@ public class VideoData implements MediaProgressListener {
         end = System.currentTimeMillis();
         Log.d("NativeVideoController", "bindVideoView: use time2 = " + (end - start));
 
-        mVideo.setup(new DataSource(videoUrl, DataSource.TYPE_NET), "视频标题", 0, false);
+        mVideo.setup(new DataSource(videoUrl, DataSource.TYPE_NET), "视频标题", 100, false);
 
         end = System.currentTimeMillis();
         Log.d("NativeVideoController", "bindVideoView: use time3 = " + (end - start));

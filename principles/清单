@@ -1,7 +1,20 @@
 java基础
-一、TCP协议
+一、TCP协议（https://www.cnblogs.com/yjf512/p/5909031.html）
+1.标志位（https://blog.csdn.net/ChenVast/article/details/77978367）
+（1）URG：紧急指针
+（2）ACK：确认标志位
+ACK（ACKNOWLEDGEMENT）用于确认数据包的成功接收
+（3）
+
+
+（5）SYN：同步标志位
+SYN全称位同步序列编号（Synchronize Sequence Numbers），发起TCP连接请求时，使用该标志位
+
+
+
 1.TCP建立连接的流程：
-（1）客户端向服务端发送SYN
+（1）客户端向服务端发送一个包含SYN包，发起连接请求，相对序列号位0
+（2）服务端收到SYN包，回复一个ACK包
 
 2.TCP断开连接流程：
 

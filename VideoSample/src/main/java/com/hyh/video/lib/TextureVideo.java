@@ -46,7 +46,7 @@ public class TextureVideo extends TextureView implements IVideoSurface {
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
         ViewParent parent = getParent();
-        if (mSurfaceMeasurer == null || parent == null || !(parent instanceof ViewGroup)) {
+        if (mSurfaceMeasurer == null || !(parent instanceof ViewGroup)) {
             super.onMeasure(widthMeasureSpec, heightMeasureSpec);
         } else {
             int defaultWidth = getDefaultSize(getSuggestedMinimumWidth(), widthMeasureSpec);

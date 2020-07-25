@@ -381,7 +381,7 @@ public class DefaultVideoController implements IVideoController {
 
     private class VideoPositionHelper implements MediaProgressListener, SeekBar.OnSeekBarChangeListener {
 
-        private boolean mIsStartTrackingTouch;
+        private boolean mTrackingTouchStarted;
 
         public void onStop(long currentPosition, long duration) {
             mControllerView.setMediaProgress(0);
@@ -398,7 +398,7 @@ public class DefaultVideoController implements IVideoController {
 
         @Override
         public void onMediaProgress(int progress, long currentPosition, long duration) {
-            if (!mIsStartTrackingTouch) {
+            if (!mTrackingTouchStarted) {
                 mControllerView.setMediaProgress(progress);
                 mControllerView.setCurrentPosition(currentPosition);
             }
@@ -414,12 +414,12 @@ public class DefaultVideoController implements IVideoController {
 
         @Override
         public void onStartTrackingTouch(SeekBar seekBar) {
-            mIsStartTrackingTouch = true;
+            mTrackingTouchStarted = true;
         }
 
         @Override
         public void onStopTrackingTouch(SeekBar seekBar) {
-            mIsStartTrackingTouch = false;
+            mTrackingTouchStarted = false;
             mVideoDelegate.seekProgressTo(seekBar.getProgress());
         }
     }

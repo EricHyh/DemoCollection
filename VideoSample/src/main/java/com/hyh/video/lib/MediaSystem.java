@@ -317,6 +317,7 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
             if (mPendingCommand == PENDING_COMMAND_START) {
                 mPendingCommand = PENDING_COMMAND_PAUSE;
             }
+            // TODO: 2020/7/25  
         }
     }
 
@@ -758,7 +759,7 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
 
         private final WeakReference<MediaSystem> mMediaSystemRef;
 
-        private volatile boolean mIsStartObserveProgress;
+        private volatile boolean mObserveProgressStarted;
 
         private volatile boolean mIsCancelPrepareTask;
 
@@ -774,7 +775,7 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
             if (mediaSystem == null || mediaSystem.isReleased()) return;
             switch (msg.what) {
                 case MESSAGE_PROGRESS: {
-                    if (!mIsStartObserveProgress) return;
+                    if (!mObserveProgressStarted) return;
                     mediaSystem.postProgress();
                     sendEmptyMessageDelayed(0, 1000);
                     break;
@@ -792,12 +793,12 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
         }
 
         void startObserveProgress() {
-            mIsStartObserveProgress = true;
+            mObserveProgressStarted = true;
             sendEmptyMessage(0);
         }
 
         void stopObserveProgress() {
-            mIsStartObserveProgress = false;
+            mObserveProgressStarted = false;
         }
 
         boolean hasPrepareMessage() {

@@ -71,8 +71,8 @@ public class DefaultControllerView extends RelativeLayout implements IController
                     return new TopContainer(context);
                 }
             };
-            int _48dp = VideoUtils.dp2px(context, 48);
-            LayoutParams params = new LayoutParams(LayoutParams.MATCH_PARENT, _48dp);
+            int _100dp = VideoUtils.dp2px(context, 100);
+            LayoutParams params = new LayoutParams(LayoutParams.MATCH_PARENT, _100dp);
             params.addRule(RelativeLayout.ALIGN_PARENT_TOP);
             mTopContainer.addToParent(this, params);
         }
@@ -83,8 +83,8 @@ public class DefaultControllerView extends RelativeLayout implements IController
                     return new BottomContainer(context);
                 }
             };
-            int _48dp = VideoUtils.dp2px(context, 48);
-            LayoutParams params = new LayoutParams(LayoutParams.MATCH_PARENT, _48dp);
+            int _100dp = VideoUtils.dp2px(context, 100);
+            LayoutParams params = new LayoutParams(LayoutParams.MATCH_PARENT, _100dp);
             params.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM);
             mBottomContainer.addToParent(this, params);
         }
@@ -254,7 +254,7 @@ public class DefaultControllerView extends RelativeLayout implements IController
             @Override
             public void doAction(InitialInfoContainer initialInfoContainer) {
                 initialInfoContainer.playCount.setVisibility(GONE);
-                initialInfoContainer.duration.setVisibility(GONE);
+                initialInfoContainer.duration.setVisibility(INVISIBLE);
             }
         });
         if (playCount > 0) {
@@ -734,17 +734,19 @@ public class DefaultControllerView extends RelativeLayout implements IController
             return true;
         } else {
             ViewParent parent = DefaultControllerView.this.getParent();
-            if (parent != null && parent instanceof ViewGroup) {
+            if (parent instanceof ViewGroup) {
                 float rotation = ((ViewGroup) parent).getRotation();
-                if (rotation == 90 || rotation == 270) {
-                    return true;
-                }
+                return rotation == 90 || rotation == 270;
             }
         }
         return false;
     }
 
-    public class TopContainer extends LinearLayout {
+
+    public class TopContainer extends RelativeLayout {
+
+        final int fullscreenBackIconId = VideoUtils.generateViewId();
+        final int batteryTimeContainerId = VideoUtils.generateViewId();
 
         public final ImageView fullscreenBackIcon;
         public final TextView title;
@@ -752,10 +754,8 @@ public class DefaultControllerView extends RelativeLayout implements IController
         public final ImageView batteryLevel;
         public final TextView systemTime;
 
-        @SuppressLint("RtlHardcoded")
         public TopContainer(Context context) {
             super(context);
-            setOrientation(HORIZONTAL);
             int _14dp = VideoUtils.dp2px(getContext(), 14);
             setPadding(_14dp, 0, _14dp, 0);
             setBackgroundResource(R.drawable.video_top_container_bg);
@@ -763,47 +763,35 @@ public class DefaultControllerView extends RelativeLayout implements IController
                 fullscreenBackIcon = new ImageView(context);
                 fullscreenBackIcon.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
                 int _12dp = VideoUtils.dp2px(context, 12);
-                fullscreenBackIcon.setPadding(0, _12dp, 0, _12dp);
+                fullscreenBackIcon.setPadding(0, _12dp, _12dp, _12dp);
                 fullscreenBackIcon.setImageResource(R.drawable.video_full_back_selector);
                 fullscreenBackIcon.setVisibility(GONE);
                 fullscreenBackIcon.setOnClickListener(DefaultControllerView.this);
+                fullscreenBackIcon.setId(fullscreenBackIconId);
 
-                int _20dp = VideoUtils.dp2px(context, 20);
-                LayoutParams params = new LayoutParams(_20dp, LayoutParams.MATCH_PARENT);
-                params.gravity = Gravity.CENTER_VERTICAL;
-                params.rightMargin = VideoUtils.dp2px(context, 14);
+                int _32dp = VideoUtils.dp2px(context, 32);
+                int _48dp = VideoUtils.dp2px(context, 48);
+                LayoutParams params = new LayoutParams(_32dp, _48dp);
+                params.addRule(RelativeLayout.ALIGN_PARENT_LEFT);
                 addView(fullscreenBackIcon, params);
             }
             {
-                title = new TextView(context);
-                title.setTextSize(16);
-                title.setTextColor(0xFFDEDEDE);
-                title.setMaxLines(2);
-                title.setGravity(Gravity.CENTER_VERTICAL | Gravity.LEFT);
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
-                    title.setTextAlignment(TEXT_ALIGNMENT_GRAVITY);
-                }
-                title.setEllipsize(TextUtils.TruncateAt.END);
-
-                LayoutParams params = new LayoutParams(0, LayoutParams.WRAP_CONTENT);
-                params.gravity = Gravity.CENTER_VERTICAL | Gravity.LEFT;
-                params.weight = 1;
-                addView(title, params);
-            }
-            {
                 batteryTimeContainer = new LinearLayout(context);
-                batteryTimeContainer.setOrientation(VERTICAL);
+                batteryTimeContainer.setOrientation(LinearLayout.VERTICAL);
                 batteryTimeContainer.setVisibility(GONE);
+                batteryTimeContainer.setId(batteryTimeContainerId);
+                int _12dp = VideoUtils.dp2px(context, 12);
+                batteryTimeContainer.setPadding(_12dp, 0, 0, 0);
 
-                LayoutParams layoutParams = new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT);
-                layoutParams.gravity = Gravity.CENTER_VERTICAL;
-                layoutParams.leftMargin = VideoUtils.dp2px(context, 14);
+                int _48dp = VideoUtils.dp2px(context, 48);
+                LayoutParams layoutParams = new LayoutParams(LayoutParams.WRAP_CONTENT, _48dp);
+                layoutParams.addRule(RelativeLayout.ALIGN_PARENT_RIGHT);
                 addView(batteryTimeContainer, layoutParams);
                 {
                     batteryLevel = new ImageView(context);
                     int _24dp = VideoUtils.dp2px(context, 24);
                     int _10dp = VideoUtils.dp2px(context, 10);
-                    LayoutParams params = new LayoutParams(_24dp, _10dp);
+                    LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(_24dp, _10dp);
                     params.gravity = Gravity.CENTER_HORIZONTAL;
                     batteryTimeContainer.addView(batteryLevel, params);
                 }
@@ -814,10 +802,39 @@ public class DefaultControllerView extends RelativeLayout implements IController
                     systemTime.setTextSize(12);
                     systemTime.setTextColor(0xFFDEDEDE);
 
-                    LayoutParams params = new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT);
+                    LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT);
                     params.gravity = Gravity.CENTER_HORIZONTAL;
                     batteryTimeContainer.addView(systemTime, params);
                 }
+            }
+            {
+                title = new TextView(context);
+                title.setTextSize(16);
+                title.setTextColor(0xFFDEDEDE);
+                title.setMaxLines(2);
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
+                    title.setTextAlignment(TEXT_ALIGNMENT_GRAVITY);
+                }
+                title.setEllipsize(TextUtils.TruncateAt.END);
+
+                LayoutParams params = new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT);
+                params.addRule(RelativeLayout.RIGHT_OF, fullscreenBackIconId);
+                params.addRule(RelativeLayout.LEFT_OF, batteryTimeContainerId);
+                params.topMargin = VideoUtils.dp2px(context, 12);
+
+                addView(title, params);
+            }
+        }
+
+        @Override
+        protected void onAttachedToWindow() {
+            super.onAttachedToWindow();
+            if (isVideoLandingSpace()) {
+                int _30dp = VideoUtils.dp2px(getContext(), 30);
+                setPadding(_30dp, 0, _30dp, 0);
+            } else {
+                int _14dp = VideoUtils.dp2px(getContext(), 14);
+                setPadding(_14dp, 0, _14dp, 0);
             }
         }
 
@@ -837,7 +854,8 @@ public class DefaultControllerView extends RelativeLayout implements IController
         }
     }
 
-    @SuppressWarnings("AppCompatCustomView")
+
+    @SuppressWarnings("all")
     public class BottomContainer extends LinearLayout {
 
         public final TextView currentPosition;
@@ -854,6 +872,7 @@ public class DefaultControllerView extends RelativeLayout implements IController
             setPadding(_14dp, 0, _14dp, 0);
             setBackgroundResource(R.drawable.video_bottom_container_bg);
 
+            int _48dp = VideoUtils.dp2px(getContext(), 48);
             {
                 currentPosition = new TextView(context);
                 currentPosition.setTextColor(0xFFDEDEDE);
@@ -861,8 +880,7 @@ public class DefaultControllerView extends RelativeLayout implements IController
                 currentPosition.setGravity(Gravity.CENTER_VERTICAL);
                 currentPosition.setText("00:00");
 
-                LayoutParams params = new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT);
-                params.gravity = Gravity.CENTER_VERTICAL;
+                LayoutParams params = new LayoutParams(LayoutParams.WRAP_CONTENT, _48dp);
                 addView(currentPosition, params);
             }
             {
@@ -912,8 +930,7 @@ public class DefaultControllerView extends RelativeLayout implements IController
                 }
 
 
-                LayoutParams params = new LayoutParams(0, LayoutParams.WRAP_CONTENT);
-                params.gravity = Gravity.CENTER_VERTICAL;
+                LayoutParams params = new LayoutParams(0, _48dp);
                 params.weight = 1;
                 addView(seekBar, params);
             }
@@ -921,10 +938,10 @@ public class DefaultControllerView extends RelativeLayout implements IController
                 duration = new TextView(context);
                 duration.setTextColor(0xFFDEDEDE);
                 duration.setTextSize(12);
+                duration.setGravity(Gravity.CENTER_VERTICAL);
                 duration.setText("00:00");
 
-                LayoutParams params = new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT);
-                params.gravity = Gravity.CENTER_VERTICAL;
+                LayoutParams params = new LayoutParams(LayoutParams.WRAP_CONTENT, _48dp);
                 params.rightMargin = VideoUtils.dp2px(context, 14);
                 addView(duration, params);
             }
@@ -938,8 +955,7 @@ public class DefaultControllerView extends RelativeLayout implements IController
                     definition.setTextAlignment(TEXT_ALIGNMENT_CENTER);
                 }
 
-                LayoutParams params = new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT);
-                params.gravity = Gravity.CENTER_VERTICAL;
+                LayoutParams params = new LayoutParams(LayoutParams.WRAP_CONTENT, _48dp);
                 params.rightMargin = VideoUtils.dp2px(context, 14);
                 addView(definition, params);
             }
@@ -978,9 +994,22 @@ public class DefaultControllerView extends RelativeLayout implements IController
                 fullscreenToggle.setOnClickListener(DefaultControllerView.this);
 
 
-                LayoutParams params = new LayoutParams(_16dp, LayoutParams.MATCH_PARENT);
-                params.gravity = Gravity.CENTER_VERTICAL;
+                LayoutParams params = new LayoutParams(_16dp, _48dp);
                 addView(fullscreenToggle, params);
+            }
+        }
+
+        @Override
+        protected void onAttachedToWindow() {
+            super.onAttachedToWindow();
+            if (isVideoLandingSpace()) {
+                int _30dp = VideoUtils.dp2px(getContext(), 30);
+                setPadding(_30dp, 0, _30dp, 0);
+                fullscreenToggle.setImageResource(R.drawable.video_shrink);
+            } else {
+                int _14dp = VideoUtils.dp2px(getContext(), 14);
+                setPadding(_14dp, 0, _14dp, 0);
+                fullscreenToggle.setImageResource(R.drawable.video_enlarge);
             }
         }
 
@@ -1011,6 +1040,8 @@ public class DefaultControllerView extends RelativeLayout implements IController
                 playCount.setTextSize(12);
                 playCount.setVisibility(GONE);
                 playCount.setTextColor(0xFFDEDEDE);
+                playCount.setShadowLayer(2.0f, 1.0f, 1.0f, Color.DKGRAY);
+
 
                 LayoutParams params = new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT);
                 params.gravity = Gravity.START | Gravity.CENTER_VERTICAL;
@@ -1020,7 +1051,7 @@ public class DefaultControllerView extends RelativeLayout implements IController
                 duration = new TextView(context);
                 duration.setTextSize(12);
                 duration.setTextColor(0xFFDEDEDE);
-                duration.setVisibility(GONE);
+                duration.setVisibility(INVISIBLE);
                 int _8dp = VideoUtils.dp2px(context, 8);
                 int _3dp = VideoUtils.dp2px(context, 3);
                 duration.setPadding(_8dp, _3dp, _8dp, _3dp);

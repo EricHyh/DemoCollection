@@ -5,55 +5,44 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <LinearLayout
+
+    <RelativeLayout
         android:id="@+id/video_top_container"
         android:layout_width="match_parent"
-        android:layout_height="40dp"
+        android:layout_height="100dp"
         android:background="@drawable/video_top_container_bg"
-        android:orientation="horizontal">
+        android:paddingLeft="14dp"
+        android:paddingRight="14dp">
 
         <ImageView
             android:id="@+id/video_fullscreen_back_icon"
             android:layout_width="32dp"
-            android:layout_height="match_parent"
-            android:layout_gravity="center_vertical"
-            android:paddingBottom="12dp"
-            android:paddingLeft="12dp"
+            android:layout_height="48dp"
             android:paddingTop="12dp"
+            android:paddingRight="12dp"
+            android:paddingBottom="12dp"
             android:scaleType="centerInside"
             android:src="@drawable/video_full_back_selector"
-            android:visibility="gone"/>
-
-        <TextView
-            android:id="@+id/video_title"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center_vertical"
-            android:layout_marginLeft="14dp"
-            android:layout_marginRight="14dp"
-            android:layout_weight="1"
-            android:ellipsize="end"
-            android:maxLines="2"
-            android:textColor="#FFDEDEDE"
-            android:textSize="16sp"
-            tools:text="Title Title Title Title Title Title Title"/>
+            android:visibility="gone"
+            tools:visibility="visible" />
 
         <LinearLayout
             android:id="@+id/video_battery_time_container"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center_vertical"
-            android:layout_marginEnd="14dp"
-            android:layout_marginRight="14dp"
+            android:layout_height="48dp"
+            android:layout_alignParentRight="true"
+            android:gravity="center_vertical"
+            android:paddingLeft="12dp"
             android:orientation="vertical"
-            android:visibility="gone">
+            android:visibility="gone"
+            tools:visibility="visible">
 
             <ImageView
                 android:id="@+id/video_battery_level"
                 android:layout_width="23dp"
                 android:layout_height="10dp"
                 android:layout_gravity="center_horizontal"
-                android:background="@drawable/video_battery_level_100"/>
+                android:background="@drawable/video_battery_level_100" />
 
             <TextView
                 android:id="@+id/video_system_time"
@@ -64,21 +53,37 @@
                 android:maxLines="1"
                 android:textColor="#FFDEDEDE"
                 android:textSize="12.0sp"
-                tools:text="12:12"/>
+                tools:text="12:12" />
         </LinearLayout>
 
 
-    </LinearLayout>
+        <TextView
+            android:id="@+id/video_title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:layout_toLeftOf="@+id/video_battery_time_container"
+            android:layout_toRightOf="@+id/video_fullscreen_back_icon"
+            android:ellipsize="end"
+            android:gravity="center_vertical"
+            android:maxLines="2"
+            android:textColor="#FFDEDEDE"
+            android:textSize="16sp"
+            tools:text="Title Title Title Title Title Title Title" />
+
+    </RelativeLayout>
+
 
     <LinearLayout
         android:id="@+id/video_bottom_container"
         android:layout_width="match_parent"
-        android:layout_height="48dp"
+        android:layout_height="100dp"
         android:layout_alignParentBottom="true"
         android:background="@drawable/video_bottom_container_bg"
         android:gravity="bottom"
         android:orientation="horizontal"
-        android:visibility="gone">
+        android:visibility="gone"
+        tools:visibility="visible">
 
         <TextView
             android:id="@+id/video_current_position"
@@ -88,7 +93,7 @@
             android:gravity="center_vertical"
             android:textColor="#FFDEDEDE"
             android:textSize="12sp"
-            tools:text="00:00"/>
+            tools:text="00:00" />
 
         <SeekBar
             android:id="@+id/video_seek_bar"
@@ -101,7 +106,7 @@
             android:minHeight="1dp"
             android:progressDrawable="@drawable/video_seek_progress"
             android:thumb="@drawable/video_seek_thumb"
-            tools:progress="50"/>
+            tools:progress="50" />
 
         <TextView
             android:id="@+id/video_duration"
@@ -111,7 +116,7 @@
             android:gravity="center_vertical"
             android:textColor="#FFDEDEDE"
             android:textSize="12sp"
-            tools:text="00:00"/>
+            tools:text="00:00" />
 
         <TextView
             android:id="@+id/video_definition"
@@ -119,24 +124,24 @@
             android:layout_height="48dp"
             android:layout_marginRight="14dp"
             android:gravity="center_vertical"
-            android:paddingBottom="10dp"
             android:paddingTop="10dp"
+            android:paddingBottom="10dp"
             android:textAlignment="center"
             android:textColor="#FFDEDEDE"
             android:textSize="14sp"
             android:visibility="gone"
-            tools:text="clarity"/>
+            tools:text="clarity" />
 
         <ImageView
             android:id="@+id/video_fullscreen_toggle"
             android:layout_width="30dp"
             android:layout_height="48dp"
-            android:paddingBottom="10dp"
-            android:paddingRight="14dp"
             android:paddingTop="10dp"
+            android:paddingRight="14dp"
+            android:paddingBottom="10dp"
             android:scaleType="centerInside"
             android:src="@drawable/video_enlarge"
-            android:visibility="gone"/>
+            android:visibility="gone" />
 
     </LinearLayout>
 
@@ -157,7 +162,7 @@
             android:textColor="#FFDEDEDE"
             android:textSize="12sp"
             android:visibility="gone"
-            tools:text="22万次播放"/>
+            tools:text="22万次播放" />
 
         <TextView
             android:id="@+id/video_initial_info_duration"
@@ -165,14 +170,14 @@
             android:layout_height="wrap_content"
             android:layout_gravity="right|center_vertical"
             android:background="@drawable/video_initial_info_duration_bg"
-            android:paddingBottom="3dp"
             android:paddingLeft="8dp"
-            android:paddingRight="8dp"
             android:paddingTop="3dp"
+            android:paddingRight="8dp"
+            android:paddingBottom="3dp"
             android:textColor="#FFDEDEDE"
             android:textSize="12sp"
             android:visibility="gone"
-            tools:text="00:00"/>
+            tools:text="00:00" />
 
     </FrameLayout>
 
@@ -185,14 +190,14 @@
         android:max="100"
         android:progressDrawable="@drawable/video_progress_drawable"
         android:visibility="gone"
-        tools:progress="50"/>
+        tools:progress="50" />
 
     <ImageView
         android:id="@+id/video_play_or_pause_icon"
         android:layout_width="45dp"
         android:layout_height="45dp"
         android:layout_centerInParent="true"
-        android:src="@drawable/video_play_selector"/>
+        android:src="@drawable/video_play_selector" />
 
     <FrameLayout
         android:id="@+id/video_end_view_container"
@@ -206,15 +211,15 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="bottom"
-            android:layout_marginBottom="12dp"
             android:layout_marginLeft="14dp"
+            android:layout_marginBottom="12dp"
             android:orientation="horizontal">
 
             <ImageView
                 android:layout_width="24dp"
                 android:layout_height="24dp"
                 android:layout_gravity="center_vertical"
-                android:src="@drawable/video_replay"/>
+                android:src="@drawable/video_replay" />
 
             <TextView
                 android:layout_width="wrap_content"
@@ -223,7 +228,7 @@
                 android:text="重播"
                 android:textColor="#FFDEDEDE"
                 android:textSize="12sp"
-                tools:text="replay"/>
+                tools:text="replay" />
 
         </LinearLayout>
 
@@ -244,7 +249,7 @@
             android:text="视频加载失败"
             android:textColor="@android:color/white"
             android:textSize="14sp"
-            tools:text="Video loading failed"/>
+            tools:text="Video loading failed" />
 
         <TextView
             android:id="@+id/video_retry_btn"
@@ -252,14 +257,14 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="15dp"
             android:background="@drawable/video_retry_bg"
-            android:paddingBottom="6dp"
             android:paddingLeft="10dp"
-            android:paddingRight="10dp"
             android:paddingTop="6dp"
+            android:paddingRight="10dp"
+            android:paddingBottom="6dp"
             android:text="点击重试"
             android:textColor="@android:color/white"
             android:textSize="14sp"
-            tools:text="Click to retry"/>
+            tools:text="Click to retry" />
     </LinearLayout>
 
     <LinearLayout
@@ -277,7 +282,7 @@
             android:text="您当前正在使用移动网络，继续播放将消耗流量"
             android:textColor="#FFADADAD"
             android:textSize="14sp"
-            tools:text="You are currently using the mobile network"/>
+            tools:text="You are currently using the mobile network" />
 
         <TextView
             android:id="@+id/video_mobile_data_sure_btn"
@@ -285,14 +290,14 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="30dp"
             android:background="@drawable/video_mobile_data_sure_bg"
-            android:paddingBottom="8dp"
             android:paddingLeft="10dp"
-            android:paddingRight="10dp"
             android:paddingTop="8dp"
+            android:paddingRight="10dp"
+            android:paddingBottom="8dp"
             android:text="继续播放"
             android:textColor="@android:color/white"
             android:textSize="14sp"
-            tools:text="Continue play"/>
+            tools:text="Continue play" />
     </LinearLayout>
 
     <ProgressBar
@@ -301,6 +306,6 @@
         android:layout_height="45dp"
         android:layout_centerInParent="true"
         android:indeterminateDrawable="@drawable/video_loading"
-        android:visibility="gone"/>
+        android:visibility="gone" />
 
 </RelativeLayout>
