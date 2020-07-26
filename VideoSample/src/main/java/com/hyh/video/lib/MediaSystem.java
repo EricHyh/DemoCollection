@@ -178,7 +178,7 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
 
     @Override
     public void prepare(boolean autoStart) {
-        if (checkIsReleased()) return;
+        if (checkReleased()) return;
         boolean preparing = false;
         if (mCurrentState == State.INITIALIZED || mCurrentState == State.STOPPED) {
             try {
@@ -240,7 +240,7 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
 
     @Override
     public void start() {
-        if (checkIsReleased()) return;
+        if (checkReleased()) return;
         if (mCurrentState != State.STARTED) {
             postExecuteStart();
         }
@@ -264,7 +264,7 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
 
     @Override
     public void restart() {
-        if (checkIsReleased()) return;
+        if (checkReleased()) return;
         if (mCurrentState != State.STARTED) {
             postExecuteStart();
         }
@@ -291,7 +291,7 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
 
     @Override
     public void retry() {
-        if (checkIsReleased()) return;
+        if (checkReleased()) return;
         if (mCurrentState == State.ERROR) {
             mMediaPlayer.reset();
             if (initMediaPlayer(mDataSource)) {
@@ -316,8 +316,8 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
         } else {
             if (mPendingCommand == PENDING_COMMAND_START) {
                 mPendingCommand = PENDING_COMMAND_PAUSE;
+                postPendingPause();
             }
-            // TODO: 2020/7/25  
         }
     }
 
@@ -334,6 +334,7 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
             postStop();
         } else {
             mPendingCommand = PENDING_COMMAND_STOP;
+            postPendingStop();
         }
     }
 
@@ -468,7 +469,7 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
         return mMediaPlayer == null || mCurrentState == State.END;
     }
 
-    private boolean checkIsReleased() {
+    private boolean checkReleased() {
         if (isReleased()) {
             boolean setDataSource = setDataSource(mDataSource);
             if (!setDataSource) {
@@ -498,11 +499,11 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
         } else if (mPendingCommand == PENDING_COMMAND_PAUSE) {
             handlePendingSeek();
             mPendingCommand = PENDING_COMMAND_NONE;
-            postPause();
+            //postPause();
         } else if (mPendingCommand == PENDING_COMMAND_STOP) {
             mPendingCommand = PENDING_COMMAND_NONE;
             mMediaPlayer.stop();
-            postStop();
+            //postStop();
         }
         if (getMediaProgressListener() != null && isPlaying()) {
             startObserveProgress();
@@ -640,8 +641,22 @@ public class MediaSystem implements IMediaPlayer, MediaPlayer.OnPreparedListener
         }
     }
 
+    private void postPendingPause() {
+        final MediaEventListener mediaEventListener = getMediaEventListener();
+        if (mediaEventListener != null) {
+            mediaEventListener.onPause(getCurrentPosition(), getDuration());
+        }
+    }
+
     private void postStop() {
         mCurrentState = State.STOPPED;
+        final MediaEventListener mediaEventListener = getMediaEventListener();
+        if (mediaEventListener != null) {
+            mediaEventListener.onStop(getCurrentPosition(), getDuration());
+        }
+    }
+
+    private void postPendingStop() {
         final MediaEventListener mediaEventListener = getMediaEventListener();
         if (mediaEventListener != null) {
             mediaEventListener.onStop(getCurrentPosition(), getDuration());
