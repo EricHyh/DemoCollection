@@ -107,9 +107,9 @@ public abstract class LazyView<V extends View> {
         }
     }
 
-    public interface LazyAction<T> {
+    public interface LazyAction<V> {
 
-        void doAction(T t);
+        void doAction(V v);
 
     }
 }
