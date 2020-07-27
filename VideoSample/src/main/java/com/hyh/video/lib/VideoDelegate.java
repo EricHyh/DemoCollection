@@ -59,12 +59,16 @@ public class VideoDelegate {
 
 
     public VideoDelegate(Context context) {
+        this(context, new MediaInfoImpl(context));
+    }
+
+    public VideoDelegate(Context context, IMediaInfo mediaInfo) {
         this.mContext = context;
         this.mSceneChangeHelper = new SceneChangeHelper(context);
 
         mMediaPlayer.setMediaEventListener(mMediaEventListener);
         mMediaPlayer.setMediaProgressListener(mMediaProgressListener);
-        mMediaInfo = new MediaInfoImpl(context);
+        mMediaInfo = mediaInfo;
 
         this.mVideoBackground = newVideoBackground(context);
         this.mVideoSurface = newVideoSurface(context);
@@ -383,6 +387,7 @@ public class VideoDelegate {
 
     public void release() {
         mMediaPlayer.release();
+        mMediaInfo.release();
     }
 
     public boolean isExecuteStart() {

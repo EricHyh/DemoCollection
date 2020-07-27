@@ -24,6 +24,8 @@ public interface IMediaInfo {
 
     void getFrameAtTime(long timeUs, BeforeResult<Bitmap> beforeResult, Result<Bitmap> result);
 
+    void release();
+
     interface Result<T> {
         void onResult(T t);
     }

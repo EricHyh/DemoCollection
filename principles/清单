@@ -1,10 +1,11 @@
 java基础
 一、TCP协议（https://www.cnblogs.com/yjf512/p/5909031.html）
 1.标志位（https://blog.csdn.net/ChenVast/article/details/77978367）
-（1）URG：紧急指针
-（2）ACK：确认标志位
-ACK（ACKNOWLEDGEMENT）用于确认数据包的成功接收
-（3）
+（1）URG（URGENT POINTER）：紧急指针
+有紧急指针标记的数据，需优先处理
+（2）ACK（ACKNOWLEDGEMENT）：确认标志位
+ACK用于确认数据包的成功接收
+（3）PSH（PUSH）：推送
 
 
 （5）SYN：同步标志位
@@ -24,7 +25,31 @@ https://blog.csdn.net/wdscq1234/article/details/52444277
 
 4.TCP重连机制
 
-二、java锁机制
+
+
+二、HTTP协议
+
+
+
+
+
+三、java锁机制
 1.synchronized
 2.Lock
 3.公平锁与非公平锁
+
+
+
+四、ArrayList
+1.扩容机制
+
+
+
+
+五、HashMap
+1.hash算法
+(1)hash = hash ^ (hash >>> 16)低位高位混合，增大地位随机性
+(2)index = hash & (length - 1)
+
+
+2.

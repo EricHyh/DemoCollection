@@ -135,6 +135,11 @@ public class MediaInfoImpl implements IMediaInfo {
         }
     }
 
+    @Override
+    public void release() {
+        stopRunningTask();
+    }
+
     private static class DurationTask extends MediaMetadataTask<Long> {
 
 
@@ -178,6 +183,7 @@ public class MediaInfoImpl implements IMediaInfo {
 
         @Override
         void cacheResult(int[] result) {
+
         }
 
         @Override
@@ -236,7 +242,7 @@ public class MediaInfoImpl implements IMediaInfo {
         final List<MediaMetadataTask> mRunningTaskList;
         BeforeResult<R> mBeforeResult;
         Result<R> mResult;
-        volatile boolean mIsCancel;
+        volatile boolean mCanceled;
 
         MediaMetadataTask(Context context,
                           DataSource dataSource,
@@ -304,7 +310,7 @@ public class MediaInfoImpl implements IMediaInfo {
 
         void cancel() {
             mRunningTaskList.remove(this);
-            this.mIsCancel = true;
+            this.mCanceled = true;
             this.mResult = null;
             try {
                 cancel(true);
@@ -323,7 +329,7 @@ public class MediaInfoImpl implements IMediaInfo {
         protected void onPostExecute(R result) {
             super.onPostExecute(result);
             mRunningTaskList.remove(this);
-            if (mIsCancel || mResult == null) return;
+            if (mCanceled || mResult == null) return;
             mResult.onResult(result);
             mResult = null;
         }

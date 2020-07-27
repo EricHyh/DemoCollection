@@ -23,6 +23,7 @@ public class FirstFramePreview extends FrameLayout implements IVideoPreview {
     private final ImageView mPreviewImage;
     private final VideoPreviewHelper mVideoPreviewHelper;
 
+    private final Drawable mTransparentDrawable = new ColorDrawable(Color.TRANSPARENT);
     private Drawable mDefaultDrawable;
 
     private ISurfaceMeasurer mSurfaceMeasurer;
@@ -101,7 +102,7 @@ public class FirstFramePreview extends FrameLayout implements IVideoPreview {
                     mVideoHeight = bitmap.getHeight();
                     mPreviewImage.setImageBitmap(bitmap);
                     resetImageSize();
-                    FirstFramePreview.this.setBackgroundColor(Color.TRANSPARENT);
+                    FirstFramePreview.this.setBackgroundDrawable(mTransparentDrawable);
                 }
             }
         });
