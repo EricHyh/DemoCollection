@@ -47,9 +47,51 @@ https://blog.csdn.net/wdscq1234/article/details/52444277
 
 
 五、HashMap
-1.hash算法
+1.初始size计算
+位运算+或运算
+
+2.hash算法
 (1)hash = hash ^ (hash >>> 16)低位高位混合，增大地位随机性
-(2)index = hash & (length - 1)
+(2)index = hash & (length - 1)，length = 1 << n
+
+3.扩容
+(1)初始容量 2<<<4
+(2)默认装载因子0.75
+
+4.链表转红黑树
 
 
-2.
+
+
+六、TreeMap
+
+
+
+七、java内存模型（https://zhuanlan.zhihu.com/p/34362413）
+1.主内存（Main Memory）
+所有的变量都存储在主内存中
+
+2.工作内存（Working Memory）
+每条线程都有独立的工作内存，线程的工作内存中保存了被该线程使用到的变量的主内存副本拷贝，线程对变量的所有操作（读取、赋值等）都必须在工作内存中进行，
+而不能直接读写主内存中的变量。不同的线程之间也无法直接访问对方工作内存中的变量，线程间变量值的传递均需要通过主内存来完成。
+
+
+七、volatile
+volatile可以保证变量的可见性与有序性，不能保证变量操作的原子性
+
+
+八、CAS（Compare-and-Swap）
+1.实现步骤
+（1）获取旧值
+（2）比较旧值，若相同则替换，否则不操作
+（3）循环上述操作，直至替换成功
+
+
+
+九、synchronized
+1.
+
+
+十、ReentrantLock
+1.
+
