@@ -1,8 +1,10 @@
 package com.hyh.fyp.widget;
 
 import android.support.annotation.FloatRange;
+import android.support.annotation.NonNull;
 import android.support.v4.view.ViewPager;
 import android.view.View;
+import android.view.ViewParent;
 
 /**
  * @author Administrator
@@ -10,37 +12,42 @@ import android.view.View;
  * @data 2020/7/29
  */
 public class CarouselTransformer implements ViewPager.PageTransformer {
-    public static final float SCALE_MIN = 0.3f;
-    public static final float SCALE_MAX = 1f;
-    public float scale;
 
-    private float pagerMargin;
-    private float spaceValue;
+    private float scale;
 
-    public CarouselTransformer(@FloatRange(from = 0,to = 1) float scale, float pagerMargin, float spaceValue) {
+    public CarouselTransformer(@FloatRange(from = 0, to = 1) float scale) {
         this.scale = scale;
-        this.pagerMargin = pagerMargin;
-        this.spaceValue = spaceValue;
     }
 
     @Override
-    public void transformPage(View page, float position) {
+    public void transformPage(@NonNull View view, float position) {
+        float scale = 1 - Math.abs(position * (1 - this.scale));
+        view.setScaleX(scale);
+        view.setScaleY(scale);
 
-        if (scale != 0f) {
-            float realScale = getAdapter(1 - Math.abs(position * scale), SCALE_MIN, SCALE_MAX);
-            page.setScaleX(realScale);
-            page.setScaleY(realScale);
-        }
+        int parentWidth = getParentWidth(view);
+        int width = view.getWidth();
 
-        if (pagerMargin != 0) {
 
-            float realPagerMargin = position * (pagerMargin);
-            page.setTranslationX(realPagerMargin);
-        }
+        float margin = parentWidth - width;
+        float realMargin = margin + width * (1 - this.scale) * Math.abs(position);
+        float translationX = width - realMargin * 0.5f;
+
+        view.setTranslationX(translationX * -position);
     }
 
-    private float getAdapter(float value, float minValue, float maxValue) {
-        return Math.min(maxValue, Math.max(minValue, value));
+    private int getParentWidth(@NonNull View view) {
+        ViewParent parent = view.getParent();
+        if (parent instanceof View) {
+            View parentView = (View) parent;
+            parent = parentView.getParent();
+            if (parent instanceof View) {
+                parentView = (View) parent;
+                return parentView.getWidth();
+            } else {
+                return parentView.getWidth();
+            }
+        }
+        return view.getWidth();
     }
-
 }

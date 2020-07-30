@@ -1,13 +1,11 @@
 package com.hyh.ui.widget;
 
 import android.content.Context;
-import android.graphics.Canvas;
 import android.support.v4.view.PagerAdapter;
 import android.support.v4.view.ViewPager;
 import android.util.AttributeSet;
-import android.util.Log;
+import android.util.SparseArray;
 import android.view.View;
-import android.widget.TextView;
 
 import com.hyh.common.reflect.Reflect;
 
@@ -25,80 +23,70 @@ public class CustomViewPager extends ViewPager {
 
     private ArrayList<View> mDrawingOrderedChildren;
 
+    private final DrawingOrderInfo mDrawingOrderInfo = new DrawingOrderInfo();
+
     public CustomViewPager(Context context) {
         super(context);
     }
 
     public CustomViewPager(Context context, AttributeSet attrs) {
         super(context, attrs);
-        setChildrenDrawingOrderEnabled(true);
-    }
-
-    @Override
-    public void draw(Canvas canvas) {
-        super.draw(canvas);
     }
 
     @Override
     protected int getChildDrawingOrder(int childCount, int i) {
+        if (!isChildrenDrawingOrderEnabled()) {
+            return getDefaultChildDrawingOrder(childCount, i);
+        }
+
+        if (i == 0) mDrawingOrderInfo.clear();
+        PagerAdapter adapter = getAdapter();
+        if (adapter == null || childCount == 0) return getDefaultChildDrawingOrder(childCount, i);
+
+        if (adapter.getCount() == getOffscreenPageLimit() - 1) {
+            int currentItem = getCurrentItem();
+            if (i >= currentItem) {
+                return childCount - 1 - i + currentItem;
+            }
+            return super.getChildDrawingOrder(childCount, i);
+        }
+
+        if (i == 0 || i == childCount - 1) {
+            mDrawingOrderInfo.currentItemPosition = getCurrentItem();
+            mDrawingOrderInfo.childCount = childCount;
+            mDrawingOrderInfo.firstItemPosition = adapter.getCount() - 1;
+            mDrawingOrderInfo.lastItemPosition = 0;
+            for (int index = 0; index < childCount; index++) {
+                View view = getChildAt(index);
+                int itemPosition = adapter.getItemPosition(view);
+                mDrawingOrderInfo.firstItemPosition = Math.min(mDrawingOrderInfo.firstItemPosition, itemPosition);
+                mDrawingOrderInfo.lastItemPosition = Math.max(mDrawingOrderInfo.lastItemPosition, itemPosition);
+                mDrawingOrderInfo.itemPositionViewArray.put(itemPosition, view);
+            }
+        }
+
+        int predictedItemPosition = mDrawingOrderInfo.firstItemPosition + i;
+        int realItemPosition;
+
+        if (predictedItemPosition < mDrawingOrderInfo.currentItemPosition) {
+            realItemPosition = predictedItemPosition;
+        } else if (i < childCount - 1) {
+            realItemPosition = mDrawingOrderInfo.currentItemPosition + (childCount - 1 - i);
+        } else {
+            realItemPosition = mDrawingOrderInfo.currentItemPosition;
+        }
+        View view = mDrawingOrderInfo.itemPositionViewArray.get(realItemPosition);
+        return indexOfChild(view);
+    }
+
+    protected int getDefaultChildDrawingOrder(int childCount, int i) {
         ArrayList<View> drawingOrderedChildren = getDrawingOrderedChildren();
         if (drawingOrderedChildren == null || drawingOrderedChildren.isEmpty()) return i;
         int size = drawingOrderedChildren.size();
         if (i >= size) {
             return i;
         }
-
-
-        int childDrawingOrder = super.getChildDrawingOrder(childCount, i);
-
-        TextView textView = (TextView) getChildAt(i);
-        PagerAdapter adapter = getAdapter();
-        if (adapter == null) return childDrawingOrder;
-        int itemPosition = adapter.getItemPosition(textView);
-
-        int currentItem = getCurrentItem();
-
-
-        int afterCurrentItemCount = 0;
-        for (int index = 0; index < childCount; index++) {
-            View view = getChildAt(index);
-            if (adapter.getItemPosition(view) > currentItem) {
-                afterCurrentItemCount++;
-            }
-        }
-
-        int realDrawingOrder;
-        if (itemPosition < currentItem) {
-            //realDrawingOrder = childCount / 2 - (currentItem - itemPosition - 1);
-            //realDrawingOrder = childDrawingOrder == childCount - 1 ? childDrawingOrder - 1 : childDrawingOrder;
-            realDrawingOrder = childCount - afterCurrentItemCount - 2 - (currentItem - itemPosition - 1);
-        } else if (itemPosition == currentItem) {
-            realDrawingOrder = childCount - 1;
-        } else {
-            //realDrawingOrder = childDrawingOrder - 1;
-            realDrawingOrder = childCount - 1 - (itemPosition - currentItem);
-        }
-
-        if (i >= currentItem) {
-            realDrawingOrder = childCount - 1 - i + currentItem;
-        } else {
-            realDrawingOrder = childDrawingOrder;
-        }
-
-        Log.d(TAG, "getChildDrawingOrder: "
-                + "childDrawingOrder = " + childDrawingOrder
-                + ", i = " + i
-                + ", text = " + textView.getText()
-                + ", position = " + textView.getTag()
-                + ", childCount = " + childCount
-                + ", currentItem = " + currentItem
-                + ", itemPosition = " + itemPosition
-                + ", realDrawingOrder = " + realDrawingOrder
-                + ", afterCurrentItemCount = " + afterCurrentItemCount
-        );
-
-
-        return childDrawingOrder;
+        return super.getChildDrawingOrder(childCount, i);
     }
 
     @SuppressWarnings("unchecked")
@@ -110,5 +98,27 @@ public class CustomViewPager extends ViewPager {
             e.printStackTrace();
         }
         return mDrawingOrderedChildren;
+    }
+
+
+    private static class DrawingOrderInfo {
+
+        int childCount;
+
+        SparseArray<View> itemPositionViewArray = new SparseArray<>();
+
+        int firstItemPosition;
+
+        int currentItemPosition;
+
+        int lastItemPosition;
+
+        void clear() {
+            childCount = 0;
+            itemPositionViewArray.clear();
+            firstItemPosition = 0;
+            currentItemPosition = 0;
+            lastItemPosition = 0;
+        }
     }
 }
