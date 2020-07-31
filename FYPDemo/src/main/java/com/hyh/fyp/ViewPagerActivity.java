@@ -35,7 +35,7 @@ public class ViewPagerActivity extends AppCompatActivity {
         mViewPager = findViewById(R.id.banner_view_pager);
         mViewPager.setAdapter(mPagerAdapter);
         mViewPager.setOffscreenPageLimit(3);
-
+        mViewPager.setCurrentItem(10*10000);
 
         mViewPager.setPageTransformer(false, new CarouselTransformer(0.75f));
     }
