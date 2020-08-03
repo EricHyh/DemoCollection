@@ -14,7 +14,6 @@ import java.util.List;
 public abstract class ItemHolder<T> extends RecyclerView.ViewHolder {
 
     private List<T> mList;
-    private int mItemPosition;
     private T mData;
 
     public ItemHolder(View itemView) {
@@ -30,8 +29,8 @@ public abstract class ItemHolder<T> extends RecyclerView.ViewHolder {
     }
 
     protected int getItemPosition() {
-        mItemPosition = mList.indexOf(mData);
-        return mItemPosition;
+        if (mList == null) return -1;
+        return mList.indexOf(mData);
     }
 
     public T getData() {
@@ -40,16 +39,13 @@ public abstract class ItemHolder<T> extends RecyclerView.ViewHolder {
 
     void onBindViewHolder(List<T> list, int position) {
         this.mList = list;
-        this.mItemPosition = position;
         if (mList != null && position < mList.size()) {
             this.mData = list.get(position);
         }
         bindDataAndEvent();
     }
 
-
     protected abstract void bindDataAndEvent();
-
 
     protected void onRecycled() {
     }
@@ -58,5 +54,14 @@ public abstract class ItemHolder<T> extends RecyclerView.ViewHolder {
     }
 
     protected void onViewDetachedFromWindow() {
+    }
+
+    protected void onScrollStateChanged(int newState) {
+    }
+
+    protected void onScrolled(int scrollState) {
+    }
+
+    protected void onDestroy() {
     }
 }

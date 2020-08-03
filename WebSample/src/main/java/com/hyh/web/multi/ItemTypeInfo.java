@@ -7,12 +7,12 @@ package com.hyh.web.multi;
  */
 class ItemTypeInfo {
 
-    MultiModule multiModule;
+    MultiItemFactory multiItemFactory;
 
     int itemType;
 
-    ItemTypeInfo(MultiModule multiModule, int itemType) {
-        this.multiModule = multiModule;
+    ItemTypeInfo(MultiItemFactory multiItemFactory, int itemType) {
+        this.multiItemFactory = multiItemFactory;
         this.itemType = itemType;
     }
 }

@@ -8,23 +8,14 @@ import android.view.View;
  * @data 2017/5/22
  */
 
-public class EmptyDataModule extends SingleDataModule<Object> {
+public abstract class EmptyDataItemFactory extends SingleDataItemFactory<Object> {
 
-    public EmptyDataModule() {
+    public EmptyDataItemFactory() {
         super(new Object());
-    }
-
-    public EmptyDataModule(int layoutId) {
-        super(new Object(), layoutId);
-    }
-
-    public EmptyDataModule(View view) {
-        super(new Object(), view);
     }
 
     @Override
     protected void initView(View parent, View view) {
-
     }
 
     @Override

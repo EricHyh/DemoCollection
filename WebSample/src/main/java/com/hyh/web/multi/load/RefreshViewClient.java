@@ -6,20 +6,25 @@ package com.hyh.web.multi.load;
  * @data 2017/11/25
  */
 
-public interface IRefreshViewClient {
+public interface RefreshViewClient {
 
-    void executeRefresh();
+    boolean executeRefresh();
 
     void setOnRefreshListener(OnRefreshListener listener);
 
     /**
+     * 设置是否开启或关闭刷新功能
+     */
+    void setPullToRefreshEnabled(boolean enabled);
+
+    /**
      * 在加载更多的过程中，需要禁止刷新数据
-     *
-     * @param enabled
      */
     void setTemporaryEnabled(boolean enabled);
 
-    void refreshComplete();
+    void refreshComplete(boolean success);
+
+    boolean isRefreshing();
 
     interface OnRefreshListener {
 

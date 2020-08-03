@@ -1,5 +1,6 @@
 package com.hyh.web.multi.load;
 
+import android.support.annotation.NonNull;
 import android.view.View;
 
 /**
@@ -10,7 +11,8 @@ import android.view.View;
 
 public interface IFootView {
 
-    View onCreateView(LoadingModule loadingModule);
+    @NonNull
+    View onCreateView(LoadingItemFactory loadingItemFactory);
 
     void onLoadStateChanged(int oldState, int newState);
 

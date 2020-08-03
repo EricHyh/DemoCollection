@@ -12,7 +12,7 @@ import java.util.List;
  * @data 2017/5/18
  */
 
-public abstract class MultiModule<T> {
+public abstract class MultiItemFactory<T> {
 
     private Context mContext;
 
@@ -106,22 +106,26 @@ public abstract class MultiModule<T> {
         }
     }
 
-    public void insertData(T t, int position) {
+    public boolean insertData(T t, int position) {
         if (t == null) {
-            return;
+            return false;
         }
         if (this.mList == null) {
             ArrayList<T> list = new ArrayList<>();
             list.add(t);
             setDataList(list);
+            return true;
         } else {
             int oldSize = mList.size();
-            int insertPosition = position >= oldSize ? oldSize : position;
-            mList.add(insertPosition, t);
-            if (mAdapterClient != null) {
-                mAdapterClient.notifyItemRangeInserted(mAdapterClient.getModulePosition(this), insertPosition, 1);
+            if (position <= oldSize) {
+                mList.add(position, t);
+                if (mAdapterClient != null) {
+                    mAdapterClient.notifyItemRangeInserted(mAdapterClient.getModulePosition(this), position, 1);
+                }
+                return true;
             }
         }
+        return false;
     }
 
     public T removeDataByPosition(int position) {
@@ -135,18 +139,19 @@ public abstract class MultiModule<T> {
         return remove;
     }
 
-    public int removeDataByData(T t) {
+    public int removeData(T t) {
         int index = -1;
         if (this.mList == null || (index = this.mList.indexOf(t)) < 0) {
             return index;
         }
+        mList.remove(t);
         if (mAdapterClient != null) {
             mAdapterClient.notifyItemRemoved(mAdapterClient.getModulePosition(this), index);
         }
         return index;
     }
 
-    public void updataItem(int index) {
+    public void updateItem(int index) {
         if (this.mList == null || index >= this.mList.size()) {
             return;
         }
@@ -155,7 +160,7 @@ public abstract class MultiModule<T> {
         }
     }
 
-    public void updataItem(T t, int index) {
+    public void updateItem(T t, int index) {
         if (this.mList == null || index >= this.mList.size()) {
             return;
         }
@@ -166,7 +171,7 @@ public abstract class MultiModule<T> {
         }
     }
 
-    public void updataRangeItem(int startIndex, int itemCount) {
+    public void updateRangeItem(int startIndex, int itemCount) {
         if (this.mList == null || startIndex >= this.mList.size()) {
             return;
         }
@@ -176,9 +181,19 @@ public abstract class MultiModule<T> {
         }
     }
 
+    protected void onDestroy() {
+        final List<T> list = mList;
+        mList = null;
+        if (list != null) {
+            list.clear();
+        }
+        mContext = null;
+        mAdapterClient = null;
+    }
+
     interface MultiAdapterClient {
 
-        int getModulePosition(MultiModule module);
+        int getModulePosition(MultiItemFactory module);
 
         void notifyDataSetChanged(int modulePosition, int oldSize, int currentSize);
 

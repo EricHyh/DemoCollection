@@ -18,7 +18,7 @@ import android.widget.TextView;
 import com.hyh.web.R;
 import com.hyh.web.multi.ItemHolder;
 import com.hyh.web.multi.MultiAdapter;
-import com.hyh.web.multi.MultiModule;
+import com.hyh.web.multi.MultiItemFactory;
 import com.hyh.web.widget.web.CustomWebView;
 import com.hyh.web.widget.web.ViewMoreWebView;
 import com.hyh.web.widget.web.WebClient;
@@ -103,7 +103,7 @@ public class WebFragment extends Fragment {
         mWebClient.destroy();
     }
 
-    private static class NormalDataModule extends MultiModule<String> {
+    private static class NormalDataModule extends MultiItemFactory<String> {
 
         private static final String TAG = "NormalDataModule";
 

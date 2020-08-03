@@ -16,7 +16,7 @@ import android.widget.TextView;
 
 import com.hyh.web.multi.ItemHolder;
 import com.hyh.web.multi.MultiAdapter;
-import com.hyh.web.multi.MultiModule;
+import com.hyh.web.multi.MultiItemFactory;
 import com.hyh.web.widget.web.ViewMoreWebView;
 import com.hyh.web.widget.web.WebClient;
 
@@ -82,7 +82,7 @@ public class Scroll5Activity extends Activity {
         recyclerView.setAdapter(multiAdapter);
     }
 
-    private static class NormalDataModule extends MultiModule<String> {
+    private static class NormalDataModule extends MultiItemFactory<String> {
 
         private static final String TAG = "NormalDataModule";
 

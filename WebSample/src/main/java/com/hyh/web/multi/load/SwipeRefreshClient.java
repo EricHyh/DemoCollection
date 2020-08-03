@@ -1,5 +1,6 @@
 package com.hyh.web.multi.load;
 
+
 import android.support.v4.widget.SwipeRefreshLayout;
 
 /**
@@ -8,28 +9,21 @@ import android.support.v4.widget.SwipeRefreshLayout;
  * @data 2017/11/25
  */
 
-public class SwipeRefreshClient implements IRefreshViewClient, SwipeRefreshLayout.OnRefreshListener {
-
+public class SwipeRefreshClient implements RefreshViewClient, SwipeRefreshLayout.OnRefreshListener {
 
     private SwipeRefreshLayout mRefreshLayout;
-
+    private boolean mIsEnabled;
     private OnRefreshListener mListener;
-
-    private boolean isEnabled = true;
-
-    public void setAbsoluteEnabled(boolean enabled) {
-        isEnabled = enabled;
-        mRefreshLayout.setEnabled(isEnabled);
-    }
 
     public SwipeRefreshClient(SwipeRefreshLayout refreshLayout) {
         mRefreshLayout = refreshLayout;
+        mIsEnabled = refreshLayout.isEnabled();
         mRefreshLayout.setOnRefreshListener(this);
     }
 
     @Override
-    public void executeRefresh() {
-        if (isEnabled) {
+    public boolean executeRefresh() {
+        if (mIsEnabled) {
             mRefreshLayout.post(new Runnable() {
                 @Override
                 public void run() {
@@ -37,7 +31,9 @@ public class SwipeRefreshClient implements IRefreshViewClient, SwipeRefreshLayou
                     onRefresh();
                 }
             });
+            return true;
         }
+        return false;
     }
 
     @Override
@@ -45,16 +41,28 @@ public class SwipeRefreshClient implements IRefreshViewClient, SwipeRefreshLayou
         this.mListener = listener;
     }
 
+
+    @Override
+    public void setPullToRefreshEnabled(boolean enabled) {
+        mIsEnabled = enabled;
+        mRefreshLayout.setEnabled(mIsEnabled);
+    }
+
     @Override
     public void setTemporaryEnabled(boolean enabled) {
-        if (isEnabled) {
+        if (mIsEnabled) {
             mRefreshLayout.setEnabled(enabled);
         }
     }
 
     @Override
-    public void refreshComplete() {
+    public void refreshComplete(boolean success) {
         mRefreshLayout.setRefreshing(false);
+    }
+
+    @Override
+    public boolean isRefreshing() {
+        return mRefreshLayout.isRefreshing();
     }
 
     @Override

@@ -1,15 +1,20 @@
 package com.hyh.web.multi;
 
 import android.content.Context;
+import android.support.annotation.NonNull;
 import android.support.v7.widget.GridLayoutManager;
+import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.StaggeredGridLayoutManager;
 import android.util.SparseArray;
 import android.view.View;
 import android.view.ViewGroup;
 
+import java.lang.ref.WeakReference;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 
 /**
@@ -19,9 +24,17 @@ import java.util.List;
  */
 public class MultiAdapter extends RecyclerView.Adapter<ItemHolder> {
 
-    private List<MultiModule> mModuleList = new ArrayList<>();
+    private static final String TAG = "MultiAdapter";
+
+    private List<MultiItemFactory> mFactoryList = new ArrayList<>();
 
     private SparseArray<ItemTypeInfo> mTypeInfoArray = new SparseArray<>();
+
+    private Map<MultiItemFactory, MultiItemTypeFactory> mItemTypeFactoryMap = new HashMap<>();
+
+    private List<ItemHolderReference> mItemHolderReferences = new ArrayList<>();
+
+    private ScrollListener mScrollListener = new ScrollListener();
 
     private Context mContext;
 
@@ -29,28 +42,33 @@ public class MultiAdapter extends RecyclerView.Adapter<ItemHolder> {
         this.mContext = context;
     }
 
-    public <T> void addMultiModule(MultiModule<T> multiModule) {
-        multiModule.setup(mContext, mMultiAdapterClient);
-        mModuleList.add(multiModule);
+    public <T> void addMultiModule(MultiItemFactory<T> multiItemFactory) {
+        multiItemFactory.setup(mContext, mMultiAdapterClient);
+        mFactoryList.add(multiItemFactory);
     }
 
-    public <T> void addMultiModule(MultiModule<T> multiModule, int index) {
-        int size = mModuleList.size();
+    public <T> void addMultiModule(MultiItemFactory<T> multiItemFactory, int index) {
+        int size = mFactoryList.size();
         if (index > size || index < 0) {
             throw new IndexOutOfBoundsException(outOfBoundsMsg(index));
         }
-        multiModule.setup(mContext, mMultiAdapterClient);
-        mModuleList.add(index, multiModule);
+        multiItemFactory.setup(mContext, mMultiAdapterClient);
+        mFactoryList.add(index, multiItemFactory);
     }
 
+    @NonNull
     @Override
-    public ItemHolder onCreateViewHolder(ViewGroup parent, int viewType) {
+    public ItemHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         ItemTypeInfo itemTypeInfo = mTypeInfoArray.get(viewType);
         ItemHolder itemHolder;
         if (itemTypeInfo != null) {
-            itemHolder = itemTypeInfo.multiModule.onCreateViewHolder(parent, itemTypeInfo.itemType);
+            itemHolder = itemTypeInfo.multiItemFactory.onCreateViewHolder(parent, itemTypeInfo.itemType);
         } else {
             itemHolder = new EmptyHolder(new View(mContext));
+        }
+        ItemHolderReference itemHolderReference = new ItemHolderReference(itemHolder);
+        if (!mItemHolderReferences.contains(itemHolderReference)) {
+            mItemHolderReferences.add(itemHolderReference);
         }
         return itemHolder;
     }
@@ -58,14 +76,14 @@ public class MultiAdapter extends RecyclerView.Adapter<ItemHolder> {
 
     @SuppressWarnings("unchecked")
     @Override
-    public void onBindViewHolder(ItemHolder holder, int position) {
+    public void onBindViewHolder(@NonNull ItemHolder holder, int position) {
         if (position == RecyclerView.NO_POSITION) {
             return;
         }
-        for (MultiModule multiModule : mModuleList) {
-            int itemCount = multiModule.getItemCount();
+        for (MultiItemFactory multiItemFactory : mFactoryList) {
+            int itemCount = multiItemFactory.getItemCount();
             if (position <= itemCount - 1) {
-                multiModule.onBindViewHolder(holder, position);
+                multiItemFactory.onBindViewHolder(holder, position);
                 return;
             } else {
                 position -= itemCount;
@@ -76,8 +94,8 @@ public class MultiAdapter extends RecyclerView.Adapter<ItemHolder> {
     @Override
     public int getItemCount() {
         int itemCount = 0;
-        for (MultiModule multiModule : mModuleList) {
-            itemCount += multiModule.getItemCount();
+        for (MultiItemFactory multiItemFactory : mFactoryList) {
+            itemCount += multiItemFactory.getItemCount();
         }
         return itemCount;
     }
@@ -87,28 +105,36 @@ public class MultiAdapter extends RecyclerView.Adapter<ItemHolder> {
         if (position == RecyclerView.NO_POSITION) {
             return super.getItemViewType(position);
         }
-        for (MultiModule multiModule : mModuleList) {
-            int itemCount = multiModule.getItemCount();
+        final int originalPosition = position;
+        for (MultiItemFactory multiItemFactory : mFactoryList) {
+            int itemCount = multiItemFactory.getItemCount();
             if (position <= itemCount - 1) {
-                int itemViewType = multiModule.getItemViewType(position);
-                int hashCode = System.identityHashCode(multiModule);
+                MultiItemTypeFactory multiItemTypeFactory = mItemTypeFactoryMap.get(multiItemFactory);
+                if (multiItemTypeFactory == null) {
+                    multiItemTypeFactory = new MultiItemTypeFactory(multiItemFactory);
+                    mItemTypeFactoryMap.put(multiItemFactory, multiItemTypeFactory);
+                }
+                /*int hashCode = System.identityHashCode(multiItemFactory);
                 String hashStr = String.valueOf(hashCode) + "-" + itemViewType;
-
-                int realItemViewType = hashStr.hashCode();
+                int realItemViewType = hashStr.hashCode();*/
+                int itemViewType = multiItemFactory.getItemViewType(position);
+                ItemTypeInfo itemTypeInfo = multiItemTypeFactory.obtain(itemViewType);
+                int realItemViewType = System.identityHashCode(itemTypeInfo);
                 if (mTypeInfoArray.get(realItemViewType) == null) {
-                    mTypeInfoArray.put(realItemViewType, new ItemTypeInfo(multiModule, itemViewType));
+                    mTypeInfoArray.put(realItemViewType, itemTypeInfo);
                 }
                 return realItemViewType;
             } else {
                 position -= itemCount;
             }
         }
-        return super.getItemViewType(position);
+        return super.getItemViewType(originalPosition);
     }
 
     @Override
-    public void onAttachedToRecyclerView(final RecyclerView recyclerView) {
+    public void onAttachedToRecyclerView(@NonNull final RecyclerView recyclerView) {
         super.onAttachedToRecyclerView(recyclerView);
+        recyclerView.addOnScrollListener(mScrollListener);
         RecyclerView.LayoutManager manager = recyclerView.getLayoutManager();
         if (manager instanceof GridLayoutManager) {
             final GridLayoutManager gridManager = ((GridLayoutManager) manager);
@@ -118,10 +144,10 @@ public class MultiAdapter extends RecyclerView.Adapter<ItemHolder> {
                     if (position == RecyclerView.NO_POSITION) {
                         return 1;
                     }
-                    for (MultiModule multiModule : mModuleList) {
-                        int itemCount = multiModule.getItemCount();
+                    for (MultiItemFactory multiItemFactory : mFactoryList) {
+                        int itemCount = multiItemFactory.getItemCount();
                         if (position <= itemCount - 1) {
-                            return multiModule.getSpanSize(gridManager.getSpanCount(), position);
+                            return multiItemFactory.getSpanSize(gridManager.getSpanCount(), position);
                         } else {
                             position -= itemCount;
                         }
@@ -133,13 +159,13 @@ public class MultiAdapter extends RecyclerView.Adapter<ItemHolder> {
     }
 
     @Override
-    public void onDetachedFromRecyclerView(RecyclerView recyclerView) {
+    public void onDetachedFromRecyclerView(@NonNull RecyclerView recyclerView) {
         super.onDetachedFromRecyclerView(recyclerView);
+        recyclerView.removeOnScrollListener(mScrollListener);
     }
 
-
     @Override
-    public void onViewAttachedToWindow(ItemHolder holder) {
+    public void onViewAttachedToWindow(@NonNull ItemHolder holder) {
         super.onViewAttachedToWindow(holder);
         if (isStaggeredGridLayout(holder)) {
             handleLayoutIsStaggeredGridLayout(holder, holder.getLayoutPosition());
@@ -148,19 +174,19 @@ public class MultiAdapter extends RecyclerView.Adapter<ItemHolder> {
     }
 
     @Override
-    public void onViewDetachedFromWindow(ItemHolder holder) {
+    public void onViewDetachedFromWindow(@NonNull ItemHolder holder) {
         super.onViewDetachedFromWindow(holder);
         holder.onViewDetachedFromWindow();
     }
 
     private boolean isStaggeredGridLayout(ItemHolder holder) {
         ViewGroup.LayoutParams layoutParams = holder.itemView.getLayoutParams();
-        return layoutParams != null && layoutParams instanceof StaggeredGridLayoutManager.LayoutParams;
+        return layoutParams instanceof StaggeredGridLayoutManager.LayoutParams;
     }
 
     private void handleLayoutIsStaggeredGridLayout(ItemHolder holder, int position) {
-        for (MultiModule multiModule : mModuleList) {
-            int itemCount = multiModule.getItemCount();
+        for (MultiItemFactory multiItemFactory : mFactoryList) {
+            int itemCount = multiItemFactory.getItemCount();
             if (position <= itemCount - 1) {
                 break;
             } else {
@@ -174,16 +200,38 @@ public class MultiAdapter extends RecyclerView.Adapter<ItemHolder> {
     }
 
     @Override
-    public void onViewRecycled(ItemHolder holder) {
+    public void onViewRecycled(@NonNull ItemHolder holder) {
         super.onViewRecycled(holder);
         holder.onRecycled();
     }
 
-    private MultiModule.MultiAdapterClient mMultiAdapterClient = new MultiModule.MultiAdapterClient() {
+    public void destroy() {
+        mItemTypeFactoryMap.clear();
+        mTypeInfoArray.clear();
+        if (mFactoryList != null && !mFactoryList.isEmpty()) {
+            for (MultiItemFactory multiItemFactory : mFactoryList) {
+                multiItemFactory.onDestroy();
+            }
+            mFactoryList.clear();
+        }
+        if (mItemHolderReferences != null && !mItemHolderReferences.isEmpty()) {
+            for (ItemHolderReference itemHolderReference : mItemHolderReferences) {
+                ItemHolder itemHolder = itemHolderReference.get();
+                if (itemHolder != null) {
+                    itemHolder.onDestroy();
+                }
+            }
+            mItemHolderReferences.clear();
+        }
+        mContext = null;
+        mScrollListener = null;
+    }
+
+    private MultiItemFactory.MultiAdapterClient mMultiAdapterClient = new MultiItemFactory.MultiAdapterClient() {
 
         @Override
-        public int getModulePosition(MultiModule module) {
-            return mModuleList.indexOf(module);
+        public int getModulePosition(MultiItemFactory module) {
+            return mFactoryList.indexOf(module);
         }
 
         @Override
@@ -230,16 +278,16 @@ public class MultiAdapter extends RecyclerView.Adapter<ItemHolder> {
     private int getModuleFirstPosition(int modulePosition) {
         int positionStart = 0;
         for (int i = 0; i < modulePosition; i++) {
-            positionStart += mModuleList.get(i).getItemCount();
+            positionStart += mFactoryList.get(i).getItemCount();
         }
         return positionStart;
     }
 
-    public int getModuleFirstPosition(MultiModule multiModule) {
-        if (multiModule == null || multiModule.getItemCount() <= 0) {
+    public int getModuleFirstPosition(MultiItemFactory multiItemFactory) {
+        if (multiItemFactory == null || multiItemFactory.getItemCount() <= 0) {
             return -1;
         }
-        int modulePosition = mModuleList.indexOf(multiModule);
+        int modulePosition = mFactoryList.indexOf(multiItemFactory);
         if (modulePosition < 0) {
             return -1;
         } else {
@@ -248,6 +296,146 @@ public class MultiAdapter extends RecyclerView.Adapter<ItemHolder> {
     }
 
     private String outOfBoundsMsg(int index) {
-        return "Index: " + index + ", Size: " + mModuleList.size();
+        return "Index: " + index + ", Size: " + mFactoryList.size();
+    }
+
+    private class ScrollListener extends RecyclerView.OnScrollListener {
+
+        private final static long POST_SCROLLED_TIME_INTERVAL = 150;
+
+        private long mLastPostScrolledTimeMills;
+
+        @Override
+        public void onScrollStateChanged(RecyclerView recyclerView, int newState) {
+            super.onScrollStateChanged(recyclerView, newState);
+            RecyclerView.LayoutManager layoutManager = recyclerView.getLayoutManager();
+            if (layoutManager == null) {
+                return;
+            }
+            if (layoutManager instanceof StaggeredGridLayoutManager) {
+                StaggeredGridLayoutManager manager = (StaggeredGridLayoutManager) layoutManager;
+                int[] firstVisibleItemPositions = manager.findFirstVisibleItemPositions(null);
+                int firstVisibleItemPosition = findMin(firstVisibleItemPositions);
+                int[] lastVisibleItemPositions = manager.findLastVisibleItemPositions(null);
+                int lastVisibleItemPosition = findMax(lastVisibleItemPositions);
+                postScrollStateChanged(recyclerView, newState, firstVisibleItemPosition, lastVisibleItemPosition);
+            } else if (layoutManager instanceof LinearLayoutManager) {
+                LinearLayoutManager manager = (LinearLayoutManager) layoutManager;
+                int firstVisibleItemPosition = manager.findFirstVisibleItemPosition();
+                int lastVisibleItemPosition = manager.findLastVisibleItemPosition();
+                postScrollStateChanged(recyclerView, newState, firstVisibleItemPosition, lastVisibleItemPosition);
+            }
+        }
+
+        @Override
+        public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
+            super.onScrolled(recyclerView, dx, dy);
+            RecyclerView.LayoutManager layoutManager = recyclerView.getLayoutManager();
+            if (layoutManager == null) {
+                return;
+            }
+            long currentTimeMillis = System.currentTimeMillis();
+            if (Math.abs(currentTimeMillis - mLastPostScrolledTimeMills) < POST_SCROLLED_TIME_INTERVAL) {
+                return;
+            }
+            mLastPostScrolledTimeMills = currentTimeMillis;
+            if (layoutManager instanceof StaggeredGridLayoutManager) {
+                StaggeredGridLayoutManager manager = (StaggeredGridLayoutManager) layoutManager;
+                int[] firstVisibleItemPositions = manager.findFirstVisibleItemPositions(null);
+                int firstVisibleItemPosition = findMin(firstVisibleItemPositions);
+                int[] lastVisibleItemPositions = manager.findLastVisibleItemPositions(null);
+                int lastVisibleItemPosition = findMax(lastVisibleItemPositions);
+                postScrolled(recyclerView, firstVisibleItemPosition, lastVisibleItemPosition);
+            } else if (layoutManager instanceof LinearLayoutManager) {
+                LinearLayoutManager manager = (LinearLayoutManager) layoutManager;
+                int firstVisibleItemPosition = manager.findFirstVisibleItemPosition();
+                int lastVisibleItemPosition = manager.findLastVisibleItemPosition();
+                postScrolled(recyclerView, firstVisibleItemPosition, lastVisibleItemPosition);
+            }
+        }
+
+        private void postScrollStateChanged(RecyclerView recyclerView, int newState, int firstVisibleItemPosition, int lastVisibleItemPosition) {
+            for (int index = firstVisibleItemPosition; index < lastVisibleItemPosition; index++) {
+                ItemHolder itemHolder = (ItemHolder) recyclerView.findViewHolderForAdapterPosition(index);
+                if (itemHolder == null) continue;
+                itemHolder.onScrollStateChanged(newState);
+            }
+        }
+
+        private void postScrolled(RecyclerView recyclerView, int firstVisibleItemPosition, int lastVisibleItemPosition) {
+            for (int index = firstVisibleItemPosition; index < lastVisibleItemPosition; index++) {
+                ItemHolder itemHolder = (ItemHolder) recyclerView.findViewHolderForAdapterPosition(index);
+                if (itemHolder == null) continue;
+                itemHolder.onScrolled(recyclerView.getScrollState());
+            }
+        }
+    }
+
+    private int findMax(int[] lastPositions) {
+        int max = lastPositions[0];
+        for (int value : lastPositions) {
+            if (value > max) {
+                max = value;
+            }
+        }
+        return max;
+    }
+
+    private int findMin(int[] firstPositions) {
+        int min = firstPositions[0];
+        for (int value : firstPositions) {
+            if (value < min) {
+                min = value;
+            }
+        }
+        return min;
+    }
+
+    private static class MultiItemTypeFactory {
+
+        private final MultiItemFactory mMultiItemFactory;
+        private final SparseArray<ItemTypeInfo> mTypeInfoArray;
+
+        MultiItemTypeFactory(MultiItemFactory multiItemFactory) {
+            this.mMultiItemFactory = multiItemFactory;
+            this.mTypeInfoArray = new SparseArray<>();
+        }
+
+        @NonNull
+        ItemTypeInfo obtain(int type) {
+            ItemTypeInfo itemTypeInfo = mTypeInfoArray.get(type);
+            if (itemTypeInfo == null) {
+                itemTypeInfo = new ItemTypeInfo(mMultiItemFactory, type);
+                mTypeInfoArray.put(type, itemTypeInfo);
+            }
+            return itemTypeInfo;
+        }
+    }
+
+    private static class ItemHolderReference {
+
+        private WeakReference<ItemHolder> mItemHolderRef;
+        private int mItemHolderHashCode;
+
+        public ItemHolderReference(@NonNull ItemHolder itemHolder) {
+            this.mItemHolderRef = new WeakReference<>(itemHolder);
+            this.mItemHolderHashCode = itemHolder.hashCode();
+        }
+
+        public ItemHolder get() {
+            return mItemHolderRef.get();
+        }
+
+        @Override
+        public int hashCode() {
+            return mItemHolderHashCode;
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (obj == null) return false;
+            if (obj == this) return true;
+            return obj.hashCode() == this.hashCode();
+        }
     }
 }
