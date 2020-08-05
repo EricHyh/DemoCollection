@@ -37,7 +37,14 @@
             </intent-filter>-->
         </activity>
 
-        <activity android:name="com.hyh.fyp.ViewPagerActivity" >
+        <activity android:name="com.hyh.fyp.ViewPagerActivity">
+
+        </activity>
+
+        <activity
+            android:name="com.hyh.fyp.ExpandActivity"
+            android:screenOrientation="portrait">
+
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 

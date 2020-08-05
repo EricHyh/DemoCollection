@@ -16,16 +16,16 @@ import java.io.InputStream;
  * @description
  * @data 2020/7/21
  */
-public class GifDrawable extends Drawable {
+public class SGifDrawable extends Drawable {
 
-    private static final String TAG = "GifDrawable";
+    private static final String TAG = "SGifDrawable";
 
     public static Drawable createFromPath(String pathName) {
-        return new GifDrawable(Movie.decodeFile(pathName));
+        return new SGifDrawable(Movie.decodeFile(pathName));
     }
 
     public static Drawable createFromStream(InputStream is, String srcName) {
-        return new GifDrawable(Movie.decodeStream(is));
+        return new SGifDrawable(Movie.decodeStream(is));
     }
 
     private final Movie movie;
@@ -38,7 +38,7 @@ public class GifDrawable extends Drawable {
 
     private boolean start;
 
-    private GifDrawable(Movie movie) {
+    private SGifDrawable(Movie movie) {
         this.movie = movie;
         int width = movie.width();
         int height = movie.height();

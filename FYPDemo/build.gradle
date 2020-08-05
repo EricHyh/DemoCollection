@@ -47,6 +47,8 @@ dependencies {
     })
     compile 'com.google.code.gson:gson:2.8.0'
 
-    compile 'pl.droidsonroids.gif:android-gif-drawable:1.2.19'
+    //compile 'pl.droidsonroids.gif:android-gif-drawable:1.2.19'
+
+    compile 'com.felipecsl:gifimageview:2.2.0'
 
 }

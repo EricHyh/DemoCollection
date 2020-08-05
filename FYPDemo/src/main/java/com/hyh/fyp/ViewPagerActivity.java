@@ -12,9 +12,15 @@ import android.util.Log;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.FrameLayout;
 import android.widget.TextView;
 
+import com.felipecsl.gifimageview.library.GifImageView;
+import com.hyh.common.utils.StreamUtil;
 import com.hyh.fyp.widget.CarouselTransformer;
+import com.hyh.fyp.widget.DragViewHelper;
+
+import java.io.IOException;
 
 /**
  * @author Administrator
@@ -35,9 +41,32 @@ public class ViewPagerActivity extends AppCompatActivity {
         mViewPager = findViewById(R.id.banner_view_pager);
         mViewPager.setAdapter(mPagerAdapter);
         mViewPager.setOffscreenPageLimit(3);
-        mViewPager.setCurrentItem(10*10000);
+        mViewPager.setCurrentItem(10 * 10000);
 
         mViewPager.setPageTransformer(false, new CarouselTransformer(0.75f));
+
+        FrameLayout frameLayout = findViewById(android.R.id.content);
+
+        GifImageView imageView = new GifImageView(this);
+        imageView.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+
+
+        try {
+            byte[] bytes = StreamUtil.stream2Bytes(getResources().openRawResource(R.raw.qq_music_ad));
+            imageView.setBytes(bytes);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        imageView.startAnimation();
+
+
+
+        frameLayout.addView(imageView);
+
+        new DragViewHelper
+                .Builder(imageView)
+                .build();
     }
 
     private PagerAdapter mPagerAdapter = new PagerAdapter() {

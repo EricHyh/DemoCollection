@@ -1,0 +1,11 @@
+一、android刷新机制
+1.调用流程
+View#invalidate     ->  ViewRootImpl#invalidateChild    ->  ViewRootImpl#scheduleTraversals
+View#requestLayout  ->  ViewRootImpl#requestLayout      ->  ViewRootImpl#scheduleTraversals
+
+2.注册刷新事件
+Choreographer#postCallback  ->  FrameDisplayEventReceiver#scheduleVsync
+
+
+二、为什么调用invalidate可以触发重新绘制
+1.View#invalidate     ->   ViewRootImpl#invalidateChild ->  mPrivateFlags |= PFLAG_DIRTY | PFLAG_INVALIDATED

@@ -132,6 +132,15 @@ public class ViewMoreDrawable extends Drawable {
         canvas.restore();
     }
 
+    @Override
+    public int getIntrinsicWidth() {
+        return getBounds().right - getBounds().left;
+    }
+
+    @Override
+    public int getIntrinsicHeight() {
+        return getBounds().bottom - getBounds().top;
+    }
 
     @Override
     public void setAlpha(int alpha) {

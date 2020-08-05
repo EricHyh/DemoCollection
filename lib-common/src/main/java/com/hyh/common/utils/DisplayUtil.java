@@ -51,6 +51,30 @@ public class DisplayUtil {
         return size;
     }
 
+    public static int[] getRealScreenSize(Context context) {
+        int[] size = new int[2];
+        WindowManager windowManager = (WindowManager) context.getSystemService(Context.WINDOW_SERVICE);
+        if (windowManager != null) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
+                Point outSize = new Point();
+                windowManager.getDefaultDisplay().getRealSize(outSize);
+                size[0] = outSize.x;
+                size[1] = outSize.y;
+            } else {
+                DisplayMetrics outMetrics = new DisplayMetrics();
+                windowManager.getDefaultDisplay().getMetrics(outMetrics);
+                size[0] = outMetrics.widthPixels;
+                size[1] = outMetrics.heightPixels;
+            }
+        } else {
+            Resources resources = context.getResources();
+            DisplayMetrics dm = resources.getDisplayMetrics();
+            size[0] = dm.widthPixels;
+            size[1] = dm.heightPixels;
+        }
+        return size;
+    }
+
     public static int getScreenWidth(Context context) {
         Resources resources = context.getResources();
         DisplayMetrics dm = resources.getDisplayMetrics();
