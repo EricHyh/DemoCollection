@@ -1,3 +1,8 @@
+import proguard.gradle.ProGuardTask
+
+import java.util.zip.ZipEntry
+import java.util.zip.ZipFile
+
 apply plugin: 'com.android.library'
 
 android {
@@ -35,4 +40,210 @@ android {
 }
 
 dependencies {
+}
+
+
+
+
+def compileSdkVersion
+def sdkName = "XXSDK"
+def sdkVersionName
+def defaultProguardFile = null
+
+List<String> dependencyProjects
+List<File> dependencyJars
+
+task deletJar(type: Delete) {
+    delete file(buildDir.path + File.separator + sdkName + sdkVersionName + "_withoutProguard" + ".jar")
+    delete file(buildDir.path + File.separator + sdkName + sdkVersionName + "_withProguard" + ".jar")
+}
+
+//http://www.alloyteam.com/2015/03/shi-yong-gradle-da-bao-zhi-ding-bao-ming-he-lei-di-jar/
+task makeJar(type: Jar) {
+    dependsOn deletJar, build, ':lib-common:build'
+    println 'makeJar start'
+
+    dependencyProjects.each { projectName ->
+        Project dependencyProject = project(":" + projectName)
+        File aarDir = file(dependencyProject.buildDir.absolutePath + "/outputs/aar")
+        if (!aarDir.exists() || !aarDir.isDirectory()) {
+            println "project:$projectName aar dir not found"
+            return
+        }
+        File aarFile = null
+        aarDir.listFiles().each {
+            if (it.exists() && it.isFile() && it.getName().endsWith("release.aar")) {
+                aarFile = it
+            }
+        }
+        if (aarFile == null) {
+            println "project:$projectName aar file not found"
+            return
+        }
+
+        ZipFile zipFile = new ZipFile(aarFile)
+        File tempClasses = file(dependencyProject.buildDir.absolutePath + "/outputs/temp/classes.jar")
+        if (tempClasses.exists()) tempClasses.delete()
+
+        try {
+            zipFile = new ZipFile(aarFile)
+            ZipEntry zipEntry = zipFile.getEntry("classes.jar")
+            if (zipEntry == null) {
+                println "project:$projectName classes.jar not found in aar file"
+                return
+            }
+            InputStream inputStream = zipFile.getInputStream(zipEntry)
+
+            File outputsTmpDir = file(dependencyProject.buildDir.absolutePath + "/outputs/temp")
+            outputsTmpDir.mkdirs()
+
+            tempClasses.withOutputStream { osm ->
+                osm << inputStream
+            }
+
+            if (!tempClasses.exists() || tempClasses.length() <= 0) {
+                println "project:$projectName classes.jar copy failed"
+                return
+            }
+        } finally {
+            zipFile.close()
+        }
+
+        from zipTree(tempClasses)
+    }
+
+    dependencyJars.each { jarPath ->
+        from zipTree(file(jarPath))
+    }
+
+    baseName = sdkName + sdkVersionName + "_withoutProguard"
+    destinationDir = file(buildDir.path)
+}
+task makeProGuardJar(type: ProGuardTask) {
+    dependsOn makeJar
+    injars buildDir.path + File.separator + sdkName + sdkVersionName + "_withoutProguard" + ".jar"
+    outjars buildDir.path + File.separator + sdkName + sdkVersionName + "_withProguard" + ".jar"
+
+    //从local.properties中获取Android sdk所在的目录
+    Properties properties = new Properties()
+    properties.load(new FileInputStream(new File(rootProject.projectDir, 'local.properties')))
+    def sdkDir = properties.get('sdk.dir')
+
+    //根据当前项目编译版本，获取具体版本的android.jar，如G:\sdk\platforms\android-27\android.jar
+    def androidJarPath = sdkDir + File.separator + "platforms" + File.separator + "android-" + compileSdkVersion + File.separator + "android.jar"
+
+    //混淆需要依赖android.jar
+    libraryjars(file(androidJarPath))
+
+    dontwarn('android.support.annotation.**')
+
+    configuration 'proguard-rules.pro'
+
+    dependencyProjects.each { projectName ->
+        configuration project(":" + projectName).projectDir.absolutePath + File.separator + "proguard-rules.pro"
+    }
+    configuration defaultProguardFile
+
+    doLast {
+        copy {
+            from 'build'
+            include '*_withProguard.jar'
+            into "../output"
+        }
+    }
+}
+
+task makeJarWithAssets(type: Jar) {
+    dependsOn deletJar, build
+    println 'makeJar start'
+
+    dependencyProjects.each { projectName ->
+        Project dependencyProject = project(":" + projectName)
+        File aarDir = file(dependencyProject.buildDir.absolutePath + "/outputs/aar")
+        if (!aarDir.exists() || !aarDir.isDirectory()) {
+            println "project:$projectName aar dir not found"
+            return
+        }
+        File aarFile = null
+        aarDir.listFiles().each {
+            if (it.exists() && it.isFile() && it.getName().endsWith("release.aar")) {
+                aarFile = it
+            }
+        }
+        if (aarFile == null) {
+            println "project:$projectName aar file not found"
+            return
+        }
+
+        ZipFile zipFile = new ZipFile(aarFile)
+        File tempClasses = file(dependencyProject.buildDir.absolutePath + "/outputs/temp/classes.jar")
+        if (tempClasses.exists()) tempClasses.delete()
+
+        try {
+            zipFile = new ZipFile(aarFile)
+            ZipEntry zipEntry = zipFile.getEntry("classes.jar")
+            if (zipEntry == null) {
+                println "project:$projectName classes.jar not found in aar file"
+                return
+            }
+            InputStream inputStream = zipFile.getInputStream(zipEntry)
+
+            File outputsTmpDir = file(dependencyProject.buildDir.absolutePath + "/outputs/temp")
+            outputsTmpDir.mkdirs()
+
+            tempClasses.withOutputStream { osm ->
+                osm << inputStream
+            }
+
+            if (!tempClasses.exists() || tempClasses.length() <= 0) {
+                println "project:$projectName classes.jar copy failed"
+                return
+            }
+        } finally {
+            zipFile.close()
+        }
+
+        from fileTree(dir: "${dependencyProject.getProjectDir().path}/src/main", includes: ['assets/**'])
+        from zipTree(tempClasses)
+    }
+
+    dependencyJars.each { jarPath ->
+        from zipTree(file(jarPath))
+    }
+
+    baseName = sdkName + sdkVersionName + "_withoutProguard_withAssets"
+    destinationDir = file(buildDir.path)
+}
+task makeProGuardJarWithAssets(type: ProGuardTask) {
+    dependsOn makeJar
+    injars buildDir.path + File.separator + sdkName + sdkVersionName + "_withoutProguard_withAssets" + ".jar"
+    outjars buildDir.path + File.separator + sdkName + sdkVersionName + "_withProguard_withAssets" + ".jar"
+
+    //从local.properties中获取Android sdk所在的目录
+    Properties properties = new Properties()
+    properties.load(new FileInputStream(new File(rootProject.projectDir, 'local.properties')))
+    def sdkDir = properties.get('sdk.dir')
+
+    //根据当前项目编译版本，获取具体版本的android.jar，如G:\sdk\platforms\android-27\android.jar
+    def androidJarPath = sdkDir + File.separator + "platforms" + File.separator + "android-" + compileSdkVersion + File.separator + "android.jar"
+
+    //混淆需要依赖android.jar
+    libraryjars(file(androidJarPath))
+
+    dontwarn('android.support.annotation.**')
+
+    configuration 'proguard-rules.pro'
+
+    dependencyProjects.each { projectName ->
+        configuration project(":" + projectName).projectDir.absolutePath + File.separator + "proguard-rules.pro"
+    }
+    configuration defaultProguardFile
+
+    doLast {
+        copy {
+            from 'build'
+            include '*_withProguard_withAssets.jar'
+            into "../output"
+        }
+    }
 }

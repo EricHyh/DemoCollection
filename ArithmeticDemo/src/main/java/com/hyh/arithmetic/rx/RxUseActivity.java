@@ -37,6 +37,7 @@ public class RxUseActivity extends Activity {
         button.setOnClickListener(v -> {
 
 
+
             /*Observable.just(0, 1, 2, 3)
                     .subscribeOn(Schedulers.io())
                     .flatMap(new Function<Integer, ObservableSource<?>>() {
@@ -186,13 +187,7 @@ public class RxUseActivity extends Activity {
         });
         setContentView(button);
 
-        new Thread(
-                () -> {
-                    test();
-                    test(null);
-                    test(1,2);
-                }
-        ).start();
+
 
 
     }

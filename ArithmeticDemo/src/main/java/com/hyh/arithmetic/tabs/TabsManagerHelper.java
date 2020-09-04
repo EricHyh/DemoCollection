@@ -17,7 +17,7 @@ public class TabsManagerHelper {
     @NonNull
     public static TabsManagerInfo computeOriginalTabsManagerInfo(@NonNull List<String> originalChannelList,
                                                                  @NonNull TabsManagerInfo userTabsManagerInfo) {
-        if (originalChannelList.size() <= 2) {
+        if (originalChannelList.size() <= 1) {
             return new TabsManagerInfo(originalChannelList, null);
         }
         if (userTabsManagerInfo.usedChannelList.isEmpty()) {
@@ -64,7 +64,6 @@ public class TabsManagerHelper {
                 continue;
             }
             tempChannelList.remove(channelName);
-
 
             if (index == 0) {
                 if (!TextUtils.equals(channelName, fixedFirstChannelName)) {

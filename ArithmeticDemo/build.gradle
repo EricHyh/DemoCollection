@@ -35,4 +35,7 @@ dependencies {
     implementation 'com.trello.rxlifecycle4:rxlifecycle-android:4.0.0'
     implementation 'com.trello.rxlifecycle4:rxlifecycle-components:4.0.0'
     implementation 'com.trello.rxlifecycle4:rxlifecycle-android-lifecycle:4.0.0'*/
+
+    testImplementation 'junit:junit:4.12'
+    testImplementation 'org.mockito:mockito-core:2.19.0'
 }
