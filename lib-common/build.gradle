@@ -76,6 +76,7 @@ task makeJar(type: Jar) {
                 aarFile = it
             }
         }
+
         if (aarFile == null) {
             println "project:$projectName aar file not found"
             return
