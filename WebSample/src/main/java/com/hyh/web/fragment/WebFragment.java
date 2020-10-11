@@ -39,7 +39,8 @@ public class WebFragment extends Fragment {
     @Override
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
 
-        View view = inflater.inflate(R.layout.activity_scroll5, container, false);
+        ViewGroup view = (ViewGroup) inflater.inflate(R.layout.activity_scroll5, container, false);
+        view.setMotionEventSplittingEnabled(false);
 
         ViewMoreWebView webView = view.findViewById(R.id.web_view);
         webView.setFoldMode(ViewMoreWebView.FoldMode.NATIVE);

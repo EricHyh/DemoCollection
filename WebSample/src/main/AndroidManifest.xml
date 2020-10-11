@@ -33,11 +33,7 @@
         <activity
             android:name="com.hyh.web.WebActivity"
             android:screenOrientation="portrait">
-            <!--<intent-filter>
-                <action android:name="android.intent.action.MAIN"/>
 
-                <category android:name="android.intent.category.LAUNCHER"/>
-            </intent-filter>-->
         </activity>
 
         <activity
@@ -49,11 +45,11 @@
         <activity
             android:name="com.hyh.web.js.JSWebEntryActivity"
             android:screenOrientation="portrait">
-            <intent-filter>
+            <!--<intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
+            </intent-filter>-->
         </activity>
 
         <activity
@@ -67,6 +63,22 @@
         <activity
             android:name="com.hyh.web.js.JSWeb3Activity"
             android:screenOrientation="portrait" />
+
+        <activity android:name=".RefreshActivity"
+            android:screenOrientation="portrait">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+        </activity>
+
+
+        <activity android:name=".Scroll3Activity"
+            android:screenOrientation="portrait">
+
+        </activity>
+
 
     </application>
 

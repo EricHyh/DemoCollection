@@ -30,4 +30,31 @@ public class SelfRecyclerView extends RecyclerView {
         int height = getMeasuredHeight();
         Log.d(TAG, "onSizeChanged: height = " + height);
     }
+
+    private boolean receiveActionDown;
+
+    /*@Override
+    public boolean dispatchTouchEvent(MotionEvent ev) {
+        int action = ev.getActionMasked();
+        boolean dispatched = super.dispatchTouchEvent(ev);
+        switch (action) {
+            case MotionEvent.ACTION_DOWN: {
+                receiveActionDown = true;
+                break;
+            }
+            case MotionEvent.ACTION_POINTER_DOWN:
+            case MotionEvent.ACTION_POINTER_UP: {
+                if (!receiveActionDown) {
+                    return false;
+                }
+                break;
+            }
+            case MotionEvent.ACTION_UP:
+            case MotionEvent.ACTION_CANCEL: {
+                receiveActionDown = false;
+                break;
+            }
+        }
+        return dispatched;
+    }*/
 }

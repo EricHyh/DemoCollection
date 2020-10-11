@@ -142,6 +142,9 @@ public class NestedScrollWebView extends CustomWebView implements NestedScrollin
     @Override
     public boolean dispatchTouchEvent(MotionEvent ev) {
         mCurTouchAction = ev.getActionMasked();
+        if (mCurTouchAction == MotionEvent.ACTION_POINTER_DOWN) {
+            Log.d(TAG, "dispatchTouchEvent: ");
+        }
         /*if (mCurTouchAction == MotionEvent.ACTION_DOWN) {
             if (mScrollHorizontalState == SCROLL_HORIZONTAL_DISALLOW) {
                 int x = (int) (ev.getX() + 0.5f);
